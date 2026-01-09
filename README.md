@@ -14,7 +14,7 @@ AI-powered GitHub workflow CLI - leverage Claude AI to create tickets, implement
 ## Installation
 
 ```bash
-npm install -g @rotorsoft/gent
+pnpm add -g @rotorsoft/gent
 ```
 
 ### Prerequisites

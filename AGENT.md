@@ -7,7 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 pnpm install          # Install dependencies
 pnpm run build        # Build with tsup (outputs to dist/)
-pnpm run dev          # Build in watch mode
+pnpm run dev          # Run CLI directly with tsx (no build needed)
+pnpm run watch        # Build in watch mode
 pnpm run typecheck    # Run TypeScript type checking
 pnpm run lint         # Run ESLint
 pnpm run lint:fix     # Fix ESLint issues
