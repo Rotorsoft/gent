@@ -82,7 +82,9 @@ User Request: ${description}
 
 ${agentInstructions ? `Project-Specific Instructions:\n${agentInstructions}\n\n` : ""}${additionalHints ? `Additional Context/Hints:\n${additionalHints}\n\n` : ""}
 
-Create a detailed GitHub issue following this exact template:
+Create a detailed GitHub issue following this exact template.
+
+IMPORTANT: Start your output IMMEDIATELY with "## Description" - do not include any preamble, commentary, or introduction before the template.
 
 ## Description
 [Clear user-facing description of what needs to be done]
@@ -207,5 +209,13 @@ export function parseTicketMeta(
 
 export function extractIssueBody(output: string): string {
   // Remove the META line from the output
-  return output.replace(/\n?META:type=\w+,priority=\w+,risk=\w+,area=\w+\s*$/, "").trim();
+  let body = output.replace(/\n?META:type=\w+,priority=\w+,risk=\w+,area=\w+\s*$/, "").trim();
+
+  // Strip any preamble text before "## Description"
+  const descriptionIndex = body.indexOf("## Description");
+  if (descriptionIndex > 0) {
+    body = body.substring(descriptionIndex);
+  }
+
+  return body;
 }

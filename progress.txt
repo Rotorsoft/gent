@@ -14,3 +14,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/create.ts
 - Changes: Replaced logger.box() bordered table with clean section-based format using chalk styling. Labels displayed inline, body content shown with indentation for readability.
 - Decisions: Used bold cyan headers for sections, removed 500-char truncation to show full body content for better review.
+
+[2026-01-10] #10 fix: strip AI preamble from generated ticket bodies
+- Files: src/lib/claude.ts, src/lib/claude.test.ts
+- Changes: Added explicit instruction in prompt to start with "## Description" without preamble. Updated extractIssueBody to strip any text before "## Description" as safety measure.
+- Decisions: Two-layer defense: prompt instruction + extraction cleanup.

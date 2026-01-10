@@ -81,4 +81,42 @@ describe("extractIssueBody", () => {
     const body = extractIssueBody(output);
     expect(body).toBe("Line 1\nLine 2\nLine 3");
   });
+
+  it("should strip preamble text before ## Description", () => {
+    const output = "Here's a GitHub issue for you:\n\n## Description\nActual content";
+    const body = extractIssueBody(output);
+    expect(body).toBe("## Description\nActual content");
+  });
+
+  it("should strip preamble and META line together", () => {
+    const output = "I'll create this issue:\n\n## Description\nContent here\nMETA:type=feature,priority=high,risk=low,area=ui";
+    const body = extractIssueBody(output);
+    expect(body).toBe("## Description\nContent here");
+  });
+
+  it("should handle output starting with ## Description (no preamble)", () => {
+    const output = "## Description\nContent here\nMETA:type=feature,priority=high,risk=low,area=ui";
+    const body = extractIssueBody(output);
+    expect(body).toBe("## Description\nContent here");
+  });
+
+  it("should preserve full issue body after stripping preamble", () => {
+    const output = `Sure, here's the issue:
+
+## Description
+Add dark mode support
+
+## Technical Context
+**Type:** feature
+
+## Implementation Steps
+- [ ] Step 1
+META:type=feature,priority=high,risk=low,area=ui`;
+    const body = extractIssueBody(output);
+    expect(body).toContain("## Description");
+    expect(body).toContain("## Technical Context");
+    expect(body).toContain("## Implementation Steps");
+    expect(body).not.toContain("Sure, here's the issue");
+    expect(body).not.toContain("META:");
+  });
 });
