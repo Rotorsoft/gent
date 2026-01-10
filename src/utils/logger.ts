@@ -16,14 +16,29 @@ export const logger = {
 
   box: (title: string, content: string) => {
     const lines = content.split("\n");
-    const maxLen = Math.max(title.length, ...lines.map((l) => l.length)) + 4;
+    // Calculate visible length (strips ANSI codes) for proper alignment
+    // eslint-disable-next-line no-control-regex
+    const stripAnsi = (str: string) => str.replace(/\x1b\[[0-9;]*m/g, "");
+    const visibleLength = (str: string) => stripAnsi(str).length;
+    const maxLen =
+      Math.max(title.length, ...lines.map((l) => visibleLength(l))) + 4;
     const border = "─".repeat(maxLen);
 
+    // Pad string to target length accounting for ANSI codes
+    const padVisible = (str: string, len: number) => {
+      const visible = visibleLength(str);
+      return str + " ".repeat(Math.max(0, len - visible));
+    };
+
     console.log(chalk.dim(`┌${border}┐`));
-    console.log(chalk.dim("│"), chalk.bold(title.padEnd(maxLen - 2)), chalk.dim("│"));
+    console.log(
+      `${chalk.dim("│")} ${chalk.bold(title.padEnd(maxLen - 2))} ${chalk.dim("│")}`
+    );
     console.log(chalk.dim(`├${border}┤`));
     for (const line of lines) {
-      console.log(chalk.dim("│"), line.padEnd(maxLen - 2), chalk.dim("│"));
+      console.log(
+        `${chalk.dim("│")} ${padVisible(line, maxLen - 2)} ${chalk.dim("│")}`
+      );
     }
     console.log(chalk.dim(`└${border}┘`));
   },
