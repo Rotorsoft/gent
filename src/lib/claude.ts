@@ -1,3 +1,4 @@
+import { spawn } from "child_process";
 import { execa, type ResultPromise } from "execa";
 import type { GentConfig } from "../types/index.js";
 
@@ -25,16 +26,34 @@ export async function invokeClaude(options: ClaudeOptions): Promise<string> {
     await subprocess;
     return "";
   } else if (options.streamOutput) {
-    // Stream output while also capturing it
-    const subprocess = execa("claude", args);
+    // Use native spawn for better streaming control
+    return new Promise((resolve, reject) => {
+      const child = spawn("claude", args, {
+        stdio: ["inherit", "pipe", "pipe"],
+      });
 
-    // Pipe to stdout/stderr for real-time display
-    subprocess.stdout?.pipe(process.stdout, { end: false });
-    subprocess.stderr?.pipe(process.stderr, { end: false });
+      let output = "";
 
-    // Wait for completion and get the captured output
-    const result = await subprocess;
-    return result.stdout;
+      child.stdout.on("data", (chunk: Buffer) => {
+        const text = chunk.toString();
+        output += text;
+        process.stdout.write(text);
+      });
+
+      child.stderr.on("data", (chunk: Buffer) => {
+        process.stderr.write(chunk);
+      });
+
+      child.on("close", (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          reject(new Error(`Claude exited with code ${code}`));
+        }
+      });
+
+      child.on("error", reject);
+    });
   } else {
     const { stdout } = await execa("claude", args);
     return stdout;
