@@ -157,3 +157,13 @@ export async function getDiffSummary(base: string = "main"): Promise<string> {
     return "";
   }
 }
+
+export async function getCurrentCommitSha(): Promise<string> {
+  const { stdout } = await execa("git", ["rev-parse", "HEAD"]);
+  return stdout.trim();
+}
+
+export async function hasNewCommits(beforeSha: string): Promise<boolean> {
+  const currentSha = await getCurrentCommitSha();
+  return currentSha !== beforeSha;
+}
