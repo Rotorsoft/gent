@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/rotorsoft/gent/compare/v1.1.0...v1.1.1) (2026-01-10)
+
+
+### Bug Fixes
+
+* replace bordered table with section-based ticket preview ([45bdfdd](https://github.com/rotorsoft/gent/commit/45bdfdd060975f35321017c6c67b675f05bc2ed8)), closes [#11](https://github.com/rotorsoft/gent/issues/11)
+
 # [1.1.0](https://github.com/rotorsoft/gent/compare/v1.0.2...v1.1.0) (2026-01-10)
 
 
