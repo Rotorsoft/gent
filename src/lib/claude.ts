@@ -73,13 +73,14 @@ export async function invokeClaudeInteractive(
 
 export function buildTicketPrompt(
   description: string,
-  agentInstructions: string | null
+  agentInstructions: string | null,
+  additionalHints: string | null = null
 ): string {
   const basePrompt = `You are creating a GitHub issue for a software project following an AI-assisted development workflow.
 
 User Request: ${description}
 
-${agentInstructions ? `Project-Specific Instructions:\n${agentInstructions}\n\n` : ""}
+${agentInstructions ? `Project-Specific Instructions:\n${agentInstructions}\n\n` : ""}${additionalHints ? `Additional Context/Hints:\n${additionalHints}\n\n` : ""}
 
 Create a detailed GitHub issue following this exact template:
 
