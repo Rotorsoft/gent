@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/rotorsoft/gent/compare/v1.1.1...v1.1.2) (2026-01-10)
+
+
+### Bug Fixes
+
+* strip AI preamble from generated ticket bodies ([e52f2f4](https://github.com/rotorsoft/gent/commit/e52f2f462164b3145ebea5d5f8b68ccd3ac6010a)), closes [#10](https://github.com/rotorsoft/gent/issues/10)
+
 ## [1.1.1](https://github.com/rotorsoft/gent/compare/v1.1.0...v1.1.1) (2026-01-10)
 
 
