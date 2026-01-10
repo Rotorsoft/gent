@@ -4,3 +4,8 @@ This file tracks AI-assisted development progress.
 Each entry documents: date, feature, decisions, files changed, tests, and concerns.
 
 ---
+
+[2026-01-10] #4 feat: add progress indicator and approval flow to create command
+- Files: src/commands/create.ts, src/lib/claude.ts, src/index.ts, src/lib/claude.test.ts
+- Changes: Added visual framing around Claude streaming output, ticket preview before creation, inquirer confirmation with create/edit/cancel options, and --yes flag for CI automation.
+- Decisions: Used chalk for visual frame borders, accumulated hints across regeneration cycles, truncated body preview at 500 chars.

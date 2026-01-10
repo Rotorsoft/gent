@@ -1,3 +1,5 @@
+import inquirer from "inquirer";
+import chalk from "chalk";
 import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
 import { loadAgentInstructions } from "../lib/config.js";
@@ -11,7 +13,21 @@ import { createIssue } from "../lib/github.js";
 import { buildIssueLabels } from "../lib/labels.js";
 import { checkGhAuth, checkClaudeCli } from "../utils/validators.js";
 
-export async function createCommand(description: string): Promise<void> {
+export interface CreateOptions {
+  yes?: boolean;
+}
+
+interface TicketMeta {
+  type: string;
+  priority: string;
+  risk: string;
+  area: string;
+}
+
+export async function createCommand(
+  description: string,
+  options: CreateOptions
+): Promise<void> {
   logger.bold("Creating AI-enhanced ticket...");
   logger.newline();
 
@@ -30,50 +46,146 @@ export async function createCommand(description: string): Promise<void> {
 
   const agentInstructions = loadAgentInstructions();
 
-  // Build prompt and invoke Claude
-  const prompt = buildTicketPrompt(description, agentInstructions);
-
+  // Generate ticket with Claude (may loop if user wants to regenerate)
   let claudeOutput: string;
-  try {
-    logger.info("Generating ticket with Claude...");
+  let additionalHints: string | null = null;
+
+  while (true) {
+    // Build prompt and invoke Claude
+    const prompt = buildTicketPrompt(description, agentInstructions, additionalHints);
+
+    try {
+      // Show visual indicator before Claude output
+      console.log(chalk.dim("┌─ Generating ticket... ─────────────────────────────────────┐"));
+      logger.newline();
+      claudeOutput = await invokeClaude({ prompt, streamOutput: true });
+      logger.newline();
+      console.log(chalk.dim("└────────────────────────────────────────────────────────────┘"));
+      logger.newline();
+    } catch (error) {
+      logger.error(`Claude invocation failed: ${error}`);
+      return;
+    }
+
+    // Parse metadata
+    const meta = parseTicketMeta(claudeOutput);
+    if (!meta) {
+      logger.warning("Could not parse metadata from Claude output. Using defaults.");
+    }
+
+    const finalMeta: TicketMeta = meta || {
+      type: "feature",
+      priority: "medium",
+      risk: "low",
+      area: "shared",
+    };
+
+    // Extract issue body (without META line)
+    const issueBody = extractIssueBody(claudeOutput);
+
+    // Generate title from description
+    const title =
+      description.length > 60 ? description.slice(0, 57) + "..." : description;
+
+    // Build labels
+    const labels = buildIssueLabels(finalMeta);
+
+    // Show ticket preview
+    displayTicketPreview(title, finalMeta, issueBody);
+
+    // Skip confirmation if --yes flag is passed
+    if (options.yes) {
+      await createAndDisplayIssue(title, issueBody, labels, finalMeta);
+      return;
+    }
+
+    // Ask for confirmation
+    const { action } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "action",
+        message: "What would you like to do?",
+        choices: [
+          { name: "Create issue", value: "create" },
+          { name: "Edit description and regenerate", value: "edit" },
+          { name: "Cancel", value: "cancel" },
+        ],
+      },
+    ]);
+
+    if (action === "cancel") {
+      logger.info("Issue creation cancelled.");
+      return;
+    }
+
+    if (action === "create") {
+      await createAndDisplayIssue(title, issueBody, labels, finalMeta);
+      return;
+    }
+
+    // action === "edit" - prompt for additional hints
+    const { hints } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "hints",
+        message: "Enter additional hints or context for Claude:",
+      },
+    ]);
+
+    if (hints.trim()) {
+      additionalHints = additionalHints
+        ? `${additionalHints}\n${hints.trim()}`
+        : hints.trim();
+    }
+
     logger.newline();
-    claudeOutput = await invokeClaude({ prompt, streamOutput: true });
+    logger.info("Regenerating ticket with additional context...");
     logger.newline();
-  } catch (error) {
-    logger.error(`Claude invocation failed: ${error}`);
-    return;
   }
+}
 
-  // Parse metadata
-  const meta = parseTicketMeta(claudeOutput);
-  if (!meta) {
-    logger.warning("Could not parse metadata from Claude output. Using defaults.");
-  }
+function displayTicketPreview(
+  title: string,
+  meta: TicketMeta,
+  body: string
+): void {
+  // Truncate body for preview (first ~500 chars)
+  const previewBody =
+    body.length > 500 ? body.slice(0, 497) + "..." : body;
 
-  const finalMeta = meta || {
-    type: "feature",
-    priority: "medium",
-    risk: "low",
-    area: "shared",
-  };
+  // Count lines and show summary
+  const lineCount = body.split("\n").length;
 
-  // Extract issue body (without META line)
-  const issueBody = extractIssueBody(claudeOutput);
+  logger.box(
+    "Ticket Preview",
+    `Title: ${title}
 
-  // Generate title from description
-  const title =
-    description.length > 60 ? description.slice(0, 57) + "..." : description;
+Labels:
+  ${colors.label(`type:${meta.type}`)}
+  ${colors.label(`priority:${meta.priority}`)}
+  ${colors.label(`risk:${meta.risk}`)}
+  ${colors.label(`area:${meta.area}`)}
 
-  // Build labels
-  const labels = buildIssueLabels(finalMeta);
+Body (${lineCount} lines):
+${chalk.dim("─".repeat(40))}
+${previewBody}
+${chalk.dim("─".repeat(40))}`
+  );
+  logger.newline();
+}
 
-  // Create issue
+async function createAndDisplayIssue(
+  title: string,
+  body: string,
+  labels: string[],
+  meta: TicketMeta
+): Promise<void> {
   let issueNumber: number;
   try {
     issueNumber = await withSpinner("Creating GitHub issue...", async () => {
       return createIssue({
         title,
-        body: issueBody,
+        body,
         labels,
       });
     });
@@ -86,13 +198,16 @@ export async function createCommand(description: string): Promise<void> {
   logger.success(`Created issue ${colors.issue(`#${issueNumber}`)}`);
   logger.newline();
 
-  logger.box("Issue Created", `Issue: ${colors.issue(`#${issueNumber}`)}
-Type: ${colors.label(`type:${finalMeta.type}`)}
-Priority: ${colors.label(`priority:${finalMeta.priority}`)}
-Risk: ${colors.label(`risk:${finalMeta.risk}`)}
-Area: ${colors.label(`area:${finalMeta.area}`)}
+  logger.box(
+    "Issue Created",
+    `Issue: ${colors.issue(`#${issueNumber}`)}
+Type: ${colors.label(`type:${meta.type}`)}
+Priority: ${colors.label(`priority:${meta.priority}`)}
+Risk: ${colors.label(`risk:${meta.risk}`)}
+Area: ${colors.label(`area:${meta.area}`)}
 
 Next steps:
 1. Review the issue on GitHub
-2. Run ${colors.command(`gent run ${issueNumber}`)} to implement`);
+2. Run ${colors.command(`gent run ${issueNumber}`)} to implement`
+  );
 }

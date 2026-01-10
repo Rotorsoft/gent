@@ -73,13 +73,14 @@ export async function invokeClaudeInteractive(
 
 export function buildTicketPrompt(
   description: string,
-  agentInstructions: string | null
+  agentInstructions: string | null,
+  additionalHints: string | null = null
 ): string {
   const basePrompt = `You are creating a GitHub issue for a software project following an AI-assisted development workflow.
 
 User Request: ${description}
 
-${agentInstructions ? `Project-Specific Instructions:\n${agentInstructions}\n\n` : ""}
+${agentInstructions ? `Project-Specific Instructions:\n${agentInstructions}\n\n` : ""}${additionalHints ? `Additional Context/Hints:\n${additionalHints}\n\n` : ""}
 
 Create a detailed GitHub issue following this exact template:
 
@@ -143,7 +144,16 @@ ${config.validation.map((cmd) => `   - ${cmd}`).join("\n")}
    - Use format: <type>: <description>
    - Include "Completed GitHub issue #${issue.number}" in body
    - End with: Co-Authored-By: Claude <noreply@anthropic.com>
-5. **Do NOT push** - the user will review and push manually
+5. **Update ${config.progress.file}** - append a compact entry documenting your work:
+   \`\`\`
+   [YYYY-MM-DD] #${issue.number} <type>: <brief description>
+   - Files: <comma-separated list of changed files>
+   - Changes: <1-2 sentence summary of what was implemented>
+   - Decisions: <key technical decisions made, if any>
+   - Issues: <concerns or follow-ups for reviewers, if any>
+   \`\`\`
+   Keep entries minimal (4-6 lines max). Skip sections if not applicable.
+6. **Do NOT push** - the user will review and push manually
 
 Focus on clean, minimal implementation. Don't over-engineer.`;
 }

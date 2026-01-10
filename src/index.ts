@@ -32,8 +32,9 @@ program
 program
   .command("create <description>")
   .description("Create an AI-enhanced GitHub issue")
-  .action(async (description) => {
-    await createCommand(description);
+  .option("-y, --yes", "Skip confirmation and create issue immediately")
+  .action(async (description, options) => {
+    await createCommand(description, { yes: options.yes });
   });
 
 program
