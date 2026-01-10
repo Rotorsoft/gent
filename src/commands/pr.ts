@@ -101,9 +101,10 @@ export async function prCommand(options: PrOptions): Promise<void> {
 
   let prBody: string;
   try {
-    prBody = await withSpinner("Generating PR description with Claude...", async () => {
-      return invokeClaude({ prompt });
-    });
+    logger.info("Generating PR description with Claude...");
+    logger.newline();
+    prBody = await invokeClaude({ prompt, streamOutput: true });
+    logger.newline();
   } catch (error) {
     logger.warning(`Claude invocation failed: ${error}`);
     // Fall back to basic description

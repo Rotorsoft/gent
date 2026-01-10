@@ -5,6 +5,7 @@ export interface ClaudeOptions {
   prompt: string;
   permissionMode?: string;
   printOutput?: boolean;
+  streamOutput?: boolean;
 }
 
 export async function invokeClaude(options: ClaudeOptions): Promise<string> {
@@ -17,12 +18,29 @@ export async function invokeClaude(options: ClaudeOptions): Promise<string> {
   args.push(options.prompt);
 
   if (options.printOutput) {
-    // Stream output to console
+    // Stream output to console without capturing
     const subprocess = execa("claude", args, {
       stdio: "inherit",
     });
     await subprocess;
     return "";
+  } else if (options.streamOutput) {
+    // Stream output while also capturing it
+    const subprocess = execa("claude", args);
+    let output = "";
+
+    subprocess.stdout?.on("data", (chunk: Buffer) => {
+      const text = chunk.toString();
+      output += text;
+      process.stdout.write(text);
+    });
+
+    subprocess.stderr?.on("data", (chunk: Buffer) => {
+      process.stderr.write(chunk);
+    });
+
+    await subprocess;
+    return output;
   } else {
     const { stdout } = await execa("claude", args);
     return stdout;

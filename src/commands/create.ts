@@ -35,9 +35,10 @@ export async function createCommand(description: string): Promise<void> {
 
   let claudeOutput: string;
   try {
-    claudeOutput = await withSpinner("Generating ticket with Claude...", async () => {
-      return invokeClaude({ prompt });
-    });
+    logger.info("Generating ticket with Claude...");
+    logger.newline();
+    claudeOutput = await invokeClaude({ prompt, streamOutput: true });
+    logger.newline();
   } catch (error) {
     logger.error(`Claude invocation failed: ${error}`);
     return;
