@@ -4,7 +4,7 @@ import { withSpinner } from "../utils/spinner.js";
 import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import { getIssue, listIssues, updateIssueLabels, addIssueComment } from "../lib/github.js";
 import { invokeClaudeInteractive, buildImplementationPrompt } from "../lib/claude.js";
-import { getCurrentBranch, isOnMainBranch, createBranch, branchExists, checkoutBranch, hasUncommittedChanges } from "../lib/git.js";
+import { getCurrentBranch, isOnMainBranch, createBranch, branchExists, checkoutBranch, hasUncommittedChanges, getCurrentCommitSha, hasNewCommits } from "../lib/git.js";
 import { generateBranchName } from "../lib/branch.js";
 import { getWorkflowLabels, extractTypeFromLabels, sortByPriority } from "../lib/labels.js";
 import { readProgress } from "../lib/progress.js";
@@ -187,38 +187,106 @@ Labels: ${issue.labels.join(", ")}`);
   logger.dim("Review the changes before pushing.");
   logger.newline();
 
+  // Capture commit SHA before Claude runs
+  const beforeSha = await getCurrentCommitSha();
+
+  // Track if operation was cancelled
+  let wasCancelled = false;
+  const handleSignal = () => {
+    wasCancelled = true;
+  };
+  process.on("SIGINT", handleSignal);
+  process.on("SIGTERM", handleSignal);
+
   // Invoke Claude interactively
+  let claudeExitCode: number | undefined;
   try {
-    await invokeClaudeInteractive(prompt, config);
+    const result = await invokeClaudeInteractive(prompt, config);
+    claudeExitCode = result.exitCode;
   } catch (error) {
+    if (error && typeof error === "object" && "exitCode" in error) {
+      claudeExitCode = error.exitCode as number;
+    }
     logger.error(`Claude session failed: ${error}`);
     // Don't exit - allow user to see what happened
+  } finally {
+    // Clean up signal handlers
+    process.off("SIGINT", handleSignal);
+    process.off("SIGTERM", handleSignal);
   }
 
   // Post-completion
   logger.newline();
-  logger.success("Claude session completed.");
 
-  // Update labels to completed
-  try {
-    await updateIssueLabels(issueNumber, {
-      add: [workflowLabels.completed],
-      remove: [workflowLabels.inProgress],
-    });
-    logger.success(`Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.completed)}`);
-  } catch (error) {
-    logger.warning(`Failed to update labels: ${error}`);
+  // Check if any new commits were created
+  const commitsCreated = await hasNewCommits(beforeSha);
+
+  // Handle cancellation - don't change labels
+  if (wasCancelled) {
+    logger.warning("Operation was cancelled. Labels unchanged.");
+    return;
   }
 
-  // Post comment to issue
-  try {
-    await addIssueComment(
-      issueNumber,
-      `AI implementation completed on branch \`${branchName}\`.\n\nPlease review the changes and create a PR when ready.`
-    );
-    logger.success("Posted completion comment to issue");
-  } catch (error) {
-    logger.warning(`Failed to post comment: ${error}`);
+  // Determine appropriate label based on whether work was done
+  if (commitsCreated) {
+    logger.success("Claude session completed with new commits.");
+
+    // Update labels to completed
+    try {
+      await updateIssueLabels(issueNumber, {
+        add: [workflowLabels.completed],
+        remove: [workflowLabels.inProgress],
+      });
+      logger.success(`Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.completed)}`);
+    } catch (error) {
+      logger.warning(`Failed to update labels: ${error}`);
+    }
+
+    // Post comment to issue
+    try {
+      await addIssueComment(
+        issueNumber,
+        `AI implementation completed on branch \`${branchName}\`.\n\nPlease review the changes and create a PR when ready.`
+      );
+      logger.success("Posted completion comment to issue");
+    } catch (error) {
+      logger.warning(`Failed to post comment: ${error}`);
+    }
+  } else {
+    // No commits created - check if it was a rate limit or other issue
+    // Exit code 2 typically indicates rate limiting for Claude CLI
+    const isRateLimited = claudeExitCode === 2;
+
+    if (isRateLimited) {
+      logger.warning("Claude session ended due to rate limits. No commits were created.");
+
+      // Set ai-blocked label
+      try {
+        await updateIssueLabels(issueNumber, {
+          add: [workflowLabels.blocked],
+          remove: [workflowLabels.inProgress],
+        });
+        logger.info(`Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.blocked)}`);
+      } catch (error) {
+        logger.warning(`Failed to update labels: ${error}`);
+      }
+
+      // Post comment about rate limiting
+      try {
+        await addIssueComment(
+          issueNumber,
+          `AI implementation was blocked due to API rate limits on branch \`${branchName}\`.\n\nNo commits were created. Please retry later.`
+        );
+        logger.info("Posted rate-limit comment to issue");
+      } catch (error) {
+        logger.warning(`Failed to post comment: ${error}`);
+      }
+    } else {
+      logger.warning("Claude session completed but no commits were created. Labels unchanged.");
+      // Leave as ai-in-progress so it can be retried
+    }
+
+    return;
   }
 
   logger.newline();
