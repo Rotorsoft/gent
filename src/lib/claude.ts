@@ -27,20 +27,14 @@ export async function invokeClaude(options: ClaudeOptions): Promise<string> {
   } else if (options.streamOutput) {
     // Stream output while also capturing it
     const subprocess = execa("claude", args);
-    let output = "";
 
-    subprocess.stdout?.on("data", (chunk: Buffer) => {
-      const text = chunk.toString();
-      output += text;
-      process.stdout.write(text);
-    });
+    // Pipe to stdout/stderr for real-time display
+    subprocess.stdout?.pipe(process.stdout, { end: false });
+    subprocess.stderr?.pipe(process.stderr, { end: false });
 
-    subprocess.stderr?.on("data", (chunk: Buffer) => {
-      process.stderr.write(chunk);
-    });
-
-    await subprocess;
-    return output;
+    // Wait for completion and get the captured output
+    const result = await subprocess;
+    return result.stdout;
   } else {
     const { stdout } = await execa("claude", args);
     return stdout;
