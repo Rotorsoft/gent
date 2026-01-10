@@ -149,28 +149,36 @@ function displayTicketPreview(
   meta: TicketMeta,
   body: string
 ): void {
-  // Truncate body for preview (first ~500 chars)
-  const previewBody =
-    body.length > 500 ? body.slice(0, 497) + "..." : body;
-
-  // Count lines and show summary
+  // Count lines for summary
   const lineCount = body.split("\n").length;
 
-  logger.box(
-    "Ticket Preview",
-    `Title: ${title}
+  // Section header helper
+  const sectionHeader = (label: string) =>
+    console.log(chalk.bold.cyan(`${label}`));
 
-Labels:
-  ${colors.label(`type:${meta.type}`)}
-  ${colors.label(`priority:${meta.priority}`)}
-  ${colors.label(`risk:${meta.risk}`)}
-  ${colors.label(`area:${meta.area}`)}
+  // Display preview with clean sections
+  console.log(chalk.bold.white("━━━ Ticket Preview ━━━"));
+  logger.newline();
 
-Body (${lineCount} lines):
-${chalk.dim("─".repeat(40))}
-${previewBody}
-${chalk.dim("─".repeat(40))}`
+  sectionHeader("Title");
+  console.log(`  ${title}`);
+  logger.newline();
+
+  sectionHeader("Labels");
+  console.log(
+    `  ${colors.label(`type:${meta.type}`)}  ${colors.label(`priority:${meta.priority}`)}  ${colors.label(`risk:${meta.risk}`)}  ${colors.label(`area:${meta.area}`)}`
   );
+  logger.newline();
+
+  sectionHeader(`Body (${lineCount} lines)`);
+  // Indent each line of the body for visual hierarchy
+  const bodyLines = body.split("\n");
+  for (const line of bodyLines) {
+    console.log(`  ${line}`);
+  }
+
+  logger.newline();
+  console.log(chalk.bold.white("━━━━━━━━━━━━━━━━━━━━━━"));
   logger.newline();
 }
 

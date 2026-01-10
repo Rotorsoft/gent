@@ -9,3 +9,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/create.ts, src/lib/claude.ts, src/index.ts, src/lib/claude.test.ts
 - Changes: Added visual framing around Claude streaming output, ticket preview before creation, inquirer confirmation with create/edit/cancel options, and --yes flag for CI automation.
 - Decisions: Used chalk for visual frame borders, accumulated hints across regeneration cycles, truncated body preview at 500 chars.
+
+[2026-01-10] #11 fix: replace bordered table with section-based ticket preview
+- Files: src/commands/create.ts
+- Changes: Replaced logger.box() bordered table with clean section-based format using chalk styling. Labels displayed inline, body content shown with indentation for readability.
+- Decisions: Used bold cyan headers for sections, removed 500-char truncation to show full body content for better review.
