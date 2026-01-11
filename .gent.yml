@@ -52,6 +52,17 @@ claude:
   permission_mode: "acceptEdits"
   agent_file: "AGENT.md"
 
+# Gemini settings
+gemini:
+  sandbox_mode: "on"
+  agent_file: "AGENT.md"
+
+# AI provider settings
+ai:
+  provider: "claude"  # claude | gemini
+  # fallback_provider: "gemini"  # optional fallback when rate limited
+  auto_fallback: true  # automatically switch to fallback on rate limit
+
 # Validation commands (run before commit)
 validation:
   - "npm run typecheck"

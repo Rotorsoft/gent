@@ -6,6 +6,7 @@ export interface GentConfig {
   branch: BranchConfig;
   progress: ProgressConfig;
   claude: ClaudeConfig;
+  gemini: GeminiConfig;
   ai: AIConfig;
   validation: string[];
 }
@@ -47,6 +48,11 @@ export interface ProgressConfig {
 
 export interface ClaudeConfig {
   permission_mode: string;
+  agent_file: string;
+}
+
+export interface GeminiConfig {
+  sandbox_mode: string;
   agent_file: string;
 }
 

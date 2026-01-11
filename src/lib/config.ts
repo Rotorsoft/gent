@@ -33,6 +33,10 @@ const DEFAULT_CONFIG: GentConfig = {
     permission_mode: "acceptEdits",
     agent_file: "AGENT.md",
   },
+  gemini: {
+    sandbox_mode: "on",
+    agent_file: "AGENT.md",
+  },
   ai: {
     provider: "claude",
     auto_fallback: true,
@@ -120,6 +124,10 @@ function mergeConfig(
       ...defaults.claude,
       ...user.claude,
     },
+    gemini: {
+      ...defaults.gemini,
+      ...user.gemini,
+    },
     ai: {
       ...defaults.ai,
       ...user.ai,
@@ -183,6 +191,11 @@ progress:
 # Claude settings
 claude:
   permission_mode: "acceptEdits"
+  agent_file: "AGENT.md"
+
+# Gemini settings
+gemini:
+  sandbox_mode: "on"
   agent_file: "AGENT.md"
 
 # AI provider settings
