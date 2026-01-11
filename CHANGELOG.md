@@ -1,3 +1,16 @@
+# [1.2.0](https://github.com/rotorsoft/gent/compare/v1.1.2...v1.2.0) (2026-01-11)
+
+
+### Bug Fixes
+
+* show all providers in status ([d9b6bf7](https://github.com/rotorsoft/gent/commit/d9b6bf7edcf8100cb75364048dd0a3cedef09861))
+* show all providers in status ([efc20f8](https://github.com/rotorsoft/gent/commit/efc20f8de5eb67d4a4d4381b68e5b847ad7c08d6))
+
+
+### Features
+
+* add multi-model AI provider support (Claude + Gemini) ([b2dace4](https://github.com/rotorsoft/gent/commit/b2dace4c093804f1adf4e3627442e2c29e1cb423)), closes [#9](https://github.com/rotorsoft/gent/issues/9)
+
 ## [1.1.2](https://github.com/rotorsoft/gent/compare/v1.1.1...v1.1.2) (2026-01-10)
 
 
