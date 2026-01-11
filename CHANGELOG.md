@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/rotorsoft/gent/compare/v1.3.2...v1.4.0) (2026-01-11)
+
+
+### Features
+
+* support dynamic Co-Authored-By trailer ([15e7f58](https://github.com/rotorsoft/gent/commit/15e7f582fcd94864f8e602efd7f0f7212f4698d6))
+
 ## [1.3.2](https://github.com/rotorsoft/gent/compare/v1.3.1...v1.3.2) (2026-01-11)
 
 
