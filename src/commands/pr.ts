@@ -124,6 +124,9 @@ export async function prCommand(options: PrOptions): Promise<void> {
     prBody = generateFallbackBody(issue, commits);
   }
 
+  // Append signature footer
+  prBody += `\n\n---\n*Created with ${providerName} by [gent](https://github.com/Rotorsoft/gent)*`;
+
   // Generate title
   const prTitle = issue?.title || commits[0] || currentBranch;
 

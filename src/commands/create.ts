@@ -92,8 +92,8 @@ export async function createCommand(
       area: "shared",
     };
 
-    // Extract issue body (without META line)
-    const issueBody = extractIssueBody(aiOutput);
+    // Extract issue body (without META line) and append signature
+    const issueBody = extractIssueBody(aiOutput) + `\n\n---\n*Created with ${providerName} by [gent](https://github.com/Rotorsoft/gent)*`;
 
     // Generate title from description
     const title =

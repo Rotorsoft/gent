@@ -24,3 +24,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/types/index.ts, src/lib/config.ts, src/lib/ai-provider.ts, src/utils/validators.ts, src/utils/logger.ts, src/commands/run.ts, src/commands/create.ts, src/commands/pr.ts, src/commands/status.ts, src/index.ts, src/lib/ai-provider.test.ts, src/lib/config.test.ts
 - Changes: Added AIProvider type and AIConfig interface. Created ai-provider.ts abstraction layer supporting Claude and Gemini CLIs with auto-fallback on rate limits. Added --provider flag to run/create/pr commands. Updated status command to show AI provider info.
 - Decisions: Kept claude.ts for prompt building (backward compat), new ai-provider.ts handles invocation. GENT_AI_PROVIDER env var overrides config.
+
+[2026-01-11] #15 feat: add dynamic provider signature to issues and PRs
+- Files: src/commands/create.ts, src/commands/pr.ts
+- Changes: Appended "Created with {provider} by gent" footer to issue and PR bodies after AI generation.
+- Decisions: Footer added programmatically after AI response (not in prompt). Used existing getProviderDisplayName().
