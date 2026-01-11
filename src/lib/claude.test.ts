@@ -1,5 +1,48 @@
 import { describe, it, expect } from "vitest";
-import { buildTicketPrompt, parseTicketMeta, extractIssueBody } from "./claude.js";
+import { buildTicketPrompt, parseTicketMeta, extractIssueBody, buildImplementationPrompt } from "./claude.js";
+import type { GentConfig } from "../types/index.js";
+
+// Minimal config for testing
+const createTestConfig = (provider: "claude" | "gemini"): GentConfig => ({
+  version: 1,
+  github: {
+    labels: {
+      workflow: {
+        ready: "ai-ready",
+        in_progress: "ai-in-progress",
+        completed: "ai-completed",
+        blocked: "ai-blocked",
+      },
+      types: ["feature", "fix"],
+      priorities: ["high", "medium", "low"],
+      risks: ["high", "medium", "low"],
+      areas: ["api", "ui"],
+    },
+  },
+  branch: {
+    pattern: "{author}/{type}-{issue}-{slug}",
+    author_source: "git",
+    author_env_var: "USER",
+  },
+  progress: {
+    file: "progress.txt",
+    archive_threshold: 500,
+    archive_dir: ".gent/archive",
+  },
+  claude: {
+    permission_mode: "default",
+    agent_file: "AGENT.md",
+  },
+  gemini: {
+    sandbox_mode: "default",
+    agent_file: "AGENT.md",
+  },
+  ai: {
+    provider,
+    auto_fallback: false,
+  },
+  validation: ["npm run typecheck"],
+});
 
 describe("buildTicketPrompt", () => {
   it("should build basic prompt with description", () => {
@@ -30,6 +73,32 @@ describe("buildTicketPrompt", () => {
     expect(prompt).toContain("Use TypeScript");
     expect(prompt).toContain("Additional Context/Hints:");
     expect(prompt).toContain("Focus on CSS variables");
+  });
+});
+
+describe("buildImplementationPrompt", () => {
+  const mockIssue = {
+    number: 123,
+    title: "Test Issue",
+    body: "Test body",
+  };
+
+  it("should include Claude signature when provider is claude", () => {
+    const config = createTestConfig("claude");
+    const prompt = buildImplementationPrompt(mockIssue, null, null, config);
+    expect(prompt).toContain("Co-Authored-By: Claude <noreply@anthropic.com>");
+  });
+
+  it("should include Gemini signature when provider is gemini", () => {
+    const config = createTestConfig("gemini");
+    const prompt = buildImplementationPrompt(mockIssue, null, null, config);
+    expect(prompt).toContain("Co-Authored-By: Gemini <noreply@google.com>");
+  });
+
+  it("should include validation commands", () => {
+    const config = createTestConfig("claude");
+    const prompt = buildImplementationPrompt(mockIssue, null, null, config);
+    expect(prompt).toContain("npm run typecheck");
   });
 });
 

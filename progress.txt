@@ -44,3 +44,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/claude.ts
 - Changes: Removed invokeClaude and invokeClaudeInteractive functions and unused imports. File now solely focuses on prompt generation.
 - Decisions: Verified that functionality is fully covered by ai-provider.ts.
+
+[2026-01-11] #21 feat: dynamic Co-Authored-By trailer
+- Files: src/lib/claude.ts, src/lib/ai-provider.ts, src/lib/claude.test.ts, src/commands/init.ts, templates/AGENT.md
+- Changes: Updated prompt generation to use dynamic provider name and email for Co-Authored-By trailer. Updated templates to be generic.
+- Decisions: Using noreply@anthropic.com and noreply@google.com for respective providers.

@@ -1,4 +1,5 @@
 import type { GentConfig } from "../types/index.js";
+import { getProviderDisplayName, getProviderEmail } from "./ai-provider.js";
 
 export function buildTicketPrompt(
   description: string,
@@ -47,8 +48,7 @@ IMPORTANT: Start your output IMMEDIATELY with "## Description" - do not include 
 IMPORTANT: After the issue content, on a new line, output ONLY the following metadata in this exact format:
 META:type=<type>,priority=<priority>,risk=<risk>,area=<area>
 
-Example: META:type=feature,priority=high,risk=low,area=ui
-`;
+Example: META:type=feature,priority=high,risk=low,area=ui`;
 
   return basePrompt;
 }
@@ -59,6 +59,9 @@ export function buildImplementationPrompt(
   progressContent: string | null,
   config: GentConfig
 ): string {
+  const providerName = getProviderDisplayName(config.ai.provider);
+  const providerEmail = getProviderEmail(config.ai.provider);
+
   return `GitHub Issue #${issue.number}: ${issue.title}
 
 ${issue.body}
@@ -75,7 +78,7 @@ ${config.validation.map((cmd) => `   - ${cmd}`).join("\n")}
 4. **Make an atomic commit** with a clear message following conventional commits format:
    - Use format: <type>: <description>
    - Include "Completed GitHub issue #${issue.number}" in body
-   - End with: Co-Authored-By: Claude <noreply@anthropic.com>
+   - End with: Co-Authored-By: ${providerName} <${providerEmail}>
 5. **Update ${config.progress.file}** - append a compact entry documenting your work:
    \
    [YYYY-MM-DD] #${issue.number} <type>: <brief description>
