@@ -2,11 +2,12 @@ import inquirer from "inquirer";
 import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
 import { loadConfig } from "../lib/config.js";
-import { getIssue, createPullRequest, getPrForBranch, assignIssue, getCurrentUser } from "../lib/github.js";
+import { getIssue, createPullRequest, getPrForBranch, assignIssue, getCurrentUser, updateIssueLabels } from "../lib/github.js";
 import { buildPrPrompt } from "../lib/claude.js";
 import { invokeAI, getProviderDisplayName } from "../lib/ai-provider.js";
 import { getCurrentBranch, isOnMainBranch, getDefaultBranch, getCommitsSinceBase, getDiffSummary, getUnpushedCommits, pushBranch } from "../lib/git.js";
 import { extractIssueNumber } from "../lib/branch.js";
+import { getWorkflowLabels } from "../lib/labels.js";
 import { checkGhAuth, checkAIProvider } from "../utils/validators.js";
 import type { GitHubIssue, AIProvider } from "../types/index.js";
 
@@ -152,6 +153,18 @@ export async function prCommand(options: PrOptions): Promise<void> {
       const user = await getCurrentUser();
       await assignIssue(issueNumber, user);
       logger.success(`Assigned issue #${issueNumber} to ${user}`);
+    } catch {
+      // Non-critical, ignore
+    }
+
+    // Update issue labels to ai-completed
+    const workflowLabels = getWorkflowLabels(config);
+    try {
+      await updateIssueLabels(issueNumber, {
+        add: [workflowLabels.completed],
+        remove: [workflowLabels.inProgress],
+      });
+      logger.success(`Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.completed)}`);
     } catch {
       // Non-critical, ignore
     }

@@ -29,3 +29,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/create.ts, src/commands/pr.ts
 - Changes: Appended "Created with {provider} by gent" footer to issue and PR bodies after AI generation.
 - Decisions: Footer added programmatically after AI response (not in prompt). Used existing getProviderDisplayName().
+
+[2026-01-11] #17 fix: update issue labels to ai-completed after PR creation
+- Files: src/commands/pr.ts
+- Changes: Added missing label update logic to transition issues from ai-in-progress to ai-completed after successful PR creation.
+- Decisions: Label update is provider-agnostic (applies to Claude, Gemini, etc). Non-critical errors are silently ignored.
