@@ -6,7 +6,7 @@ import { extractIssueNumber, parseBranchName } from "../lib/branch.js";
 import { getWorkflowLabels } from "../lib/labels.js";
 import { progressExists, readProgress } from "../lib/progress.js";
 import { configExists } from "../lib/config.js";
-import { checkGhAuth, checkAIProvider, checkGitRepo } from "../utils/validators.js";
+import { checkGhAuth, checkClaudeCli, checkGeminiCli, checkGitRepo } from "../utils/validators.js";
 import { getProviderDisplayName } from "../lib/ai-provider.js";
 
 export async function statusCommand(): Promise<void> {
@@ -60,22 +60,27 @@ export async function statusCommand(): Promise<void> {
     logger.error("  GitHub CLI not authenticated");
   }
 
-  const aiOk = await checkAIProvider(config.ai.provider);
-  if (aiOk) {
-    logger.success(`  ${providerName} CLI available`);
+  // Check all AI providers
+  const claudeOk = await checkClaudeCli();
+  const geminiOk = await checkGeminiCli();
+
+  const getProviderStatus = (provider: "claude" | "gemini"): string => {
+    const isActive = config.ai.provider === provider;
+    const isFallback = config.ai.fallback_provider === provider;
+    const suffix = isActive ? " (active)" : isFallback ? " (fallback)" : "";
+    return suffix;
+  };
+
+  if (claudeOk) {
+    logger.success(`  Claude CLI available${getProviderStatus("claude")}`);
   } else {
-    logger.error(`  ${providerName} CLI not found`);
+    logger.error(`  Claude CLI not found${getProviderStatus("claude")}`);
   }
 
-  // Check fallback provider if configured
-  if (config.ai.fallback_provider) {
-    const fallbackOk = await checkAIProvider(config.ai.fallback_provider);
-    const fallbackName = getProviderDisplayName(config.ai.fallback_provider);
-    if (fallbackOk) {
-      logger.success(`  ${fallbackName} CLI available (fallback)`);
-    } else {
-      logger.warning(`  ${fallbackName} CLI not found (fallback)`);
-    }
+  if (geminiOk) {
+    logger.success(`  Gemini CLI available${getProviderStatus("gemini")}`);
+  } else {
+    logger.error(`  Gemini CLI not found${getProviderStatus("gemini")}`);
   }
 
   logger.newline();
