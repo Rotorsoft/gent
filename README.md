@@ -1,10 +1,10 @@
 # @rotorsoft/gent
 
-AI-powered GitHub workflow CLI - leverage Claude AI to create tickets, implement features, and manage PRs.
+AI-powered GitHub workflow CLI - leverage AI (Claude or Gemini) to create tickets, implement features, and manage PRs.
 
 ## Overview
 
-`gent` is a command-line tool that integrates Claude AI with GitHub to automate your development workflow:
+`gent` is a command-line tool that integrates AI with GitHub to automate your development workflow:
 
 - **Create AI-enhanced tickets** - Describe what you need, Claude generates detailed GitHub issues with proper labels
 - **Implement with AI** - Pick a ticket and let Claude implement it with automatic branch management
@@ -21,12 +21,15 @@ pnpm add -g @rotorsoft/gent
 
 - **Node.js** 20 or higher
 - **GitHub CLI** (`gh`) - [Install](https://cli.github.com/)
-- **Claude CLI** - [Install](https://claude.ai/code)
+- **AI CLI** (one or both):
+  - **Claude CLI** - [Install](https://claude.ai/code)
+  - **Gemini CLI** - [Install](https://github.com/google-gemini/gemini-cli)
 
 Verify prerequisites:
 ```bash
 gh auth status    # Should show authenticated
-claude --version  # Should show version
+claude --version  # Should show version (if using Claude)
+gemini --version  # Should show version (if using Gemini)
 ```
 
 ## Quick Start
@@ -125,7 +128,12 @@ Create an AI-enhanced GitHub issue.
 
 ```bash
 gent create "Add dark mode toggle to settings page"
+gent create "Fix login bug" --provider gemini   # Use specific AI provider
 ```
+
+Options:
+- `-y, --yes` - Skip confirmation and create issue immediately
+- `-p, --provider <provider>` - AI provider to use (`claude` or `gemini`)
 
 ### `gent list`
 
@@ -145,27 +153,31 @@ Options:
 
 ### `gent run [issue-number]`
 
-Run Claude to implement a GitHub issue.
+Run AI to implement a GitHub issue.
 
 ```bash
-gent run 123      # Implement issue #123
-gent run --auto   # Auto-select highest priority ai-ready issue
+gent run 123                   # Implement issue #123
+gent run --auto                # Auto-select highest priority ai-ready issue
+gent run 123 --provider gemini # Use specific AI provider
 ```
 
 Options:
 - `-a, --auto` - Auto-select highest priority ai-ready issue
+- `-p, --provider <provider>` - AI provider to use (`claude` or `gemini`)
 
 ### `gent pr`
 
 Create an AI-enhanced pull request.
 
 ```bash
-gent pr           # Create PR
-gent pr --draft   # Create as draft PR
+gent pr                      # Create PR
+gent pr --draft              # Create as draft PR
+gent pr --provider gemini    # Use specific AI provider
 ```
 
 Options:
 - `-d, --draft` - Create as draft PR
+- `-p, --provider <provider>` - AI provider to use (`claude` or `gemini`)
 
 ### `gent status`
 
@@ -177,6 +189,7 @@ gent status
 
 Displays:
 - Configuration status
+- AI provider configuration
 - Prerequisites check
 - Git status (branch, commits, changes)
 - Linked issue status
@@ -217,6 +230,11 @@ progress:
 claude:
   permission_mode: "acceptEdits"
   agent_file: "AGENT.md"
+
+ai:
+  provider: "claude"           # claude | gemini
+  fallback_provider: "gemini"  # optional fallback when rate limited
+  auto_fallback: true          # automatically switch to fallback on rate limit
 
 validation:
   - "npm run typecheck"
@@ -353,6 +371,7 @@ The author is derived from:
 | Variable | Description |
 |----------|-------------|
 | `GENT_AUTHOR` | Override author initials for branch naming |
+| `GENT_AI_PROVIDER` | Override AI provider (`claude` or `gemini`) |
 | `DEBUG` | Enable debug output |
 
 ## Tips

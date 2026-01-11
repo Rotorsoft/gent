@@ -59,4 +59,5 @@ export const colors = {
   file: chalk.green,
   command: chalk.blue,
   url: chalk.underline.blue,
+  provider: chalk.cyan.bold,
 };

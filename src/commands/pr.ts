@@ -1,31 +1,43 @@
 import inquirer from "inquirer";
 import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
+import { loadConfig } from "../lib/config.js";
 import { getIssue, createPullRequest, getPrForBranch, assignIssue, getCurrentUser } from "../lib/github.js";
-import { invokeClaude, buildPrPrompt } from "../lib/claude.js";
+import { buildPrPrompt } from "../lib/claude.js";
+import { invokeAI, getProviderDisplayName } from "../lib/ai-provider.js";
 import { getCurrentBranch, isOnMainBranch, getDefaultBranch, getCommitsSinceBase, getDiffSummary, getUnpushedCommits, pushBranch } from "../lib/git.js";
 import { extractIssueNumber } from "../lib/branch.js";
-import { checkGhAuth, checkClaudeCli } from "../utils/validators.js";
-import type { GitHubIssue } from "../types/index.js";
+import { checkGhAuth, checkAIProvider } from "../utils/validators.js";
+import type { GitHubIssue, AIProvider } from "../types/index.js";
 
 export interface PrOptions {
   draft?: boolean;
+  provider?: AIProvider;
 }
 
 export async function prCommand(options: PrOptions): Promise<void> {
   logger.bold("Creating AI-enhanced pull request...");
   logger.newline();
 
+  const config = loadConfig();
+
+  // Determine which provider to use
+  const provider = options.provider ?? config.ai.provider;
+  const providerName = getProviderDisplayName(provider);
+
   // Validate prerequisites
-  const [ghAuth, claudeOk] = await Promise.all([checkGhAuth(), checkClaudeCli()]);
+  const [ghAuth, aiOk] = await Promise.all([
+    checkGhAuth(),
+    checkAIProvider(provider),
+  ]);
 
   if (!ghAuth) {
     logger.error("Not authenticated with GitHub. Run 'gh auth login' first.");
     process.exit(1);
   }
 
-  if (!claudeOk) {
-    logger.error("Claude CLI not found. Please install claude CLI first.");
+  if (!aiOk) {
+    logger.error(`${providerName} CLI not found. Please install ${provider} CLI first.`);
     process.exit(1);
   }
 
@@ -96,17 +108,18 @@ export async function prCommand(options: PrOptions): Promise<void> {
   logger.info(`Commits: ${commits.length}`);
   logger.newline();
 
-  // Generate PR description with Claude
+  // Generate PR description with AI
   const prompt = buildPrPrompt(issue, commits, diffSummary);
 
   let prBody: string;
   try {
-    logger.info("Generating PR description with Claude...");
+    logger.info(`Generating PR description with ${colors.provider(providerName)}...`);
     logger.newline();
-    prBody = await invokeClaude({ prompt, streamOutput: true });
+    const result = await invokeAI({ prompt, streamOutput: true }, config, options.provider);
+    prBody = result.output;
     logger.newline();
   } catch (error) {
-    logger.warning(`Claude invocation failed: ${error}`);
+    logger.warning(`${providerName} invocation failed: ${error}`);
     // Fall back to basic description
     prBody = generateFallbackBody(issue, commits);
   }

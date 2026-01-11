@@ -36,5 +36,13 @@ describe("config", () => {
       expect(config).toContain("progress.txt");
       expect(config).toContain("archive_threshold: 500");
     });
+
+    it("should include AI provider settings", () => {
+      const config = generateDefaultConfig();
+
+      expect(config).toContain("# AI provider settings");
+      expect(config).toContain('provider: "claude"');
+      expect(config).toContain("auto_fallback: true");
+    });
   });
 });

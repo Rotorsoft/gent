@@ -2,19 +2,21 @@ import inquirer from "inquirer";
 import chalk from "chalk";
 import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
-import { loadAgentInstructions } from "../lib/config.js";
+import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import {
-  invokeClaude,
   buildTicketPrompt,
   parseTicketMeta,
   extractIssueBody,
 } from "../lib/claude.js";
+import { invokeAI, getProviderDisplayName } from "../lib/ai-provider.js";
 import { createIssue } from "../lib/github.js";
 import { buildIssueLabels } from "../lib/labels.js";
-import { checkGhAuth, checkClaudeCli } from "../utils/validators.js";
+import { checkGhAuth, checkAIProvider } from "../utils/validators.js";
+import type { AIProvider } from "../types/index.js";
 
 export interface CreateOptions {
   yes?: boolean;
+  provider?: AIProvider;
 }
 
 interface TicketMeta {
@@ -31,44 +33,54 @@ export async function createCommand(
   logger.bold("Creating AI-enhanced ticket...");
   logger.newline();
 
+  const config = loadConfig();
+
+  // Determine which provider to use
+  const provider = options.provider ?? config.ai.provider;
+  const providerName = getProviderDisplayName(provider);
+
   // Validate prerequisites
-  const [ghAuth, claudeOk] = await Promise.all([checkGhAuth(), checkClaudeCli()]);
+  const [ghAuth, aiOk] = await Promise.all([
+    checkGhAuth(),
+    checkAIProvider(provider),
+  ]);
 
   if (!ghAuth) {
     logger.error("Not authenticated with GitHub. Run 'gh auth login' first.");
     process.exit(1);
   }
 
-  if (!claudeOk) {
-    logger.error("Claude CLI not found. Please install claude CLI first.");
+  if (!aiOk) {
+    logger.error(`${providerName} CLI not found. Please install ${provider} CLI first.`);
     process.exit(1);
   }
 
   const agentInstructions = loadAgentInstructions();
 
-  // Generate ticket with Claude (may loop if user wants to regenerate)
-  let claudeOutput: string;
+  // Generate ticket with AI (may loop if user wants to regenerate)
+  let aiOutput: string;
   let additionalHints: string | null = null;
 
   while (true) {
-    // Build prompt and invoke Claude
+    // Build prompt and invoke AI
     const prompt = buildTicketPrompt(description, agentInstructions, additionalHints);
 
     try {
-      // Show visual indicator before Claude output
-      console.log(chalk.dim("┌─ Generating ticket... ─────────────────────────────────────┐"));
+      // Show visual indicator before AI output
+      console.log(chalk.dim(`┌─ Generating ticket with ${providerName}... ──────────────────────────┐`));
       logger.newline();
-      claudeOutput = await invokeClaude({ prompt, streamOutput: true });
+      const result = await invokeAI({ prompt, streamOutput: true }, config, options.provider);
+      aiOutput = result.output;
       logger.newline();
       console.log(chalk.dim("└────────────────────────────────────────────────────────────┘"));
       logger.newline();
     } catch (error) {
-      logger.error(`Claude invocation failed: ${error}`);
+      logger.error(`${providerName} invocation failed: ${error}`);
       return;
     }
 
     // Parse metadata
-    const meta = parseTicketMeta(claudeOutput);
+    const meta = parseTicketMeta(aiOutput);
     if (!meta) {
       logger.warning("Could not parse metadata from Claude output. Using defaults.");
     }
@@ -81,7 +93,7 @@ export async function createCommand(
     };
 
     // Extract issue body (without META line)
-    const issueBody = extractIssueBody(claudeOutput);
+    const issueBody = extractIssueBody(aiOutput);
 
     // Generate title from description
     const title =
