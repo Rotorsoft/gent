@@ -1,6 +1,6 @@
 # AI Agent Instructions
 
-This file contains instructions for Claude when working on this repository.
+This file contains instructions for the AI when working on this repository.
 
 ## Project Overview
 
@@ -72,10 +72,7 @@ Follow conventional commits format:
 - `chore:` Maintenance/dependencies
 - `docs:` Documentation
 
-All AI commits should include:
-```
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
+All AI commits should include the Co-Authored-By trailer as specified in the task prompt.
 
 ## Important Files
 

@@ -7,7 +7,7 @@ import {
   buildTicketPrompt,
   parseTicketMeta,
   extractIssueBody,
-} from "../lib/claude.js";
+} from "../lib/prompts.js";
 import { invokeAI, getProviderDisplayName } from "../lib/ai-provider.js";
 import { createIssue } from "../lib/github.js";
 import { buildIssueLabels } from "../lib/labels.js";
@@ -82,7 +82,7 @@ export async function createCommand(
     // Parse metadata
     const meta = parseTicketMeta(aiOutput);
     if (!meta) {
-      logger.warning("Could not parse metadata from Claude output. Using defaults.");
+      logger.warning("Could not parse metadata from AI output. Using defaults.");
     }
 
     const finalMeta: TicketMeta = meta || {
@@ -140,7 +140,7 @@ export async function createCommand(
       {
         type: "input",
         name: "hints",
-        message: "Enter additional hints or context for Claude:",
+        message: "Enter additional hints or context for the AI:",
       },
     ]);
 

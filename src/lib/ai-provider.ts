@@ -94,6 +94,15 @@ export function getProviderDisplayName(provider: AIProvider): string {
 }
 
 /**
+ * Get email for provider co-author credit
+ */
+export function getProviderEmail(provider: AIProvider): string {
+  return provider === "claude"
+    ? "noreply@anthropic.com"
+    : "noreply@google.com";
+}
+
+/**
  * Get colored provider name for display
  */
 export function getProviderDisplay(provider: AIProvider): string {

@@ -6,8 +6,8 @@ AI-powered GitHub workflow CLI - leverage AI (Claude or Gemini) to create ticket
 
 `gent` is a command-line tool that integrates AI with GitHub to automate your development workflow:
 
-- **Create AI-enhanced tickets** - Describe what you need, Claude generates detailed GitHub issues with proper labels
-- **Implement with AI** - Pick a ticket and let Claude implement it with automatic branch management
+- **Create AI-enhanced tickets** - Describe what you need, the AI generates detailed GitHub issues with proper labels
+- **Implement with AI** - Pick a ticket and let the AI implement it with automatic branch management
 - **Track progress** - Maintain a progress log for context across AI sessions
 - **Create smart PRs** - Generate AI-enhanced pull requests with proper descriptions
 
@@ -60,7 +60,7 @@ Creates workflow labels (`ai-ready`, `ai-in-progress`, etc.) and category labels
 gent create "Add user authentication with JWT tokens"
 ```
 
-Claude will:
+The AI will:
 - Generate a detailed issue with technical context
 - Infer appropriate labels (type, priority, risk, area)
 - Create the issue on GitHub with `ai-ready` label
@@ -75,7 +75,7 @@ gent run 123
 gent run --auto
 ```
 
-Claude will:
+The AI will:
 - Create a feature branch
 - Update labels to `ai-in-progress`
 - Implement the feature following your `AGENT.md` instructions
@@ -89,7 +89,7 @@ Claude will:
 gent pr
 ```
 
-Claude will:
+The AI will:
 - Generate a PR description from commits and linked issue
 - Include "Closes #" reference
 - Create the PR on GitHub
@@ -244,7 +244,7 @@ validation:
 
 ### AGENT.md
 
-Project-specific instructions for Claude. This file tells Claude how to work with your codebase:
+Project-specific instructions for the AI. This file tells the AI how to work with your codebase:
 
 - Project overview and architecture
 - Code patterns and conventions
@@ -288,7 +288,7 @@ This provides context for future AI sessions and human reviewers.
                                     │ created  │
                                     └────┬─────┘
                                          │
-                                    Claude implements
+                                    AI implements
                                          │
                                          v
                                     ┌──────────┐
@@ -401,8 +401,8 @@ gent create "Fix auth"
 
 ### Handling AI Blocks
 
-If Claude gets stuck (`ai-blocked` label):
-1. Check the issue comments for Claude's notes
+If the AI gets stuck (`ai-blocked` label):
+1. Check the issue comments for notes
 2. Add clarifying information to the issue
 3. Reset to `ai-ready` to retry
 4. Or implement manually

@@ -3,7 +3,7 @@ import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
 import { loadConfig } from "../lib/config.js";
 import { getIssue, createPullRequest, getPrForBranch, assignIssue, getCurrentUser, updateIssueLabels } from "../lib/github.js";
-import { buildPrPrompt } from "../lib/claude.js";
+import { buildPrPrompt } from "../lib/prompts.js";
 import { invokeAI, getProviderDisplayName } from "../lib/ai-provider.js";
 import { getCurrentBranch, isOnMainBranch, getDefaultBranch, getCommitsSinceBase, getDiffSummary, getUnpushedCommits, pushBranch } from "../lib/git.js";
 import { extractIssueNumber } from "../lib/branch.js";

@@ -3,7 +3,7 @@ import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
 import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import { getIssue, listIssues, updateIssueLabels, addIssueComment } from "../lib/github.js";
-import { buildImplementationPrompt } from "../lib/claude.js";
+import { buildImplementationPrompt } from "../lib/prompts.js";
 import { invokeAIInteractive, getProviderDisplayName } from "../lib/ai-provider.js";
 import { getCurrentBranch, isOnMainBranch, createBranch, branchExists, checkoutBranch, hasUncommittedChanges, getCurrentCommitSha, hasNewCommits } from "../lib/git.js";
 import { generateBranchName } from "../lib/branch.js";
@@ -267,7 +267,7 @@ Labels: ${issue.labels.join(", ")}`);
     }
   } else {
     // No commits created - check if it was a rate limit or other issue
-    // Exit code 2 typically indicates rate limiting for Claude CLI
+    // Exit code 2 typically indicates rate limiting for the AI provider CLI
     // Gemini may use different patterns
     const isRateLimited = aiExitCode === 2;
 

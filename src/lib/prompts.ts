@@ -1,75 +1,5 @@
-import { spawn } from "child_process";
-import { execa, type ResultPromise } from "execa";
 import type { GentConfig } from "../types/index.js";
-
-export interface ClaudeOptions {
-  prompt: string;
-  permissionMode?: string;
-  printOutput?: boolean;
-  streamOutput?: boolean;
-}
-
-export async function invokeClaude(options: ClaudeOptions): Promise<string> {
-  const args = ["--print"];
-
-  if (options.permissionMode) {
-    args.push("--permission-mode", options.permissionMode);
-  }
-
-  args.push(options.prompt);
-
-  if (options.printOutput) {
-    // Stream output to console without capturing
-    const subprocess = execa("claude", args, {
-      stdio: "inherit",
-    });
-    await subprocess;
-    return "";
-  } else if (options.streamOutput) {
-    // Use native spawn for better streaming control
-    return new Promise((resolve, reject) => {
-      const child = spawn("claude", args, {
-        stdio: ["inherit", "pipe", "pipe"],
-      });
-
-      let output = "";
-
-      child.stdout.on("data", (chunk: Buffer) => {
-        const text = chunk.toString();
-        output += text;
-        process.stdout.write(text);
-      });
-
-      child.stderr.on("data", (chunk: Buffer) => {
-        process.stderr.write(chunk);
-      });
-
-      child.on("close", (code) => {
-        if (code === 0) {
-          resolve(output);
-        } else {
-          reject(new Error(`Claude exited with code ${code}`));
-        }
-      });
-
-      child.on("error", reject);
-    });
-  } else {
-    const { stdout } = await execa("claude", args);
-    return stdout;
-  }
-}
-
-export async function invokeClaudeInteractive(
-  prompt: string,
-  config: GentConfig
-): Promise<ResultPromise> {
-  const args = ["--permission-mode", config.claude.permission_mode, prompt];
-
-  return execa("claude", args, {
-    stdio: "inherit",
-  });
-}
+import { getProviderDisplayName, getProviderEmail } from "./ai-provider.js";
 
 export function buildTicketPrompt(
   description: string,
@@ -129,6 +59,9 @@ export function buildImplementationPrompt(
   progressContent: string | null,
   config: GentConfig
 ): string {
+  const providerName = getProviderDisplayName(config.ai.provider);
+  const providerEmail = getProviderEmail(config.ai.provider);
+
   return `GitHub Issue #${issue.number}: ${issue.title}
 
 ${issue.body}
@@ -145,15 +78,15 @@ ${config.validation.map((cmd) => `   - ${cmd}`).join("\n")}
 4. **Make an atomic commit** with a clear message following conventional commits format:
    - Use format: <type>: <description>
    - Include "Completed GitHub issue #${issue.number}" in body
-   - End with: Co-Authored-By: Claude <noreply@anthropic.com>
+   - End with: Co-Authored-By: ${providerName} <${providerEmail}>
 5. **Update ${config.progress.file}** - append a compact entry documenting your work:
-   \`\`\`
+   \
    [YYYY-MM-DD] #${issue.number} <type>: <brief description>
    - Files: <comma-separated list of changed files>
    - Changes: <1-2 sentence summary of what was implemented>
    - Decisions: <key technical decisions made, if any>
    - Issues: <concerns or follow-ups for reviewers, if any>
-   \`\`\`
+   \
    Keep entries minimal (4-6 lines max). Skip sections if not applicable.
 6. **Do NOT push** - the user will review and push manually
 
