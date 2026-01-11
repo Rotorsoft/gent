@@ -34,3 +34,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/pr.ts
 - Changes: Added missing label update logic to transition issues from ai-in-progress to ai-completed after successful PR creation.
 - Decisions: Label update is provider-agnostic (applies to Claude, Gemini, etc). Non-critical errors are silently ignored.
+
+[2026-01-11] #19 fix: correct Gemini CLI invocation for interactive implementation mode
+- Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts
+- Changes: Fixed invokeAIInteractive to use `-i` flag for Gemini CLI, enabling interactive mode with initial prompt instead of one-shot mode that exits immediately.
+- Decisions: Gemini requires `-i/--prompt-interactive` flag to stay in interactive mode after executing initial prompt, unlike Claude which defaults to interactive.

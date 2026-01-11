@@ -77,9 +77,10 @@ export async function invokeAIInteractive(
       provider,
     };
   } else {
-    // Gemini CLI doesn't have permission mode
+    // Gemini CLI uses -i/--prompt-interactive for interactive mode with initial prompt
+    // Without -i, the positional prompt runs in one-shot mode and exits
     return {
-      result: execa("gemini", [prompt], { stdio: "inherit" }),
+      result: execa("gemini", ["-i", prompt], { stdio: "inherit" }),
       provider,
     };
   }
