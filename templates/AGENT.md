@@ -1,6 +1,6 @@
 # AI Agent Instructions
 
-This file contains instructions for Claude when working on this repository.
+This file contains instructions for the AI when working on this repository.
 
 ## Project Overview
 

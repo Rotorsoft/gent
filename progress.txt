@@ -40,12 +40,17 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Changes: Fixed invokeAIInteractive to use `-i` flag for Gemini CLI, enabling interactive mode with initial prompt instead of one-shot mode that exits immediately.
 - Decisions: Gemini requires `-i/--prompt-interactive` flag to stay in interactive mode after executing initial prompt, unlike Claude which defaults to interactive.
 
-[2026-01-11] #21 refactor: cleanup unused code in claude.ts
-- Files: src/lib/claude.ts
+[2026-01-11] #21 refactor: cleanup unused code in prompts.ts
+- Files: src/lib/prompts.ts
 - Changes: Removed invokeClaude and invokeClaudeInteractive functions and unused imports. File now solely focuses on prompt generation.
 - Decisions: Verified that functionality is fully covered by ai-provider.ts.
 
 [2026-01-11] #21 feat: dynamic Co-Authored-By trailer
-- Files: src/lib/claude.ts, src/lib/ai-provider.ts, src/lib/claude.test.ts, src/commands/init.ts, templates/AGENT.md
+- Files: src/lib/prompts.ts, src/lib/ai-provider.ts, src/lib/prompts.test.ts, src/commands/init.ts, templates/AGENT.md
 - Changes: Updated prompt generation to use dynamic provider name and email for Co-Authored-By trailer. Updated templates to be generic.
 - Decisions: Using noreply@anthropic.com and noreply@google.com for respective providers.
+
+[2026-01-11] #21 refactor: rename claude.ts to prompts.ts
+- Files: src/lib/prompts.ts, src/lib/prompts.test.ts, src/commands/run.ts, src/commands/create.ts, src/commands/pr.ts, README.md, AGENT.md
+- Changes: Renamed Claude-specific file to reflect its generic prompt-building nature. Updated all imports and documentation.
+- Decisions: Aligned naming with the multi-model AI provider abstraction.

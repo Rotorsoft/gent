@@ -32,7 +32,7 @@ This is a TypeScript CLI tool (`gent`) that integrates AI (Claude or Gemini) wit
 - `src/lib/config.ts` - Loads `.gent.yml` config and `AGENT.md` instructions
 - `src/lib/github.ts` - GitHub operations via `gh` CLI (issues, labels, PRs)
 - `src/lib/ai-provider.ts` - AI provider abstraction (Claude/Gemini), handles invocation and fallback
-- `src/lib/claude.ts` - Prompt building for AI interactions
+- `src/lib/prompts.ts` - Prompt building for AI interactions
 - `src/lib/git.ts` - Git operations via `execa`
 - `src/lib/branch.ts` - Branch name parsing and generation (pattern: `{author}/{type}-{issue}-{slug}`)
 - `src/lib/labels.ts` - Label utilities, priority sorting, metadata extraction

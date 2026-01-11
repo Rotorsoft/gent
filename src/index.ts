@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { setupLabelsCommand } from "./commands/setup-labels.js";
@@ -7,12 +10,18 @@ import { runCommand } from "./commands/run.js";
 import { prCommand } from "./commands/pr.js";
 import { statusCommand } from "./commands/status.js";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const packageJson = JSON.parse(
+  readFileSync(join(__dirname, "../package.json"), "utf8")
+);
+const { version } = packageJson;
+
 const program = new Command();
 
 program
   .name("gent")
-  .description("AI-powered GitHub workflow CLI - leverage Claude AI to create tickets, implement features, and manage PRs")
-  .version("0.1.0");
+  .description("AI-powered GitHub workflow CLI - leverage AI (Claude or Gemini) to create tickets, implement features, and manage PRs")
+  .version(version);
 
 program
   .command("init")

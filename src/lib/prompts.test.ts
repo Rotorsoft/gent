@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildTicketPrompt, parseTicketMeta, extractIssueBody, buildImplementationPrompt } from "./claude.js";
+import { buildTicketPrompt, parseTicketMeta, extractIssueBody, buildImplementationPrompt } from "./prompts.js";
 import type { GentConfig } from "../types/index.js";
 
 // Minimal config for testing

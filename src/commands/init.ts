@@ -9,7 +9,7 @@ import { loadConfig } from "../lib/config.js";
 
 const DEFAULT_AGENT_MD = `# AI Agent Instructions
 
-This file contains instructions for Claude when working on this repository.
+This file contains instructions for the AI when working on this repository.
 
 ## Project Overview
 
