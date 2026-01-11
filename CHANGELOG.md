@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/rotorsoft/gent/compare/v1.2.0...v1.3.0) (2026-01-11)
+
+
+### Features
+
+* add dynamic provider signature to issues and PRs ([bb51e51](https://github.com/rotorsoft/gent/commit/bb51e517b9e64999a37bbb970ec8045e1921ec12)), closes [#15](https://github.com/rotorsoft/gent/issues/15)
+
 # [1.2.0](https://github.com/rotorsoft/gent/compare/v1.1.2...v1.2.0) (2026-01-11)
 
 
