@@ -1,10 +1,19 @@
+export type AIProvider = "claude" | "gemini";
+
 export interface GentConfig {
   version: number;
   github: GitHubConfig;
   branch: BranchConfig;
   progress: ProgressConfig;
   claude: ClaudeConfig;
+  ai: AIConfig;
   validation: string[];
+}
+
+export interface AIConfig {
+  provider: AIProvider;
+  fallback_provider?: AIProvider;
+  auto_fallback: boolean;
 }
 
 export interface GitHubConfig {

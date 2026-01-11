@@ -6,7 +6,8 @@ import { extractIssueNumber, parseBranchName } from "../lib/branch.js";
 import { getWorkflowLabels } from "../lib/labels.js";
 import { progressExists, readProgress } from "../lib/progress.js";
 import { configExists } from "../lib/config.js";
-import { checkGhAuth, checkClaudeCli, checkGitRepo } from "../utils/validators.js";
+import { checkGhAuth, checkAIProvider, checkGitRepo } from "../utils/validators.js";
+import { getProviderDisplayName } from "../lib/ai-provider.js";
 
 export async function statusCommand(): Promise<void> {
   logger.bold("Gent Workflow Status");
@@ -40,6 +41,16 @@ export async function statusCommand(): Promise<void> {
 
   logger.newline();
 
+  // AI Provider status
+  logger.bold("AI Provider:");
+  const providerName = getProviderDisplayName(config.ai.provider);
+  logger.info(`  Active: ${colors.provider(providerName)}`);
+  if (config.ai.fallback_provider) {
+    const fallbackName = getProviderDisplayName(config.ai.fallback_provider);
+    logger.info(`  Fallback: ${fallbackName} (auto: ${config.ai.auto_fallback ? "enabled" : "disabled"})`);
+  }
+  logger.newline();
+
   // Prerequisites
   logger.bold("Prerequisites:");
   const ghAuth = await checkGhAuth();
@@ -49,11 +60,22 @@ export async function statusCommand(): Promise<void> {
     logger.error("  GitHub CLI not authenticated");
   }
 
-  const claudeOk = await checkClaudeCli();
-  if (claudeOk) {
-    logger.success("  Claude CLI available");
+  const aiOk = await checkAIProvider(config.ai.provider);
+  if (aiOk) {
+    logger.success(`  ${providerName} CLI available`);
   } else {
-    logger.error("  Claude CLI not found");
+    logger.error(`  ${providerName} CLI not found`);
+  }
+
+  // Check fallback provider if configured
+  if (config.ai.fallback_provider) {
+    const fallbackOk = await checkAIProvider(config.ai.fallback_provider);
+    const fallbackName = getProviderDisplayName(config.ai.fallback_provider);
+    if (fallbackOk) {
+      logger.success(`  ${fallbackName} CLI available (fallback)`);
+    } else {
+      logger.warning(`  ${fallbackName} CLI not found (fallback)`);
+    }
   }
 
   logger.newline();

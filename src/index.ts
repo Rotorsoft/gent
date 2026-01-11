@@ -33,8 +33,9 @@ program
   .command("create <description>")
   .description("Create an AI-enhanced GitHub issue")
   .option("-y, --yes", "Skip confirmation and create issue immediately")
+  .option("-p, --provider <provider>", "AI provider to use (claude or gemini)")
   .action(async (description, options) => {
-    await createCommand(description, { yes: options.yes });
+    await createCommand(description, { yes: options.yes, provider: options.provider });
   });
 
 program
@@ -53,18 +54,20 @@ program
 
 program
   .command("run [issue-number]")
-  .description("Run Claude to implement a GitHub issue")
+  .description("Run AI to implement a GitHub issue")
   .option("-a, --auto", "Auto-select highest priority ai-ready issue")
+  .option("-p, --provider <provider>", "AI provider to use (claude or gemini)")
   .action(async (issueNumber, options) => {
-    await runCommand(issueNumber, { auto: options.auto });
+    await runCommand(issueNumber, { auto: options.auto, provider: options.provider });
   });
 
 program
   .command("pr")
   .description("Create an AI-enhanced pull request")
   .option("-d, --draft", "Create as draft PR")
+  .option("-p, --provider <provider>", "AI provider to use (claude or gemini)")
   .action(async (options) => {
-    await prCommand({ draft: options.draft });
+    await prCommand({ draft: options.draft, provider: options.provider });
   });
 
 program

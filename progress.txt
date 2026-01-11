@@ -19,3 +19,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/claude.ts, src/lib/claude.test.ts
 - Changes: Added explicit instruction in prompt to start with "## Description" without preamble. Updated extractIssueBody to strip any text before "## Description" as safety measure.
 - Decisions: Two-layer defense: prompt instruction + extraction cleanup.
+
+[2026-01-11] #9 feat: add multi-model AI provider support (Claude + Gemini)
+- Files: src/types/index.ts, src/lib/config.ts, src/lib/ai-provider.ts, src/utils/validators.ts, src/utils/logger.ts, src/commands/run.ts, src/commands/create.ts, src/commands/pr.ts, src/commands/status.ts, src/index.ts, src/lib/ai-provider.test.ts, src/lib/config.test.ts
+- Changes: Added AIProvider type and AIConfig interface. Created ai-provider.ts abstraction layer supporting Claude and Gemini CLIs with auto-fallback on rate limits. Added --provider flag to run/create/pr commands. Updated status command to show AI provider info.
+- Decisions: Kept claude.ts for prompt building (backward compat), new ai-provider.ts handles invocation. GENT_AI_PROVIDER env var overrides config.

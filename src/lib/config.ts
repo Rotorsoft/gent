@@ -33,6 +33,10 @@ const DEFAULT_CONFIG: GentConfig = {
     permission_mode: "acceptEdits",
     agent_file: "AGENT.md",
   },
+  ai: {
+    provider: "claude",
+    auto_fallback: true,
+  },
   validation: ["npm run typecheck", "npm run lint", "npm run test"],
 };
 
@@ -42,6 +46,7 @@ export function getConfigPath(cwd: string = process.cwd()): string {
 
 export function getAgentPath(cwd: string = process.cwd()): string | null {
   const config = loadConfig(cwd);
+  // Use claude.agent_file for backward compatibility
   const agentPath = join(cwd, config.claude.agent_file);
   return existsSync(agentPath) ? agentPath : null;
 }
@@ -85,6 +90,9 @@ function mergeConfig(
   defaults: GentConfig,
   user: Partial<GentConfig>
 ): GentConfig {
+  // Support GENT_AI_PROVIDER environment variable override
+  const envProvider = process.env.GENT_AI_PROVIDER as "claude" | "gemini" | undefined;
+
   return {
     version: user.version ?? defaults.version,
     github: {
@@ -111,6 +119,12 @@ function mergeConfig(
     claude: {
       ...defaults.claude,
       ...user.claude,
+    },
+    ai: {
+      ...defaults.ai,
+      ...user.ai,
+      // Environment variable takes precedence
+      ...(envProvider && { provider: envProvider }),
     },
     validation: user.validation ?? defaults.validation,
   };
@@ -170,6 +184,12 @@ progress:
 claude:
   permission_mode: "acceptEdits"
   agent_file: "AGENT.md"
+
+# AI provider settings
+ai:
+  provider: "claude"  # claude | gemini
+  # fallback_provider: "gemini"  # optional fallback when rate limited
+  auto_fallback: true  # automatically switch to fallback on rate limit
 
 # Validation commands (run before commit)
 validation:

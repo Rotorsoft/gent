@@ -3,16 +3,18 @@ import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
 import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import { getIssue, listIssues, updateIssueLabels, addIssueComment } from "../lib/github.js";
-import { invokeClaudeInteractive, buildImplementationPrompt } from "../lib/claude.js";
+import { buildImplementationPrompt } from "../lib/claude.js";
+import { invokeAIInteractive, getProviderDisplayName } from "../lib/ai-provider.js";
 import { getCurrentBranch, isOnMainBranch, createBranch, branchExists, checkoutBranch, hasUncommittedChanges, getCurrentCommitSha, hasNewCommits } from "../lib/git.js";
 import { generateBranchName } from "../lib/branch.js";
 import { getWorkflowLabels, extractTypeFromLabels, sortByPriority } from "../lib/labels.js";
 import { readProgress } from "../lib/progress.js";
-import { checkGhAuth, checkClaudeCli, isValidIssueNumber } from "../utils/validators.js";
-import type { GitHubIssue } from "../types/index.js";
+import { checkGhAuth, checkAIProvider, isValidIssueNumber } from "../utils/validators.js";
+import type { GitHubIssue, AIProvider } from "../types/index.js";
 
 export interface RunOptions {
   auto?: boolean;
+  provider?: AIProvider;
 }
 
 export async function runCommand(
@@ -22,16 +24,25 @@ export async function runCommand(
   logger.bold("Running AI implementation workflow...");
   logger.newline();
 
+  const config = loadConfig();
+
+  // Determine which provider to use
+  const provider = options.provider ?? config.ai.provider;
+  const providerName = getProviderDisplayName(provider);
+
   // Validate prerequisites
-  const [ghAuth, claudeOk] = await Promise.all([checkGhAuth(), checkClaudeCli()]);
+  const [ghAuth, aiOk] = await Promise.all([
+    checkGhAuth(),
+    checkAIProvider(provider),
+  ]);
 
   if (!ghAuth) {
     logger.error("Not authenticated with GitHub. Run 'gh auth login' first.");
     process.exit(1);
   }
 
-  if (!claudeOk) {
-    logger.error("Claude CLI not found. Please install claude CLI first.");
+  if (!aiOk) {
+    logger.error(`${providerName} CLI not found. Please install ${provider} CLI first.`);
     process.exit(1);
   }
 
@@ -53,7 +64,6 @@ export async function runCommand(
     }
   }
 
-  const config = loadConfig();
   const workflowLabels = getWorkflowLabels(config);
 
   // Get issue number
@@ -176,18 +186,18 @@ Labels: ${issue.labels.join(", ")}`);
     logger.warning(`Failed to update labels: ${error}`);
   }
 
-  // Build Claude prompt
+  // Build implementation prompt
   const agentInstructions = loadAgentInstructions();
   const progressContent = readProgress(config);
   const prompt = buildImplementationPrompt(issue, agentInstructions, progressContent, config);
 
   logger.newline();
-  logger.info("Starting Claude implementation session...");
-  logger.dim("Claude will implement the feature and create a commit.");
+  logger.info(`Starting ${colors.provider(providerName)} implementation session...`);
+  logger.dim(`${providerName} will implement the feature and create a commit.`);
   logger.dim("Review the changes before pushing.");
   logger.newline();
 
-  // Capture commit SHA before Claude runs
+  // Capture commit SHA before AI runs
   const beforeSha = await getCurrentCommitSha();
 
   // Track if operation was cancelled
@@ -198,16 +208,18 @@ Labels: ${issue.labels.join(", ")}`);
   process.on("SIGINT", handleSignal);
   process.on("SIGTERM", handleSignal);
 
-  // Invoke Claude interactively
-  let claudeExitCode: number | undefined;
+  // Invoke AI interactively
+  let aiExitCode: number | undefined;
+  let usedProvider = provider;
   try {
-    const result = await invokeClaudeInteractive(prompt, config);
-    claudeExitCode = result.exitCode;
+    const { result, provider: actualProvider } = await invokeAIInteractive(prompt, config, options.provider);
+    usedProvider = actualProvider;
+    aiExitCode = result.exitCode ?? undefined;
   } catch (error) {
     if (error && typeof error === "object" && "exitCode" in error) {
-      claudeExitCode = error.exitCode as number;
+      aiExitCode = error.exitCode as number;
     }
-    logger.error(`Claude session failed: ${error}`);
+    logger.error(`${getProviderDisplayName(usedProvider)} session failed: ${error}`);
     // Don't exit - allow user to see what happened
   } finally {
     // Clean up signal handlers
@@ -228,8 +240,9 @@ Labels: ${issue.labels.join(", ")}`);
   }
 
   // Determine appropriate label based on whether work was done
+  const usedProviderName = getProviderDisplayName(usedProvider);
   if (commitsCreated) {
-    logger.success("Claude session completed with new commits.");
+    logger.success(`${usedProviderName} session completed with new commits.`);
 
     // Update labels to completed
     try {
@@ -246,7 +259,7 @@ Labels: ${issue.labels.join(", ")}`);
     try {
       await addIssueComment(
         issueNumber,
-        `AI implementation completed on branch \`${branchName}\`.\n\nPlease review the changes and create a PR when ready.`
+        `AI implementation completed on branch \`${branchName}\` using ${usedProviderName}.\n\nPlease review the changes and create a PR when ready.`
       );
       logger.success("Posted completion comment to issue");
     } catch (error) {
@@ -255,10 +268,11 @@ Labels: ${issue.labels.join(", ")}`);
   } else {
     // No commits created - check if it was a rate limit or other issue
     // Exit code 2 typically indicates rate limiting for Claude CLI
-    const isRateLimited = claudeExitCode === 2;
+    // Gemini may use different patterns
+    const isRateLimited = aiExitCode === 2;
 
     if (isRateLimited) {
-      logger.warning("Claude session ended due to rate limits. No commits were created.");
+      logger.warning(`${usedProviderName} session ended due to rate limits. No commits were created.`);
 
       // Set ai-blocked label
       try {
@@ -275,14 +289,14 @@ Labels: ${issue.labels.join(", ")}`);
       try {
         await addIssueComment(
           issueNumber,
-          `AI implementation was blocked due to API rate limits on branch \`${branchName}\`.\n\nNo commits were created. Please retry later.`
+          `AI implementation was blocked due to API rate limits on branch \`${branchName}\` (${usedProviderName}).\n\nNo commits were created. Please retry later.`
         );
         logger.info("Posted rate-limit comment to issue");
       } catch (error) {
         logger.warning(`Failed to post comment: ${error}`);
       }
     } else {
-      logger.warning("Claude session completed but no commits were created. Labels unchanged.");
+      logger.warning(`${usedProviderName} session completed but no commits were created. Labels unchanged.`);
       // Leave as ai-in-progress so it can be retried
     }
 

@@ -20,7 +20,7 @@ pnpm vitest src/lib/branch.test.ts  # Run a single test file
 
 ## Architecture
 
-This is a TypeScript CLI tool (`gent`) that integrates Claude AI with GitHub for automated development workflows. It requires the `gh` CLI and `claude` CLI as external dependencies.
+This is a TypeScript CLI tool (`gent`) that integrates AI (Claude or Gemini) with GitHub for automated development workflows. It requires the `gh` CLI and either `claude` or `gemini` CLI as external dependencies.
 
 ### Entry Point and Commands
 
@@ -31,7 +31,8 @@ This is a TypeScript CLI tool (`gent`) that integrates Claude AI with GitHub for
 
 - `src/lib/config.ts` - Loads `.gent.yml` config and `AGENT.md` instructions
 - `src/lib/github.ts` - GitHub operations via `gh` CLI (issues, labels, PRs)
-- `src/lib/claude.ts` - Claude CLI invocation and prompt building
+- `src/lib/ai-provider.ts` - AI provider abstraction (Claude/Gemini), handles invocation and fallback
+- `src/lib/claude.ts` - Prompt building for AI interactions
 - `src/lib/git.ts` - Git operations via `execa`
 - `src/lib/branch.ts` - Branch name parsing and generation (pattern: `{author}/{type}-{issue}-{slug}`)
 - `src/lib/labels.ts` - Label utilities, priority sorting, metadata extraction
@@ -45,12 +46,13 @@ This is a TypeScript CLI tool (`gent`) that integrates Claude AI with GitHub for
 
 - `src/utils/logger.ts` - Colored console output with chalk
 - `src/utils/spinner.ts` - Progress spinners with ora
-- `src/utils/validators.ts` - Prerequisite checks (gh, claude, git) and input validation
+- `src/utils/validators.ts` - Prerequisite checks (gh, claude, gemini, git) and input validation
 
 ## Key Patterns
 
-- External CLI tools (`gh`, `claude`, `git`) are invoked via `execa`
+- External CLI tools (`gh`, `claude`, `gemini`, `git`) are invoked via `execa`
 - Config is loaded from `.gent.yml` with defaults merged in
+- AI provider is configurable (Claude/Gemini) with optional auto-fallback on rate limits
 - All GitHub operations use the `gh` CLI (not direct API calls)
 - Branch names follow pattern: `{author}/{type}-{issue}-{slug}` (e.g., `ro/feature-123-add-login`)
 - Workflow labels: `ai-ready` → `ai-in-progress` → `ai-completed` (or `ai-blocked`)
