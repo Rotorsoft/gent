@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/rotorsoft/gent/compare/v1.3.0...v1.3.1) (2026-01-11)
+
+
+### Bug Fixes
+
+* update issue labels to ai-completed after PR creation ([12a119c](https://github.com/rotorsoft/gent/commit/12a119cfb67c672c202233f98ed847f97bd13953)), closes [#17](https://github.com/rotorsoft/gent/issues/17)
+
 # [1.3.0](https://github.com/rotorsoft/gent/compare/v1.2.0...v1.3.0) (2026-01-11)
 
 
