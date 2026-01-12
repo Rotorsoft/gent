@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/rotorsoft/gent/compare/v1.7.0...v1.7.1) (2026-01-12)
+
+
+### Bug Fixes
+
+* version ([4a9cc89](https://github.com/rotorsoft/gent/commit/4a9cc893f6a546665d6a21cd7038843a1650f611))
+
 # [1.7.0](https://github.com/rotorsoft/gent/compare/v1.6.0...v1.7.0) (2026-01-12)
 
 
