@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/rotorsoft/gent/compare/v1.4.0...v1.5.0) (2026-01-12)
+
+
+### Features
+
+* generate ticket title from CLI command prompt ([7f605e8](https://github.com/rotorsoft/gent/commit/7f605e8fa2f3450101faaebdcd5e649b196fa13f)), closes [#23](https://github.com/rotorsoft/gent/issues/23)
+
 # [1.4.0](https://github.com/rotorsoft/gent/compare/v1.3.2...v1.4.0) (2026-01-11)
 
 
