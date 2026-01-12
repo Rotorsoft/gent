@@ -64,3 +64,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/version.ts, src/lib/version.test.ts, src/index.ts, src/commands/status.ts
 - Changes: Created getVersion() utility to read version from package.json. Updated status command header to show version. Refactored index.ts to use shared version utility.
 - Decisions: Single source of truth in package.json. Commander.js .version() already configured.
+
+[2026-01-12] #27 feat: add version check to detect and notify users of CLI updates
+- Files: src/lib/version.ts, src/lib/version.test.ts, src/index.ts, src/commands/status.ts, eslint.config.js
+- Changes: Added npm registry fetch with caching (~/.gent/version-check.json), non-blocking startup check via Commander preAction hook, --skip-update-check flag, and update display in status command.
+- Decisions: 24h cache interval, 3s fetch timeout, native fetch API (Node 20+). GENT_SKIP_UPDATE_CHECK=1 env var also disables checks.
