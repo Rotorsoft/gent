@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/rotorsoft/gent/compare/v1.5.0...v1.6.0) (2026-01-12)
+
+
+### Features
+
+* display CLI version in status and help command outputs ([5bd05db](https://github.com/rotorsoft/gent/commit/5bd05dbc4bdab49cc39a89134aab5279f930715c)), closes [#25](https://github.com/rotorsoft/gent/issues/25)
+
 # [1.5.0](https://github.com/rotorsoft/gent/compare/v1.4.0...v1.5.0) (2026-01-12)
 
 
