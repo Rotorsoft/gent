@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/rotorsoft/gent/compare/v1.6.0...v1.7.0) (2026-01-12)
+
+
+### Features
+
+* add version check to detect and notify users of CLI updates ([32224c1](https://github.com/rotorsoft/gent/commit/32224c1190c71bfcb13150dfee2baa715dbbdcf0)), closes [#27](https://github.com/rotorsoft/gent/issues/27)
+
 # [1.6.0](https://github.com/rotorsoft/gent/compare/v1.5.0...v1.6.0) (2026-01-12)
 
 
