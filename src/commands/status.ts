@@ -8,9 +8,11 @@ import { progressExists, readProgress } from "../lib/progress.js";
 import { configExists } from "../lib/config.js";
 import { checkGhAuth, checkClaudeCli, checkGeminiCli, checkGitRepo } from "../utils/validators.js";
 import { getProviderDisplayName } from "../lib/ai-provider.js";
+import { getVersion } from "../lib/version.js";
 
 export async function statusCommand(): Promise<void> {
-  logger.bold("Gent Workflow Status");
+  const version = getVersion();
+  logger.bold(`Gent Workflow Status ${colors.label(`v${version}`)}`);
   logger.newline();
 
   // Check prerequisites
