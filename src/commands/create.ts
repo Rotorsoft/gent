@@ -7,6 +7,8 @@ import {
   buildTicketPrompt,
   parseTicketMeta,
   extractIssueBody,
+  extractTitle,
+  generateFallbackTitle,
 } from "../lib/prompts.js";
 import { invokeAI, getProviderDisplayName } from "../lib/ai-provider.js";
 import { createIssue } from "../lib/github.js";
@@ -17,6 +19,7 @@ import type { AIProvider } from "../types/index.js";
 export interface CreateOptions {
   yes?: boolean;
   provider?: AIProvider;
+  title?: string;
 }
 
 interface TicketMeta {
@@ -95,9 +98,19 @@ export async function createCommand(
     // Extract issue body (without META line) and append signature
     const issueBody = extractIssueBody(aiOutput) + `\n\n---\n*Created with ${providerName} by [gent](https://github.com/Rotorsoft/gent)*`;
 
-    // Generate title from description
-    const title =
-      description.length > 60 ? description.slice(0, 57) + "..." : description;
+    // Determine title: user override > AI-generated > fallback
+    let title: string;
+    if (options.title) {
+      title = options.title;
+    } else {
+      const aiTitle = extractTitle(aiOutput);
+      if (aiTitle) {
+        title = aiTitle;
+      } else {
+        title = generateFallbackTitle(description);
+        logger.warning("Could not extract AI-generated title. Using fallback.");
+      }
+    }
 
     // Build labels
     const labels = buildIssueLabels(finalMeta);
