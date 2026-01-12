@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { setupLabelsCommand } from "./commands/setup-labels.js";
@@ -9,12 +6,9 @@ import { listCommand } from "./commands/list.js";
 import { runCommand } from "./commands/run.js";
 import { prCommand } from "./commands/pr.js";
 import { statusCommand } from "./commands/status.js";
+import { getVersion } from "./lib/version.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const packageJson = JSON.parse(
-  readFileSync(join(__dirname, "../package.json"), "utf8")
-);
-const { version } = packageJson;
+const version = getVersion();
 
 const program = new Command();
 
