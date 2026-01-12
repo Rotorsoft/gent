@@ -6,16 +6,40 @@ import { listCommand } from "./commands/list.js";
 import { runCommand } from "./commands/run.js";
 import { prCommand } from "./commands/pr.js";
 import { statusCommand } from "./commands/status.js";
-import { getVersion } from "./lib/version.js";
+import { getVersion, checkForUpdates, formatUpgradeNotification } from "./lib/version.js";
+import { logger } from "./utils/logger.js";
 
 const version = getVersion();
+
+function startVersionCheck(): void {
+  // Skip if disabled via environment variable
+  if (process.env.GENT_SKIP_UPDATE_CHECK === "1") return;
+
+  checkForUpdates()
+    .then((result) => {
+      if (result.updateAvailable && result.latestVersion) {
+        logger.newline();
+        logger.warning(formatUpgradeNotification(result.currentVersion, result.latestVersion));
+      }
+    })
+    .catch(() => {
+      // Silently ignore errors
+    });
+}
 
 const program = new Command();
 
 program
   .name("gent")
   .description("AI-powered GitHub workflow CLI - leverage AI (Claude or Gemini) to create tickets, implement features, and manage PRs")
-  .version(version);
+  .version(version)
+  .option("--skip-update-check", "Skip checking for CLI updates")
+  .hook("preAction", (thisCommand) => {
+    // Start version check before any command runs (unless skipped)
+    if (!thisCommand.opts().skipUpdateCheck) {
+      startVersionCheck();
+    }
+  });
 
 program
   .command("init")
