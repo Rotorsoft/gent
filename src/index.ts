@@ -43,8 +43,9 @@ program
   .description("Create an AI-enhanced GitHub issue")
   .option("-y, --yes", "Skip confirmation and create issue immediately")
   .option("-p, --provider <provider>", "AI provider to use (claude or gemini)")
+  .option("-t, --title <title>", "Override the generated issue title")
   .action(async (description, options) => {
-    await createCommand(description, { yes: options.yes, provider: options.provider });
+    await createCommand(description, { yes: options.yes, provider: options.provider, title: options.title });
   });
 
 program

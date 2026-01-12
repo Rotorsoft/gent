@@ -54,3 +54,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/prompts.ts, src/lib/prompts.test.ts, src/commands/run.ts, src/commands/create.ts, src/commands/pr.ts, README.md, AGENT.md
 - Changes: Renamed Claude-specific file to reflect its generic prompt-building nature. Updated all imports and documentation.
 - Decisions: Aligned naming with the multi-model AI provider abstraction.
+
+[2026-01-12] #23 feat: generate ticket title from CLI command prompt
+- Files: src/lib/prompts.ts, src/lib/prompts.test.ts, src/commands/create.ts, src/index.ts
+- Changes: Added AI-generated title extraction from ticket output. Prompt now requests TITLE line. Added extractTitle() and generateFallbackTitle() functions. Added --title flag for manual override.
+- Decisions: Title limit extended to 200 chars. Fallback truncates at word boundary without ellipsis. Validation rejects placeholders and too short (<5) titles.

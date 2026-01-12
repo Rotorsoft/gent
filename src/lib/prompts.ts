@@ -14,7 +14,9 @@ ${agentInstructions ? `Project-Specific Instructions:\n${agentInstructions}\n\n`
 
 Create a detailed GitHub issue following this exact template.
 
-IMPORTANT: Start your output IMMEDIATELY with "## Description" - do not include any preamble, commentary, or introduction before the template.
+IMPORTANT: Start your output IMMEDIATELY with "TITLE:" followed by a clear, concise issue title in imperative mood (e.g., "Add OAuth2 authentication for Google and GitHub"). Keep titles under 100 characters when possible. Then on the next line, start with "## Description". Do not include any preamble, commentary, or introduction.
+
+TITLE: [Clear, concise issue title in imperative mood]
 
 ## Description
 [Clear user-facing description of what needs to be done]
@@ -144,6 +146,9 @@ export function extractIssueBody(output: string): string {
   // Remove the META line from the output
   let body = output.replace(/\n?META:type=\w+,priority=\w+,risk=\w+,area=\w+\s*$/, "").trim();
 
+  // Strip the TITLE line if present
+  body = body.replace(/^TITLE:\s*.+\n+/, "");
+
   // Strip any preamble text before "## Description"
   const descriptionIndex = body.indexOf("## Description");
   if (descriptionIndex > 0) {
@@ -151,4 +156,53 @@ export function extractIssueBody(output: string): string {
   }
 
   return body;
+}
+
+/**
+ * Extract the generated title from AI output
+ * Returns null if no valid title is found
+ */
+export function extractTitle(output: string): string | null {
+  const match = output.match(/^TITLE:\s*(.+)$/m);
+  if (!match) {
+    return null;
+  }
+
+  let title = match[1].trim();
+
+  // Remove surrounding quotes if present
+  if ((title.startsWith('"') && title.endsWith('"')) ||
+      (title.startsWith("'") && title.endsWith("'"))) {
+    title = title.slice(1, -1);
+  }
+
+  // Remove template placeholder if AI didn't replace it
+  if (title.includes("[") && title.includes("]")) {
+    return null;
+  }
+
+  // Ensure reasonable length (not empty, not too long)
+  if (title.length < 5 || title.length > 200) {
+    return null;
+  }
+
+  return title;
+}
+
+/**
+ * Generate a fallback title from the user's description
+ * Truncates long descriptions at word boundary without ellipsis
+ */
+export function generateFallbackTitle(description: string): string {
+  const maxLength = 200;
+  if (description.length <= maxLength) {
+    return description;
+  }
+  // Truncate at last word boundary before maxLength
+  const truncated = description.slice(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(" ");
+  if (lastSpace > maxLength * 0.5) {
+    return truncated.slice(0, lastSpace);
+  }
+  return truncated;
 }
