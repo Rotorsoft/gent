@@ -1,9 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { homedir } from "node:os";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import packageJson from "../../package.json" with { type: "json" };
 
 const NPM_REGISTRY_URL = "https://registry.npmjs.org/@rotorsoft/gent/latest";
 const CACHE_DIR = join(homedir(), ".gent");
@@ -27,9 +25,6 @@ interface VersionCache {
  * Reads the version from package.json
  */
 export function getVersion(): string {
-  const packageJson = JSON.parse(
-    readFileSync(join(__dirname, "../../package.json"), "utf8")
-  );
   return packageJson.version;
 }
 
