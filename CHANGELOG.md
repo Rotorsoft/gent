@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/rotorsoft/gent/compare/v1.8.0...v1.9.0) (2026-01-14)
+
+
+### Features
+
+* add gent fix command for review feedback ([78008f0](https://github.com/rotorsoft/gent/commit/78008f09fd6b7c14c77319b13d23d133af7c811d)), closes [#33](https://github.com/rotorsoft/gent/issues/33)
+
 # [1.8.0](https://github.com/rotorsoft/gent/compare/v1.7.1...v1.8.0) (2026-01-14)
 
 
