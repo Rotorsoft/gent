@@ -75,3 +75,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/fix.ts, src/index.ts, src/lib/github.ts, src/lib/prompts.ts, src/lib/review-feedback.ts, src/lib/review-feedback.test.ts, src/lib/prompts.test.ts, src/lib/ai-provider.test.ts, src/types/index.ts
 - Changes: Added gent fix command to pull PR review feedback, summarize actionable items, and re-run the implementation prompt with review context. Added review feedback parsing helpers and tests, plus prompt and GitHub helper updates.
 - Decisions: Summarized actionable feedback using review states, unresolved threads, and keyword heuristics; exit when no actionable feedback exists.
+
+[2026-01-14] #35 fix: use GraphQL API for PR review threads and add timestamp filtering
+- Files: src/lib/github.ts, src/lib/git.ts, src/lib/review-feedback.ts, src/commands/fix.ts, src/types/index.ts, src/lib/review-feedback.test.ts
+- Changes: Fixed getPrReviewData to use GraphQL for review threads. Added PR comments fetching. Added timestamp filtering to only show feedback after last commit (unresolved threads always shown). Added getLastCommitTimestamp helper. Auto-replies to feedback items after successful fix.
+- Decisions: GraphQL query fetches repo owner/name first. Graceful fallback to empty threads if GraphQL fails. Unresolved threads always included regardless of timestamp. Reply failures silently ignored.

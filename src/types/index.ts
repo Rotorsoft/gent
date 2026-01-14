@@ -78,6 +78,7 @@ export interface GitHubLabel {
 }
 
 export interface GitHubReviewComment {
+  id?: number;
   author: string;
   body: string;
   path?: string;
@@ -99,9 +100,17 @@ export interface GitHubReviewThread {
   comments: GitHubReviewComment[];
 }
 
+export interface GitHubPRComment {
+  id?: string;
+  author: string;
+  body: string;
+  createdAt?: string;
+}
+
 export interface GitHubReviewData {
   reviews: GitHubReview[];
   reviewThreads: GitHubReviewThread[];
+  comments: GitHubPRComment[];
 }
 
 export interface ProgressEntry {
