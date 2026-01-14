@@ -1,6 +1,6 @@
 # @rotorsoft/gent
 
-AI-powered GitHub workflow CLI - leverage AI (Claude or Gemini) to create tickets, implement features, and manage PRs.
+AI-powered GitHub workflow CLI - leverage AI (Claude, Gemini, or Codex) to create tickets, implement features, and manage PRs.
 
 ## Overview
 
@@ -21,15 +21,17 @@ pnpm add -g @rotorsoft/gent
 
 - **Node.js** 20 or higher
 - **GitHub CLI** (`gh`) - [Install](https://cli.github.com/)
-- **AI CLI** (one or both):
+- **AI CLI** (one or more):
   - **Claude CLI** - [Install](https://claude.ai/code)
   - **Gemini CLI** - [Install](https://github.com/google-gemini/gemini-cli)
+  - **OpenAI CLI** - [Install](https://github.com/openai/openai-python)
 
 Verify prerequisites:
 ```bash
 gh auth status    # Should show authenticated
 claude --version  # Should show version (if using Claude)
 gemini --version  # Should show version (if using Gemini)
+openai --version  # Should show version (if using Codex)
 ```
 
 ## Quick Start
@@ -133,7 +135,7 @@ gent create "Fix login bug" --provider gemini   # Use specific AI provider
 
 Options:
 - `-y, --yes` - Skip confirmation and create issue immediately
-- `-p, --provider <provider>` - AI provider to use (`claude` or `gemini`)
+- `-p, --provider <provider>` - AI provider to use (`claude`, `gemini`, or `codex`)
 
 ### `gent list`
 
@@ -163,7 +165,7 @@ gent run 123 --provider gemini # Use specific AI provider
 
 Options:
 - `-a, --auto` - Auto-select highest priority ai-ready issue
-- `-p, --provider <provider>` - AI provider to use (`claude` or `gemini`)
+- `-p, --provider <provider>` - AI provider to use (`claude`, `gemini`, or `codex`)
 
 ### `gent pr`
 
@@ -177,7 +179,7 @@ gent pr --provider gemini    # Use specific AI provider
 
 Options:
 - `-d, --draft` - Create as draft PR
-- `-p, --provider <provider>` - AI provider to use (`claude` or `gemini`)
+- `-p, --provider <provider>` - AI provider to use (`claude`, `gemini`, or `codex`)
 
 ### `gent status`
 
@@ -231,8 +233,15 @@ claude:
   permission_mode: "acceptEdits"
   agent_file: "AGENT.md"
 
+gemini:
+  sandbox_mode: "on"
+  agent_file: "AGENT.md"
+
+codex:
+  agent_file: "AGENT.md"
+
 ai:
-  provider: "claude"           # claude | gemini
+  provider: "claude"           # claude | gemini | codex
   fallback_provider: "gemini"  # optional fallback when rate limited
   auto_fallback: true          # automatically switch to fallback on rate limit
 
@@ -371,7 +380,7 @@ The author is derived from:
 | Variable | Description |
 |----------|-------------|
 | `GENT_AUTHOR` | Override author initials for branch naming |
-| `GENT_AI_PROVIDER` | Override AI provider (`claude` or `gemini`) |
+| `GENT_AI_PROVIDER` | Override AI provider (`claude`, `gemini`, or `codex`) |
 | `DEBUG` | Enable debug output |
 
 ## Tips

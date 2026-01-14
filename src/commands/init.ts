@@ -93,9 +93,19 @@ export async function initCommand(options: { force?: boolean }): Promise<void> {
     }
   }
 
+  const { provider } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "provider",
+      message: "Which AI provider would you like to use by default?",
+      choices: ["claude", "gemini", "codex"],
+      default: "claude",
+    },
+  ]);
+
   // Create .gent.yml
   const configPath = getConfigPath(cwd);
-  writeFileSync(configPath, generateDefaultConfig(), "utf-8");
+  writeFileSync(configPath, generateDefaultConfig(provider), "utf-8");
   logger.success(`Created ${colors.file(".gent.yml")}`);
 
   // Create AGENT.md

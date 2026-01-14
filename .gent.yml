@@ -59,7 +59,7 @@ gemini:
 
 # AI provider settings
 ai:
-  provider: "claude"  # claude | gemini
+  provider: "gemini"  # claude | gemini
   # fallback_provider: "gemini"  # optional fallback when rate limited
   auto_fallback: true  # automatically switch to fallback on rate limit
 

@@ -37,8 +37,25 @@ export async function checkGeminiCli(): Promise<boolean> {
   }
 }
 
+export async function checkCodexCLI(): Promise<boolean> {
+  try {
+    // As per issue, we check for 'openai' for codex provider
+    await execa("openai", ["--version"]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function checkAIProvider(provider: AIProvider): Promise<boolean> {
-  return provider === "claude" ? checkClaudeCli() : checkGeminiCli();
+  switch (provider) {
+    case "claude":
+      return checkClaudeCli();
+    case "gemini":
+      return checkGeminiCli();
+    case "codex":
+      return checkCodexCLI();
+  }
 }
 
 export async function checkGitRepo(): Promise<boolean> {
@@ -60,21 +77,30 @@ export async function validatePrerequisites(config?: GentConfig): Promise<{
     { name: "git repository", check: checkGitRepo },
   ];
 
+  const getProviderName = (provider: AIProvider) => {
+    switch (provider) {
+      case "claude":
+        return "claude CLI";
+      case "gemini":
+        return "gemini CLI";
+      case "codex":
+        return "openai CLI";
+    }
+  };
+
   // Add AI provider check based on config
   if (config) {
     const provider = config.ai.provider;
-    const providerName = provider === "claude" ? "claude CLI" : "gemini CLI";
     checks.push({
-      name: providerName,
+      name: getProviderName(provider),
       check: () => checkAIProvider(provider),
     });
 
     // Also check fallback if configured
     if (config.ai.fallback_provider) {
       const fallback = config.ai.fallback_provider;
-      const fallbackName = fallback === "claude" ? "claude CLI (fallback)" : "gemini CLI (fallback)";
       checks.push({
-        name: fallbackName,
+        name: `${getProviderName(fallback)} (fallback)`,
         check: () => checkAIProvider(fallback),
       });
     }
