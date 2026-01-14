@@ -80,3 +80,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/github.ts, src/lib/git.ts, src/lib/review-feedback.ts, src/commands/fix.ts, src/types/index.ts, src/lib/review-feedback.test.ts
 - Changes: Fixed getPrReviewData to use GraphQL for review threads. Added PR comments fetching. Added timestamp filtering to only show feedback after last commit (unresolved threads always shown). Added getLastCommitTimestamp helper. Auto-replies to feedback items after successful fix.
 - Decisions: GraphQL query fetches repo owner/name first. Graceful fallback to empty threads if GraphQL fails. Unresolved threads always included regardless of timestamp. Reply failures silently ignored.
+
+[2026-01-14] #37 docs: update README with gent fix workflow and PR iteration
+- Files: README.md, progress.txt
+- Changes: Added gent fix command documentation, updated workflow diagram to show review iteration loop, added PR review iteration tips section with usage examples.
+- Decisions: Kept documentation concise with focus on practical workflow. Diagram shows branching review cycle.
