@@ -108,9 +108,9 @@ gent fix
 The AI will:
 - Fetch all review comments and threads from the PR
 - Filter to show only feedback since your last commit
-- Present a summary of actionable items
+- Present a summary of actionable feedback
 - Re-run implementation with review context
-- Auto-reply to addressed feedback items
+- Auto-reply to addressed feedback comments
 
 Repeat `gent fix` as needed until the PR is approved.
 
@@ -212,9 +212,9 @@ The command:
 1. Detects the PR associated with the current branch
 2. Fetches all review comments, threads, and general PR comments
 3. Filters to only show new feedback since your last commit (unresolved threads always shown)
-4. Summarizes actionable items and displays them
+4. Summarizes actionable feedback and displays it
 5. Re-runs AI implementation with the review feedback context
-6. Auto-replies to addressed feedback items after successful fix
+6. Auto-replies to addressed feedback comments after successful fix
 
 Options:
 - `-p, --provider <provider>` - AI provider to use (`claude`, `gemini`, or `codex`)
@@ -473,23 +473,23 @@ If the AI gets stuck (`ai-blocked` label):
 
 ### PR Review Iteration
 
-The `gent fix` command streamlines the review cycle:
+The `gent fix` command streamlines the review cycle by allowing you to address feedback iteratively. It's particularly useful when you have multiple reviewers or several rounds of changes. The command intelligently ignores feedback you've already addressed in previous commits, keeping the AI focused only on what's currently pending.
 
 ```bash
 # After creating a PR and receiving review feedback
 gent fix                    # AI addresses the feedback
 git push                    # Push the fixes
 
-# If more feedback comes in
-gent fix                    # Address new comments
+# If more feedback comes in later or new reviewers add comments
+gent fix                    # AI only focuses on the NEW comments
 git push                    # Push again
 ```
 
 The command intelligently:
-- Only shows feedback newer than your last commit
-- Always includes unresolved review threads
-- Auto-replies to feedback items after fixes are committed
-- Works with any AI provider (Claude, Gemini, Codex)
+- Only shows feedback newer than your last commit to avoid redundant work.
+- Always includes unresolved review threads to ensure every concern is addressed.
+- Auto-replies to feedback comments after fixes are committed, closing the loop with reviewers.
+- Works with any AI provider (Claude, Gemini, Codex).
 
 ## Contributing
 

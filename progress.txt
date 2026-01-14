@@ -85,3 +85,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: README.md, progress.txt
 - Changes: Added gent fix command documentation, updated workflow diagram to show review iteration loop, added PR review iteration tips section with usage examples.
 - Decisions: Kept documentation concise with focus on practical workflow. Diagram shows branching review cycle.
+
+[2026-01-14] #37 docs: address review feedback for README update
+- Files: README.md
+- Changes: Changed "items" to "comments" and "feedback" for consistency. Expanded explanation of the PR review iteration cycle.
+- Decisions: Aligned terminology with reviewer suggestions.
