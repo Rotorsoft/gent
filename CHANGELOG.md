@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/rotorsoft/gent/compare/v1.9.0...v1.9.1) (2026-01-14)
+
+
+### Bug Fixes
+
+* use GraphQL API for PR review threads and add timestamp filtering ([68f3a21](https://github.com/rotorsoft/gent/commit/68f3a21f9c1f78be1db63d19e44735ebf1359fcd)), closes [#35](https://github.com/rotorsoft/gent/issues/35)
+
 # [1.9.0](https://github.com/rotorsoft/gent/compare/v1.8.0...v1.9.0) (2026-01-14)
 
 
