@@ -1,12 +1,17 @@
 import type { GitHubReviewData } from "../types/index.js";
 
 export interface ReviewFeedbackItem {
-  source: "review" | "thread";
+  source: "review" | "thread" | "comment";
   author: string;
   body: string;
   state?: string;
   path?: string;
   line?: number | null;
+  commentId?: number | string;
+}
+
+export interface ReviewFeedbackOptions {
+  afterTimestamp?: string;
 }
 
 const ACTIONABLE_KEYWORDS = [
@@ -26,23 +31,36 @@ const ACTIONABLE_KEYWORDS = [
 
 const TRIVIAL_COMMENTS = ["lgtm", "looks good", "approved"];
 
-export function summarizeReviewFeedback(data: GitHubReviewData): {
+export function summarizeReviewFeedback(data: GitHubReviewData, options?: ReviewFeedbackOptions): {
   items: ReviewFeedbackItem[];
   summary: string;
 } {
-  const items = extractReviewFeedbackItems(data);
+  const items = extractReviewFeedbackItems(data, options);
   return {
     items,
     summary: items.length > 0 ? formatReviewFeedbackSummary(items) : "",
   };
 }
 
-export function extractReviewFeedbackItems(data: GitHubReviewData): ReviewFeedbackItem[] {
+function isAfterTimestamp(itemTimestamp: string | undefined, afterTimestamp: string | undefined): boolean {
+  if (!afterTimestamp || !itemTimestamp) {
+    return true;
+  }
+  return new Date(itemTimestamp) > new Date(afterTimestamp);
+}
+
+export function extractReviewFeedbackItems(data: GitHubReviewData, options?: ReviewFeedbackOptions): ReviewFeedbackItem[] {
   const items: ReviewFeedbackItem[] = [];
+  const afterTimestamp = options?.afterTimestamp;
 
   for (const review of data.reviews) {
     const body = review.body?.trim() ?? "";
     if (!body || isTrivialComment(body)) {
+      continue;
+    }
+
+    // Filter by timestamp if provided
+    if (!isAfterTimestamp(review.submittedAt, afterTimestamp)) {
       continue;
     }
 
@@ -61,6 +79,19 @@ export function extractReviewFeedbackItems(data: GitHubReviewData): ReviewFeedba
   }
 
   for (const thread of data.reviewThreads) {
+    // Always include unresolved threads regardless of timestamp
+    const isUnresolved = thread.isResolved === false || thread.isResolved === undefined || thread.isResolved === null;
+
+    // For resolved threads, check if there are recent comments
+    if (!isUnresolved) {
+      const hasRecentComments = (thread.comments ?? []).some(
+        (c) => isAfterTimestamp(c.createdAt, afterTimestamp)
+      );
+      if (!hasRecentComments) {
+        continue;
+      }
+    }
+
     if (!isActionableThread(thread)) {
       continue;
     }
@@ -77,6 +108,32 @@ export function extractReviewFeedbackItems(data: GitHubReviewData): ReviewFeedba
       body: latestComment.body,
       path: thread.path ?? latestComment.path,
       line: thread.line ?? latestComment.line ?? null,
+      commentId: latestComment.id,
+    });
+  }
+
+  // Process PR comments
+  for (const comment of data.comments ?? []) {
+    const body = comment.body?.trim() ?? "";
+    if (!body || isTrivialComment(body)) {
+      continue;
+    }
+
+    // Filter by timestamp if provided
+    if (!isAfterTimestamp(comment.createdAt, afterTimestamp)) {
+      continue;
+    }
+
+    // Only include actionable comments
+    if (!isActionableText(body)) {
+      continue;
+    }
+
+    items.push({
+      source: "comment",
+      author: comment.author,
+      body,
+      commentId: comment.id,
     });
   }
 
@@ -90,9 +147,14 @@ export function formatReviewFeedbackSummary(items: ReviewFeedbackItem[]): string
       const stateLabel = item.state ? formatState(item.state) : null;
       const author = item.author ? `@${item.author}` : "Reviewer";
       const body = truncateComment(item.body);
-      const header = item.source === "review"
-        ? stateLabel ? `Review (${stateLabel})` : "Review"
-        : location;
+      let header: string;
+      if (item.source === "review") {
+        header = stateLabel ? `Review (${stateLabel})` : "Review";
+      } else if (item.source === "comment") {
+        header = "Comment";
+      } else {
+        header = location;
+      }
       return `- [${header}] ${author}: ${body}`;
     })
     .join("\n");
@@ -115,7 +177,7 @@ function isTrivialComment(text: string): boolean {
   return TRIVIAL_COMMENTS.some((entry) => normalized === entry);
 }
 
-function findLatestMeaningfulComment<T extends { body: string }>(comments: T[]): T | null {
+function findLatestMeaningfulComment<T extends { body: string; id?: number | string }>(comments: T[]): T | null {
   for (let i = comments.length - 1; i >= 0; i -= 1) {
     const body = comments[i].body?.trim() ?? "";
     if (body && !isTrivialComment(body)) {

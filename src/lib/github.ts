@@ -204,17 +204,76 @@ export async function getPrForBranch(): Promise<{
 }
 
 export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewData> {
-  const args = ["pr", "view"];
+  // Fetch reviews and comments using gh pr view (both are supported JSON fields)
+  const prArgs = ["pr", "view"];
   if (prNumber) {
-    args.push(String(prNumber));
+    prArgs.push(String(prNumber));
   }
-  args.push("--json", "reviews,reviewThreads");
+  prArgs.push("--json", "reviews,comments");
 
-  const { stdout } = await execa("gh", args);
-  const data = JSON.parse(stdout);
+  const { stdout: prStdout } = await execa("gh", prArgs);
+  const prData = JSON.parse(prStdout);
+
+  // Fetch review threads using GraphQL API (not available via gh pr view --json)
+  // First get repo owner and name since GraphQL doesn't support {owner}/{repo} placeholders
+  let reviewThreads: Array<{
+    isResolved?: boolean | null;
+    path?: string;
+    line?: number | null;
+    comments: Array<{
+      author: string;
+      body: string;
+      path?: string;
+      line?: number | null;
+      createdAt?: string;
+    }>;
+  }> = [];
+
+  try {
+    const { stdout: repoStdout } = await execa("gh", ["repo", "view", "--json", "owner,name"]);
+    const repoData = JSON.parse(repoStdout);
+    const owner = repoData.owner?.login ?? repoData.owner;
+    const repo = repoData.name;
+
+    const graphqlQuery = `query { repository(owner: "${owner}", name: "${repo}") { pullRequest(number: ${prNumber}) { reviewThreads(first: 100) { nodes { isResolved path line comments(first: 100) { nodes { databaseId author { login } body path line createdAt } } } } } } }`;
+
+    const { stdout: graphqlStdout } = await execa("gh", ["api", "graphql", "-f", `query=${graphqlQuery}`]);
+    const graphqlData = JSON.parse(graphqlStdout);
+    const prNode = graphqlData.data?.repository?.pullRequest;
+    const threadNodes = prNode?.reviewThreads?.nodes ?? [];
+
+    reviewThreads = threadNodes.map((thread: {
+      isResolved?: boolean | null;
+      path?: string;
+      line?: number | null;
+      comments?: { nodes?: Array<{
+        databaseId?: number;
+        author?: { login?: string };
+        body?: string;
+        path?: string;
+        line?: number | null;
+        createdAt?: string;
+      }> };
+    }) => ({
+      isResolved: thread.isResolved ?? null,
+      path: thread.path,
+      line: thread.line ?? null,
+      comments: (thread.comments?.nodes ?? []).map((comment) => ({
+        id: comment.databaseId,
+        author: comment.author?.login ?? "unknown",
+        body: comment.body ?? "",
+        path: comment.path ?? thread.path,
+        line: comment.line ?? thread.line ?? null,
+        createdAt: comment.createdAt,
+      })),
+    }));
+  } catch {
+    // If GraphQL fails (e.g., no permissions), continue with empty threads
+    reviewThreads = [];
+  }
 
   return {
-    reviews: (data.reviews ?? []).map((review: {
+    reviews: (prData.reviews ?? []).map((review: {
       author?: { login?: string };
       body?: string;
       state?: string;
@@ -225,30 +284,17 @@ export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewDa
       state: review.state ?? "UNKNOWN",
       submittedAt: review.submittedAt,
     })),
-    reviewThreads: (data.reviewThreads ?? []).map((thread: {
-      isResolved?: boolean | null;
-      path?: string;
-      line?: number | null;
-      originalLine?: number | null;
-      comments?: Array<{
-        author?: { login?: string };
-        body?: string;
-        path?: string;
-        line?: number | null;
-        originalLine?: number | null;
-        createdAt?: string;
-      }>;
+    reviewThreads,
+    comments: (prData.comments ?? []).map((comment: {
+      id?: string;
+      author?: { login?: string };
+      body?: string;
+      createdAt?: string;
     }) => ({
-      isResolved: thread.isResolved ?? null,
-      path: thread.path,
-      line: thread.line ?? thread.originalLine ?? null,
-      comments: (thread.comments ?? []).map((comment) => ({
-        author: comment.author?.login ?? "unknown",
-        body: comment.body ?? "",
-        path: comment.path ?? thread.path,
-        line: comment.line ?? comment.originalLine ?? thread.line ?? null,
-        createdAt: comment.createdAt,
-      })),
+      id: comment.id,
+      author: comment.author?.login ?? "unknown",
+      body: comment.body ?? "",
+      createdAt: comment.createdAt,
     })),
   };
 }
@@ -256,4 +302,21 @@ export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewDa
 export async function getCurrentUser(): Promise<string> {
   const { stdout } = await execa("gh", ["api", "user", "--jq", ".login"]);
   return stdout.trim();
+}
+
+export async function replyToReviewComment(
+  prNumber: number,
+  commentId: number,
+  body: string
+): Promise<void> {
+  await execa("gh", [
+    "api",
+    `repos/{owner}/{repo}/pulls/${prNumber}/comments/${commentId}/replies`,
+    "-f",
+    `body=${body}`,
+  ]);
+}
+
+export async function addPrComment(prNumber: number, body: string): Promise<void> {
+  await execa("gh", ["pr", "comment", String(prNumber), "--body", body]);
 }

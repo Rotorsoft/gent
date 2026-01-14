@@ -167,3 +167,8 @@ export async function hasNewCommits(beforeSha: string): Promise<boolean> {
   const currentSha = await getCurrentCommitSha();
   return currentSha !== beforeSha;
 }
+
+export async function getLastCommitTimestamp(): Promise<string> {
+  const { stdout } = await execa("git", ["log", "-1", "--format=%cI"]);
+  return stdout.trim();
+}

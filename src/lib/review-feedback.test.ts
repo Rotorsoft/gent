@@ -8,16 +8,19 @@ const sampleData: GitHubReviewData = {
       author: "alice",
       body: "Please update the variable naming to match conventions.",
       state: "CHANGES_REQUESTED",
+      submittedAt: "2026-01-14T12:00:00Z",
     },
     {
       author: "bob",
       body: "LGTM",
       state: "APPROVED",
+      submittedAt: "2026-01-14T12:05:00Z",
     },
     {
       author: "carol",
       body: "Consider adding a unit test for the new helper.",
       state: "APPROVED",
+      submittedAt: "2026-01-14T12:10:00Z",
     },
   ],
   reviewThreads: [
@@ -31,10 +34,12 @@ const sampleData: GitHubReviewData = {
           body: "Fix this to handle the null case.",
           path: "src/lib/foo.ts",
           line: 42,
+          createdAt: "2026-01-14T12:15:00Z",
         },
       ],
     },
   ],
+  comments: [],
 };
 
 describe("extractReviewFeedbackItems", () => {
@@ -52,9 +57,68 @@ describe("extractReviewFeedbackItems", () => {
         { author: "bob", body: "LGTM", state: "APPROVED" },
       ],
       reviewThreads: [],
+      comments: [],
     };
     const items = extractReviewFeedbackItems(data);
     expect(items).toHaveLength(0);
+  });
+
+  it("filters feedback by timestamp", () => {
+    const items = extractReviewFeedbackItems(sampleData, { afterTimestamp: "2026-01-14T12:08:00Z" });
+    // Should only include carol's review (12:10) and dave's thread (unresolved, always included)
+    expect(items).toHaveLength(2);
+    expect(items.some((item) => item.author === "carol")).toBe(true);
+    expect(items.some((item) => item.author === "dave")).toBe(true);
+    expect(items.some((item) => item.author === "alice")).toBe(false);
+  });
+
+  it("includes unresolved threads regardless of timestamp", () => {
+    const data: GitHubReviewData = {
+      reviews: [],
+      reviewThreads: [
+        {
+          isResolved: false,
+          path: "src/old.ts",
+          line: 10,
+          comments: [
+            { author: "old", body: "Fix this bug", createdAt: "2026-01-01T00:00:00Z" },
+          ],
+        },
+      ],
+      comments: [],
+    };
+    const items = extractReviewFeedbackItems(data, { afterTimestamp: "2026-01-14T00:00:00Z" });
+    expect(items).toHaveLength(1);
+    expect(items[0].author).toBe("old");
+  });
+
+  it("includes actionable PR comments", () => {
+    const data: GitHubReviewData = {
+      reviews: [],
+      reviewThreads: [],
+      comments: [
+        { author: "eve", body: "Please add error handling here", createdAt: "2026-01-14T13:00:00Z" },
+        { author: "frank", body: "Nice work!", createdAt: "2026-01-14T13:05:00Z" },
+      ],
+    };
+    const items = extractReviewFeedbackItems(data);
+    expect(items).toHaveLength(1);
+    expect(items[0].author).toBe("eve");
+    expect(items[0].source).toBe("comment");
+  });
+
+  it("filters PR comments by timestamp", () => {
+    const data: GitHubReviewData = {
+      reviews: [],
+      reviewThreads: [],
+      comments: [
+        { author: "eve", body: "Please fix this", createdAt: "2026-01-14T10:00:00Z" },
+        { author: "frank", body: "Also update that", createdAt: "2026-01-14T15:00:00Z" },
+      ],
+    };
+    const items = extractReviewFeedbackItems(data, { afterTimestamp: "2026-01-14T12:00:00Z" });
+    expect(items).toHaveLength(1);
+    expect(items[0].author).toBe("frank");
   });
 });
 
@@ -66,11 +130,18 @@ describe("formatReviewFeedbackSummary", () => {
     expect(summary).toContain("src/lib/foo.ts:42");
     expect(summary).toContain("@alice");
   });
+
+  it("formats PR comment summary lines", () => {
+    const items = [{ source: "comment" as const, author: "eve", body: "Please add tests" }];
+    const summary = formatReviewFeedbackSummary(items);
+    expect(summary).toContain("[Comment]");
+    expect(summary).toContain("@eve");
+  });
 });
 
 describe("summarizeReviewFeedback", () => {
   it("returns empty summary when no actionable feedback", () => {
-    const result = summarizeReviewFeedback({ reviews: [], reviewThreads: [] });
+    const result = summarizeReviewFeedback({ reviews: [], reviewThreads: [], comments: [] });
     expect(result.items).toHaveLength(0);
     expect(result.summary).toBe("");
   });
