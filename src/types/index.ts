@@ -77,6 +77,33 @@ export interface GitHubLabel {
   description?: string;
 }
 
+export interface GitHubReviewComment {
+  author: string;
+  body: string;
+  path?: string;
+  line?: number | null;
+  createdAt?: string;
+}
+
+export interface GitHubReview {
+  author: string;
+  body: string;
+  state: string;
+  submittedAt?: string;
+}
+
+export interface GitHubReviewThread {
+  isResolved?: boolean | null;
+  path?: string;
+  line?: number | null;
+  comments: GitHubReviewComment[];
+}
+
+export interface GitHubReviewData {
+  reviews: GitHubReview[];
+  reviewThreads: GitHubReviewThread[];
+}
+
 export interface ProgressEntry {
   date: string;
   type: string;

@@ -59,7 +59,8 @@ export function buildImplementationPrompt(
   issue: { number: number; title: string; body: string },
   agentInstructions: string | null,
   progressContent: string | null,
-  config: GentConfig
+  config: GentConfig,
+  reviewFeedback: string | null = null
 ): string {
   const providerName = getProviderDisplayName(config.ai.provider);
   const providerEmail = getProviderEmail(config.ai.provider);
@@ -70,6 +71,7 @@ ${issue.body}
 
 ${agentInstructions ? `## Project-Specific Instructions\n${agentInstructions}\n\n` : ""}
 ${progressContent ? `## Previous Progress\n${progressContent}\n\n` : ""}
+${reviewFeedback ? `## Review Feedback\n${reviewFeedback}\n\n` : ""}
 
 ## Your Task
 

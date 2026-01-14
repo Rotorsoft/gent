@@ -100,6 +100,19 @@ describe("buildImplementationPrompt", () => {
     const prompt = buildImplementationPrompt(mockIssue, null, null, config);
     expect(prompt).toContain("npm run typecheck");
   });
+
+  it("should include review feedback when provided", () => {
+    const config = createTestConfig("claude");
+    const prompt = buildImplementationPrompt(
+      mockIssue,
+      null,
+      null,
+      config,
+      "- [Review] @alice: Please update the logic."
+    );
+    expect(prompt).toContain("## Review Feedback");
+    expect(prompt).toContain("@alice");
+  });
 });
 
 describe("parseTicketMeta", () => {
