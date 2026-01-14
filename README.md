@@ -10,6 +10,7 @@ AI-powered GitHub workflow CLI - leverage AI (Claude, Gemini, or Codex) to creat
 - **Implement with AI** - Pick a ticket and let the AI implement it with automatic branch management
 - **Track progress** - Maintain a progress log for context across AI sessions
 - **Create smart PRs** - Generate AI-enhanced pull requests with proper descriptions
+- **Iterate on feedback** - Address PR review comments with AI assistance
 
 ## Installation
 
@@ -96,6 +97,23 @@ The AI will:
 - Include "Closes #" reference
 - Create the PR on GitHub
 
+### 6. Address review feedback
+
+After reviewers leave comments on your PR:
+
+```bash
+gent fix
+```
+
+The AI will:
+- Fetch all review comments and threads from the PR
+- Filter to show only feedback since your last commit
+- Present a summary of actionable feedback
+- Re-run implementation with review context
+- Auto-reply to addressed feedback comments
+
+Repeat `gent fix` as needed until the PR is approved.
+
 ## Commands
 
 ### `gent init`
@@ -179,6 +197,26 @@ gent pr --provider gemini    # Use specific AI provider
 
 Options:
 - `-d, --draft` - Create as draft PR
+- `-p, --provider <provider>` - AI provider to use (`claude`, `gemini`, or `codex`)
+
+### `gent fix`
+
+Apply PR review feedback using AI.
+
+```bash
+gent fix                      # Address review comments on current PR
+gent fix --provider gemini    # Use specific AI provider
+```
+
+The command:
+1. Detects the PR associated with the current branch
+2. Fetches all review comments, threads, and general PR comments
+3. Filters to only show new feedback since your last commit (unresolved threads always shown)
+4. Summarizes actionable feedback and displays it
+5. Re-runs AI implementation with the review feedback context
+6. Auto-replies to addressed feedback comments after successful fix
+
+Options:
 - `-p, --provider <provider>` - AI provider to use (`claude`, `gemini`, or `codex`)
 
 ### `gent status`
@@ -313,13 +351,30 @@ This provides context for future AI sessions and human reviewers.
                                     │ created  │
                                     └────┬─────┘
                                          │
-                                    Human review + merge
+                                    Human review
                                          │
-                                         v
-                                    ┌──────────┐
-                                    │  Issue   │
-                                    │  closed  │
-                                    └──────────┘
+                              ┌──────────┴──────────┐
+                              │                     │
+                         Changes                Approved
+                         requested                  │
+                              │                     │
+                         gent fix                   │
+                              │                     │
+                              v                     │
+                         ┌──────────┐               │
+                         │   AI     │               │
+                         │  fixes   │───────────────┤
+                         └────┬─────┘               │
+                              │                     │
+                              └─── (repeat if needed)
+                                                    │
+                                               Merge PR
+                                                    │
+                                                    v
+                                               ┌──────────┐
+                                               │  Issue   │
+                                               │  closed  │
+                                               └──────────┘
 ```
 
 ## Label Conventions
@@ -415,6 +470,26 @@ If the AI gets stuck (`ai-blocked` label):
 2. Add clarifying information to the issue
 3. Reset to `ai-ready` to retry
 4. Or implement manually
+
+### PR Review Iteration
+
+The `gent fix` command streamlines the review cycle by allowing you to address feedback iteratively. It's particularly useful when you have multiple reviewers or several rounds of changes. The command intelligently ignores feedback you've already addressed in previous commits, keeping the AI focused only on what's currently pending.
+
+```bash
+# After creating a PR and receiving review feedback
+gent fix                    # AI addresses the feedback
+git push                    # Push the fixes
+
+# If more feedback comes in later or new reviewers add comments
+gent fix                    # AI only focuses on the NEW comments
+git push                    # Push again
+```
+
+The command intelligently:
+- Only shows feedback newer than your last commit to avoid redundant work.
+- Always includes unresolved review threads to ensure every concern is addressed.
+- Auto-replies to feedback comments after fixes are committed, closing the loop with reviewers.
+- Works with any AI provider (Claude, Gemini, Codex).
 
 ## Contributing
 

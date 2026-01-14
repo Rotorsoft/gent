@@ -72,7 +72,7 @@ describe("extractReviewFeedbackItems", () => {
     expect(items.some((item) => item.author === "alice")).toBe(false);
   });
 
-  it("includes unresolved threads regardless of timestamp", () => {
+  it("skips unresolved threads before timestamp", () => {
     const data: GitHubReviewData = {
       reviews: [],
       reviewThreads: [
@@ -88,8 +88,27 @@ describe("extractReviewFeedbackItems", () => {
       comments: [],
     };
     const items = extractReviewFeedbackItems(data, { afterTimestamp: "2026-01-14T00:00:00Z" });
-    expect(items).toHaveLength(1);
-    expect(items[0].author).toBe("old");
+    expect(items).toHaveLength(0);
+  });
+
+  it("skips outdated threads even if unresolved", () => {
+    const data: GitHubReviewData = {
+      reviews: [],
+      reviewThreads: [
+        {
+          isResolved: false,
+          isOutdated: true,
+          path: "src/old.ts",
+          line: 10,
+          comments: [
+            { author: "dave", body: "Change this", createdAt: "2026-01-14T15:00:00Z" },
+          ],
+        },
+      ],
+      comments: [],
+    };
+    const items = extractReviewFeedbackItems(data);
+    expect(items).toHaveLength(0);
   });
 
   it("includes actionable PR comments", () => {

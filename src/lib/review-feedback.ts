@@ -79,17 +79,26 @@ export function extractReviewFeedbackItems(data: GitHubReviewData, options?: Rev
   }
 
   for (const thread of data.reviewThreads) {
-    // Always include unresolved threads regardless of timestamp
+    // Skip outdated threads (code has changed)
+    if (thread.isOutdated) {
+      continue;
+    }
+
     const isUnresolved = thread.isResolved === false || thread.isResolved === undefined || thread.isResolved === null;
 
-    // For resolved threads, check if there are recent comments
-    if (!isUnresolved) {
-      const hasRecentComments = (thread.comments ?? []).some(
-        (c) => isAfterTimestamp(c.createdAt, afterTimestamp)
-      );
-      if (!hasRecentComments) {
-        continue;
-      }
+    const hasRecentComments = (thread.comments ?? []).some(
+      (c) => isAfterTimestamp(c.createdAt, afterTimestamp)
+    );
+
+    // If resolved, must have recent comments
+    if (!isUnresolved && !hasRecentComments) {
+      continue;
+    }
+
+    // If unresolved AND we have a timestamp constraint, must have recent comments.
+    // This allows skipping unresolved threads that were addressed in a recent commit (implied by timestamp).
+    if (isUnresolved && afterTimestamp && !hasRecentComments) {
+      continue;
     }
 
     if (!isActionableThread(thread)) {
