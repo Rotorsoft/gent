@@ -5,6 +5,7 @@ import { createCommand } from "./commands/create.js";
 import { listCommand } from "./commands/list.js";
 import { runCommand } from "./commands/run.js";
 import { prCommand } from "./commands/pr.js";
+import { fixCommand } from "./commands/fix.js";
 import { statusCommand } from "./commands/status.js";
 import { getVersion, checkForUpdates, formatUpgradeNotification } from "./lib/version.js";
 import { logger } from "./utils/logger.js";
@@ -96,6 +97,14 @@ program
   .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
   .action(async (options) => {
     await prCommand({ draft: options.draft, provider: options.provider });
+  });
+
+program
+  .command("fix")
+  .description("Apply PR review feedback using AI")
+  .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
+  .action(async (options) => {
+    await fixCommand({ provider: options.provider });
   });
 
 program

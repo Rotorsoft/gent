@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import type { GitHubIssue, GitHubLabel } from "../types/index.js";
+import type { GitHubIssue, GitHubLabel, GitHubReviewData } from "../types/index.js";
 
 export async function getIssue(issueNumber: number): Promise<GitHubIssue> {
   const { stdout } = await execa("gh", [
@@ -201,6 +201,56 @@ export async function getPrForBranch(): Promise<{
   } catch {
     return null;
   }
+}
+
+export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewData> {
+  const args = ["pr", "view"];
+  if (prNumber) {
+    args.push(String(prNumber));
+  }
+  args.push("--json", "reviews,reviewThreads");
+
+  const { stdout } = await execa("gh", args);
+  const data = JSON.parse(stdout);
+
+  return {
+    reviews: (data.reviews ?? []).map((review: {
+      author?: { login?: string };
+      body?: string;
+      state?: string;
+      submittedAt?: string;
+    }) => ({
+      author: review.author?.login ?? "unknown",
+      body: review.body ?? "",
+      state: review.state ?? "UNKNOWN",
+      submittedAt: review.submittedAt,
+    })),
+    reviewThreads: (data.reviewThreads ?? []).map((thread: {
+      isResolved?: boolean | null;
+      path?: string;
+      line?: number | null;
+      originalLine?: number | null;
+      comments?: Array<{
+        author?: { login?: string };
+        body?: string;
+        path?: string;
+        line?: number | null;
+        originalLine?: number | null;
+        createdAt?: string;
+      }>;
+    }) => ({
+      isResolved: thread.isResolved ?? null,
+      path: thread.path,
+      line: thread.line ?? thread.originalLine ?? null,
+      comments: (thread.comments ?? []).map((comment) => ({
+        author: comment.author?.login ?? "unknown",
+        body: comment.body ?? "",
+        path: comment.path ?? thread.path,
+        line: comment.line ?? comment.originalLine ?? thread.line ?? null,
+        createdAt: comment.createdAt,
+      })),
+    })),
+  };
 }
 
 export async function getCurrentUser(): Promise<string> {
