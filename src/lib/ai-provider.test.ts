@@ -84,7 +84,7 @@ describe("ai-provider", () => {
   });
 
   describe("invokeAI", () => {
-    it("invokes codex with prompt", async () => {
+    it("invokes codex with exec subcommand", async () => {
       mockExeca.mockResolvedValue({ stdout: "test output" } as any);
       const config = createTestConfig("codex");
       const result = await invokeAI({ prompt: "test" }, config);

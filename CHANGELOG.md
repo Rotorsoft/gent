@@ -1,3 +1,16 @@
+# [1.8.0](https://github.com/rotorsoft/gent/compare/v1.7.1...v1.8.0) (2026-01-14)
+
+
+### Bug Fixes
+
+* update references from OpenAI to Codex in documentation and code ([b9ce497](https://github.com/rotorsoft/gent/commit/b9ce497d0ddec51f07e7ddc37898e4ce5ff8a1b9))
+
+
+### Features
+
+* add support for OpenAI Codex as an AI provider ([fd39d4f](https://github.com/rotorsoft/gent/commit/fd39d4f99087531cb93132d9d05e1f2fc8b6d485))
+* add support for OpenAI Codex as an AI provider ([b1839ba](https://github.com/rotorsoft/gent/commit/b1839bacd4cc16e9fb9691cd7cb7bb20b217b6f8)), closes [#31](https://github.com/rotorsoft/gent/issues/31)
+
 ## [1.7.1](https://github.com/rotorsoft/gent/compare/v1.7.0...v1.7.1) (2026-01-12)
 
 
