@@ -84,13 +84,13 @@ describe("ai-provider", () => {
   });
 
   describe("invokeAI", () => {
-    it("invokes codex with prompt", async () => {
+    it("invokes codex with exec subcommand", async () => {
       mockExeca.mockResolvedValue({ stdout: "test output" } as any);
       const config = createTestConfig("codex");
       const result = await invokeAI({ prompt: "test" }, config);
       expect(result.provider).toBe("codex");
       expect(result.output).toBe("test output");
-      expect(mockExeca).toHaveBeenCalledWith("codex", ["test"]);
+      expect(mockExeca).toHaveBeenCalledWith("codex", ["exec", "test"]);
     });
 
     it("falls back to gemini if codex is rate limited", async () => {
@@ -139,7 +139,7 @@ describe("ai-provider", () => {
       });
     });
 
-    it("invokes Codex with -i flag for interactive mode", async () => {
+    it("invokes Codex with prompt for interactive mode", async () => {
       const mockResult = { exitCode: 0 };
       mockExeca.mockReturnValueOnce(mockResult as never);
 
@@ -149,7 +149,7 @@ describe("ai-provider", () => {
       const { provider } = await invokeAIInteractive(prompt, config);
 
       expect(provider).toBe("codex");
-      expect(mockExeca).toHaveBeenCalledWith("codex", ["-i", "test prompt"], {
+      expect(mockExeca).toHaveBeenCalledWith("codex", ["test prompt"], {
         stdio: "inherit",
       });
     });
