@@ -95,6 +95,7 @@ export interface GitHubReview {
 
 export interface GitHubReviewThread {
   isResolved?: boolean | null;
+  isOutdated?: boolean;
   path?: string;
   line?: number | null;
   comments: GitHubReviewComment[];

@@ -218,6 +218,7 @@ export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewDa
   // First get repo owner and name since GraphQL doesn't support {owner}/{repo} placeholders
   let reviewThreads: Array<{
     isResolved?: boolean | null;
+    isOutdated?: boolean;
     path?: string;
     line?: number | null;
     comments: Array<{
@@ -235,7 +236,7 @@ export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewDa
     const owner = repoData.owner?.login ?? repoData.owner;
     const repo = repoData.name;
 
-    const graphqlQuery = `query { repository(owner: "${owner}", name: "${repo}") { pullRequest(number: ${prNumber}) { reviewThreads(first: 100) { nodes { isResolved path line comments(first: 100) { nodes { databaseId author { login } body path line createdAt } } } } } } }`;
+    const graphqlQuery = `query { repository(owner: "${owner}", name: "${repo}") { pullRequest(number: ${prNumber}) { reviewThreads(first: 100) { nodes { isResolved isOutdated path line comments(first: 100) { nodes { databaseId author { login } body path line createdAt } } } } } } }`;
 
     const { stdout: graphqlStdout } = await execa("gh", ["api", "graphql", "-f", `query=${graphqlQuery}`]);
     const graphqlData = JSON.parse(graphqlStdout);
@@ -244,6 +245,7 @@ export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewDa
 
     reviewThreads = threadNodes.map((thread: {
       isResolved?: boolean | null;
+      isOutdated?: boolean;
       path?: string;
       line?: number | null;
       comments?: { nodes?: Array<{
@@ -256,6 +258,7 @@ export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewDa
       }> };
     }) => ({
       isResolved: thread.isResolved ?? null,
+      isOutdated: thread.isOutdated ?? false,
       path: thread.path,
       line: thread.line ?? null,
       comments: (thread.comments?.nodes ?? []).map((comment) => ({
