@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
-import type { GentConfig } from "../types/index.js";
+import type { GentConfig, AIProvider } from "../types/index.js";
 
 const DEFAULT_CONFIG: GentConfig = {
   version: 1,
@@ -35,6 +35,9 @@ const DEFAULT_CONFIG: GentConfig = {
   },
   gemini: {
     sandbox_mode: "on",
+    agent_file: "AGENT.md",
+  },
+  codex: {
     agent_file: "AGENT.md",
   },
   ai: {
@@ -95,7 +98,11 @@ function mergeConfig(
   user: Partial<GentConfig>
 ): GentConfig {
   // Support GENT_AI_PROVIDER environment variable override
-  const envProvider = process.env.GENT_AI_PROVIDER as "claude" | "gemini" | undefined;
+  const envProvider = process.env.GENT_AI_PROVIDER as
+    | "claude"
+    | "gemini"
+    | "codex"
+    | undefined;
 
   return {
     version: user.version ?? defaults.version,
@@ -128,6 +135,10 @@ function mergeConfig(
       ...defaults.gemini,
       ...user.gemini,
     },
+    codex: {
+      ...defaults.codex,
+      ...user.codex,
+    },
     ai: {
       ...defaults.ai,
       ...user.ai,
@@ -138,7 +149,7 @@ function mergeConfig(
   };
 }
 
-export function generateDefaultConfig(): string {
+export function generateDefaultConfig(provider: AIProvider = "claude"): string {
   return `# Gent Configuration
 # See https://github.com/rotorsoft/gent for documentation
 version: 1
@@ -198,9 +209,13 @@ gemini:
   sandbox_mode: "on"
   agent_file: "AGENT.md"
 
+# Codex settings
+codex:
+  agent_file: "AGENT.md"
+
 # AI provider settings
 ai:
-  provider: "claude"  # claude | gemini
+  provider: "${provider}"  # claude | gemini | codex
   # fallback_provider: "gemini"  # optional fallback when rate limited
   auto_fallback: true  # automatically switch to fallback on rate limit
 

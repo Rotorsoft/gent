@@ -1,4 +1,4 @@
-export type AIProvider = "claude" | "gemini";
+export type AIProvider = "claude" | "gemini" | "codex";
 
 export interface GentConfig {
   version: number;
@@ -7,6 +7,7 @@ export interface GentConfig {
   progress: ProgressConfig;
   claude: ClaudeConfig;
   gemini: GeminiConfig;
+  codex: CodexConfig;
   ai: AIConfig;
   validation: string[];
 }
@@ -53,6 +54,10 @@ export interface ClaudeConfig {
 
 export interface GeminiConfig {
   sandbox_mode: string;
+  agent_file: string;
+}
+
+export interface CodexConfig {
   agent_file: string;
 }
 

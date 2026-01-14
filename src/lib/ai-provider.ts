@@ -16,6 +16,21 @@ export interface AIProviderResult {
   rateLimited?: boolean;
 }
 
+
+async function invokeInternal(
+  provider: AIProvider,
+  options: AIProviderOptions,
+): Promise<string> {
+  switch (provider) {
+    case "claude":
+      return invokeClaudeInternal(options);
+    case "gemini":
+      return invokeGeminiInternal(options);
+    case "codex":
+      return invokeCodexInternal(options);
+  }
+}
+
 /**
  * Invoke AI provider (non-interactive mode)
  * Returns output from the provider
@@ -23,14 +38,13 @@ export interface AIProviderResult {
 export async function invokeAI(
   options: AIProviderOptions,
   config: GentConfig,
-  providerOverride?: AIProvider
+  providerOverride?: AIProvider,
 ): Promise<AIProviderResult> {
   const provider = providerOverride ?? config.ai.provider;
 
   try {
-    const output = provider === "claude"
-      ? await invokeClaudeInternal(options)
-      : await invokeGeminiInternal(options);
+    const output = await invokeInternal(provider, options);
+
 
     return { output, provider };
   } catch (error) {
@@ -41,9 +55,7 @@ export async function invokeAI(
         const fallback = config.ai.fallback_provider;
         logger.warning(`Rate limit reached on ${getProviderDisplayName(provider)}, switching to ${getProviderDisplayName(fallback)}...`);
 
-        const output = fallback === "claude"
-          ? await invokeClaudeInternal(options)
-          : await invokeGeminiInternal(options);
+        const output = await invokeInternal(fallback, options);
 
         return { output, provider: fallback };
       }
@@ -66,23 +78,34 @@ export async function invokeAI(
 export async function invokeAIInteractive(
   prompt: string,
   config: GentConfig,
-  providerOverride?: AIProvider
+  providerOverride?: AIProvider,
 ): Promise<{ result: ResultPromise; provider: AIProvider }> {
   const provider = providerOverride ?? config.ai.provider;
 
-  if (provider === "claude") {
-    const args = ["--permission-mode", config.claude.permission_mode, prompt];
-    return {
-      result: execa("claude", args, { stdio: "inherit" }),
-      provider,
-    };
-  } else {
-    // Gemini CLI uses -i/--prompt-interactive for interactive mode with initial prompt
-    // Without -i, the positional prompt runs in one-shot mode and exits
-    return {
-      result: execa("gemini", ["-i", prompt], { stdio: "inherit" }),
-      provider,
-    };
+  switch (provider) {
+    case "claude": {
+      const args = ["--permission-mode", config.claude.permission_mode, prompt];
+      return {
+        result: execa("claude", args, { stdio: "inherit" }),
+        provider,
+      };
+    }
+    case "gemini": {
+      // Gemini CLI uses -i/--prompt-interactive for interactive mode with initial prompt
+      // Without -i, the positional prompt runs in one-shot mode and exits
+      return {
+        result: execa("gemini", ["-i", prompt], { stdio: "inherit" }),
+        provider,
+      };
+    }
+    case "codex": {
+      // Codex CLI uses the TUI for interactive sessions; prompt is optional
+      const args = prompt ? [prompt] : [];
+      return {
+        result: execa("codex", args, { stdio: "inherit" }),
+        provider,
+      };
+    }
   }
 }
 
@@ -90,16 +113,28 @@ export async function invokeAIInteractive(
  * Get display name for provider
  */
 export function getProviderDisplayName(provider: AIProvider): string {
-  return provider === "claude" ? "Claude" : "Gemini";
+  switch (provider) {
+    case "claude":
+      return "Claude";
+    case "gemini":
+      return "Gemini";
+    case "codex":
+      return "Codex";
+  }
 }
 
 /**
  * Get email for provider co-author credit
  */
 export function getProviderEmail(provider: AIProvider): string {
-  return provider === "claude"
-    ? "noreply@anthropic.com"
-    : "noreply@google.com";
+  switch (provider) {
+    case "claude":
+      return "noreply@anthropic.com";
+    case "gemini":
+      return "noreply@google.com";
+    case "codex":
+      return "noreply@openai.com";
+  }
 }
 
 /**
@@ -107,9 +142,14 @@ export function getProviderEmail(provider: AIProvider): string {
  */
 export function getProviderDisplay(provider: AIProvider): string {
   const name = getProviderDisplayName(provider);
-  return provider === "claude"
-    ? colors.command(name)
-    : colors.label(name);
+  switch (provider) {
+    case "claude":
+      return colors.command(name);
+    case "gemini":
+      return colors.label(name);
+    case "codex":
+      return colors.file(name);
+  }
 }
 
 /**
@@ -118,8 +158,12 @@ export function getProviderDisplay(provider: AIProvider): string {
 function isRateLimitError(error: unknown, provider: AIProvider): boolean {
   if (!error || typeof error !== "object") return false;
 
-  // Claude CLI uses exit code 2 for rate limiting
-  if (provider === "claude" && "exitCode" in error && error.exitCode === 2) {
+  // Claude and Codex CLIs may use exit code 2 for rate limiting
+  if (
+    (provider === "claude" || provider === "codex") &&
+    "exitCode" in error &&
+    error.exitCode === 2
+  ) {
     return true;
   }
 
@@ -239,6 +283,55 @@ async function invokeGeminiInternal(options: AIProviderOptions): Promise<string>
     });
   } else {
     const { stdout } = await execa("gemini", args);
+    return stdout;
+  }
+}
+
+/**
+ * Internal Codex invocation
+ */
+async function invokeCodexInternal(options: AIProviderOptions): Promise<string> {
+  // Use non-interactive mode to avoid TTY requirements
+  const args = ["exec", options.prompt];
+
+  if (options.printOutput) {
+    const subprocess = execa("codex", args, {
+      stdio: "inherit",
+    });
+    await subprocess;
+    return "";
+  } else if (options.streamOutput) {
+    return new Promise((resolve, reject) => {
+      const child = spawn("codex", args, {
+        stdio: ["inherit", "pipe", "pipe"],
+      });
+
+      let output = "";
+
+      child.stdout.on("data", (chunk: Buffer) => {
+        const text = chunk.toString();
+        output += text;
+        process.stdout.write(text);
+      });
+
+      child.stderr.on("data", (chunk: Buffer) => {
+        process.stderr.write(chunk);
+      });
+
+      child.on("close", (code) => {
+        if (code === 0) {
+          resolve(output);
+        } else {
+          const error = new Error(`Codex exited with code ${code}`);
+          (error as Error & { exitCode: number }).exitCode = code ?? 1;
+          reject(error);
+        }
+      });
+
+      child.on("error", reject);
+    });
+  } else {
+    const { stdout } = await execa("codex", args);
     return stdout;
   }
 }
