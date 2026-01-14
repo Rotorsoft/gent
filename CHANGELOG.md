@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/rotorsoft/gent/compare/v1.9.1...v1.9.2) (2026-01-14)
+
+
+### Bug Fixes
+
+* ignore outdated comments ([63b3655](https://github.com/rotorsoft/gent/commit/63b365525ebbf68e20fb61dd01035a7cb46685f1))
+
 ## [1.9.1](https://github.com/rotorsoft/gent/compare/v1.9.0...v1.9.1) (2026-01-14)
 
 
