@@ -90,7 +90,7 @@ describe("ai-provider", () => {
       const result = await invokeAI({ prompt: "test" }, config);
       expect(result.provider).toBe("codex");
       expect(result.output).toBe("test output");
-      expect(mockExeca).toHaveBeenCalledWith("openai", ["test"]);
+      expect(mockExeca).toHaveBeenCalledWith("codex", ["test"]);
     });
 
     it("falls back to gemini if codex is rate limited", async () => {
@@ -149,7 +149,7 @@ describe("ai-provider", () => {
       const { provider } = await invokeAIInteractive(prompt, config);
 
       expect(provider).toBe("codex");
-      expect(mockExeca).toHaveBeenCalledWith("openai", ["-i", "test prompt"], {
+      expect(mockExeca).toHaveBeenCalledWith("codex", ["-i", "test prompt"], {
         stdio: "inherit",
       });
     });

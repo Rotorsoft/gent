@@ -99,9 +99,9 @@ export async function invokeAIInteractive(
       };
     }
     case "codex": {
-      // Assume openai CLI uses -i for interactive mode
+      // Codex CLI uses -i for interactive mode
       return {
-        result: execa("openai", ["-i", prompt], { stdio: "inherit" }),
+        result: execa("codex", ["-i", prompt], { stdio: "inherit" }),
         provider,
       };
     }
@@ -290,21 +290,21 @@ async function invokeGeminiInternal(options: AIProviderOptions): Promise<string>
  * Internal Codex invocation
  */
 async function invokeCodexInternal(options: AIProviderOptions): Promise<string> {
-  // Assumes openai CLI works like gemini/claude and takes prompt as argument
+  // Codex CLI accepts prompt as argument (similar to gemini/claude)
   const args: string[] = [];
 
   // Add prompt
   args.push(options.prompt);
 
   if (options.printOutput) {
-    const subprocess = execa("openai", args, {
+    const subprocess = execa("codex", args, {
       stdio: "inherit",
     });
     await subprocess;
     return "";
   } else if (options.streamOutput) {
     return new Promise((resolve, reject) => {
-      const child = spawn("openai", args, {
+      const child = spawn("codex", args, {
         stdio: ["inherit", "pipe", "pipe"],
       });
 
@@ -333,7 +333,7 @@ async function invokeCodexInternal(options: AIProviderOptions): Promise<string> 
       child.on("error", reject);
     });
   } else {
-    const { stdout } = await execa("openai", args);
+    const { stdout } = await execa("codex", args);
     return stdout;
   }
 }

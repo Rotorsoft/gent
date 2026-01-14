@@ -39,8 +39,7 @@ export async function checkGeminiCli(): Promise<boolean> {
 
 export async function checkCodexCLI(): Promise<boolean> {
   try {
-    // As per issue, we check for 'openai' for codex provider
-    await execa("openai", ["--version"]);
+    await execa("codex", ["--version"]);
     return true;
   } catch {
     return false;
@@ -84,7 +83,7 @@ export async function validatePrerequisites(config?: GentConfig): Promise<{
       case "gemini":
         return "gemini CLI";
       case "codex":
-        return "openai CLI";
+        return "codex CLI";
     }
   };
 

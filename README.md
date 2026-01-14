@@ -24,14 +24,14 @@ pnpm add -g @rotorsoft/gent
 - **AI CLI** (one or more):
   - **Claude CLI** - [Install](https://claude.ai/code)
   - **Gemini CLI** - [Install](https://github.com/google-gemini/gemini-cli)
-  - **OpenAI CLI** - [Install](https://github.com/openai/openai-python)
+  - **Codex CLI** - [Install](https://github.com/openai/codex)
 
 Verify prerequisites:
 ```bash
 gh auth status    # Should show authenticated
 claude --version  # Should show version (if using Claude)
 gemini --version  # Should show version (if using Gemini)
-openai --version  # Should show version (if using Codex)
+codex --version  # Should show version (if using Codex)
 ```
 
 ## Quick Start

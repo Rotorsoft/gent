@@ -50,14 +50,14 @@ describe("validators", () => {
   });
 
   describe("checkCodexCLI", () => {
-    it("should return true if openai CLI is installed", async () => {
+    it("should return true if codex CLI is installed", async () => {
       vi.mocked(execa).mockResolvedValue({} as any);
       const result = await checkCodexCLI();
       expect(result).toBe(true);
-      expect(execa).toHaveBeenCalledWith("openai", ["--version"]);
+      expect(execa).toHaveBeenCalledWith("codex", ["--version"]);
     });
 
-    it("should return false if openai CLI is not installed", async () => {
+    it("should return false if codex CLI is not installed", async () => {
       vi.mocked(execa).mockRejectedValue(new Error("Command not found"));
       const result = await checkCodexCLI();
       expect(result).toBe(false);
@@ -68,7 +68,7 @@ describe("validators", () => {
     it("should check for codex when specified", async () => {
       vi.mocked(execa).mockResolvedValue({} as any);
       await checkAIProvider("codex");
-      expect(execa).toHaveBeenCalledWith("openai", ["--version"]);
+      expect(execa).toHaveBeenCalledWith("codex", ["--version"]);
     });
 
     it("should check for claude when specified", async () => {

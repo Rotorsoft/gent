@@ -20,7 +20,7 @@ pnpm vitest src/lib/branch.test.ts  # Run a single test file
 
 ## Architecture
 
-This is a TypeScript CLI tool (`gent`) that integrates AI (Claude, Gemini, or Codex) with GitHub for automated development workflows. It requires the `gh` CLI and `claude`, `gemini`, or `openai` CLI as external dependencies.
+This is a TypeScript CLI tool (`gent`) that integrates AI (Claude, Gemini, or Codex) with GitHub for automated development workflows. It requires the `gh` CLI and `claude`, `gemini`, or `codex` CLI as external dependencies.
 
 ### Entry Point and Commands
 
@@ -46,11 +46,11 @@ This is a TypeScript CLI tool (`gent`) that integrates AI (Claude, Gemini, or Co
 
 - `src/utils/logger.ts` - Colored console output with chalk
 - `src/utils/spinner.ts` - Progress spinners with ora
-- `src/utils/validators.ts` - Prerequisite checks (gh, claude, gemini, openai, git) and input validation
+- `src/utils/validators.ts` - Prerequisite checks (gh, claude, gemini, codex, git) and input validation
 
 ## Key Patterns
 
-- External CLI tools (`gh`, `claude`, `gemini`, `openai`, `git`) are invoked via `execa`
+- External CLI tools (`gh`, `claude`, `gemini`, `codex`, `git`) are invoked via `execa`
 - Config is loaded from `.gent.yml` with defaults merged in
 - AI provider is configurable (Claude/Gemini/Codex) with optional auto-fallback on rate limits
 - All GitHub operations use the `gh` CLI (not direct API calls)
