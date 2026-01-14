@@ -99,9 +99,10 @@ export async function invokeAIInteractive(
       };
     }
     case "codex": {
-      // Codex CLI uses -i for interactive mode
+      // Codex CLI uses the TUI for interactive sessions; prompt is optional
+      const args = prompt ? [prompt] : [];
       return {
-        result: execa("codex", ["-i", prompt], { stdio: "inherit" }),
+        result: execa("codex", args, { stdio: "inherit" }),
         provider,
       };
     }
@@ -290,11 +291,8 @@ async function invokeGeminiInternal(options: AIProviderOptions): Promise<string>
  * Internal Codex invocation
  */
 async function invokeCodexInternal(options: AIProviderOptions): Promise<string> {
-  // Codex CLI accepts prompt as argument (similar to gemini/claude)
-  const args: string[] = [];
-
-  // Add prompt
-  args.push(options.prompt);
+  // Use non-interactive mode to avoid TTY requirements
+  const args = ["exec", options.prompt];
 
   if (options.printOutput) {
     const subprocess = execa("codex", args, {
