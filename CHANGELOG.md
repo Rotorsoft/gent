@@ -1,3 +1,10 @@
+## [1.10.1](https://github.com/rotorsoft/gent/compare/v1.10.0...v1.10.1) (2026-01-15)
+
+
+### Bug Fixes
+
+* remove duplicate update check from status command ([1e2fd02](https://github.com/rotorsoft/gent/commit/1e2fd02e37cb120a95ae45e127c706b267a86e59)), closes [#41](https://github.com/rotorsoft/gent/issues/41)
+
 # [1.10.0](https://github.com/rotorsoft/gent/compare/v1.9.2...v1.10.0) (2026-01-15)
 
 
