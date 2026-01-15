@@ -8,7 +8,7 @@ import { progressExists, readProgress } from "../lib/progress.js";
 import { configExists } from "../lib/config.js";
 import { checkGhAuth, checkClaudeCli, checkGeminiCli, checkGitRepo } from "../utils/validators.js";
 import { getProviderDisplayName } from "../lib/ai-provider.js";
-import { getVersion, checkForUpdates } from "../lib/version.js";
+import { getVersion } from "../lib/version.js";
 import { summarizeReviewFeedback, type ReviewFeedbackItem } from "../lib/review-feedback.js";
 
 function formatPrState(state: "open" | "closed" | "merged", isDraft: boolean): string {
@@ -59,14 +59,6 @@ function truncateFeedbackBody(body: string, maxLength: number): string {
 export async function statusCommand(): Promise<void> {
   const version = getVersion();
   logger.bold(`Gent Workflow Status ${colors.label(`v${version}`)}`);
-
-  // Check for updates (non-blocking, with short timeout for status command)
-  const versionCheck = await checkForUpdates();
-  if (versionCheck.updateAvailable && versionCheck.latestVersion) {
-    logger.warning(`  Update available: ${version} → ${versionCheck.latestVersion}`);
-    logger.dim(`  Run: npm install -g @rotorsoft/gent`);
-  }
-
   logger.newline();
 
   // Check prerequisites

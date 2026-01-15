@@ -95,3 +95,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/status.ts, src/lib/github.ts, src/lib/review-feedback.ts, src/lib/review-feedback.test.ts
 - Changes: Added getPrStatus() for PR state (open/closed/merged) and reviewDecision. Added countActionableFeedback() helper. Status now shows PR state, review decision, actionable comment counts with `gent fix` suggestion, and state-specific suggestions.
 - Decisions: Reused existing extractReviewFeedbackItems logic. Suggestions adapt based on PR state and feedback availability.
+
+[2026-01-15] #41 fix: duplicate "Update available" message in status command
+- Files: src/commands/status.ts
+- Changes: Removed duplicate update check from status command. The preAction hook in index.ts now handles update checks consistently for all commands.
+- Decisions: Single update check strategy via preAction hook; removed special-case logic from status command.
