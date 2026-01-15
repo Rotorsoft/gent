@@ -1,3 +1,11 @@
+# [1.10.0](https://github.com/rotorsoft/gent/compare/v1.9.2...v1.10.0) (2026-01-15)
+
+
+### Features
+
+* enhance status command to show PR state and actionable review feedback ([7854b7d](https://github.com/rotorsoft/gent/commit/7854b7d5975a4acc8100c9b90f8c015093291796)), closes [#39](https://github.com/rotorsoft/gent/issues/39)
+* show actionable comments summary in status command ([009539a](https://github.com/rotorsoft/gent/commit/009539a1e10919f3b51d4c8e44ead91bdb21043b))
+
 ## [1.9.2](https://github.com/rotorsoft/gent/compare/v1.9.1...v1.9.2) (2026-01-14)
 
 
