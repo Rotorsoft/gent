@@ -90,3 +90,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: README.md
 - Changes: Changed "items" to "comments" and "feedback" for consistency. Expanded explanation of the PR review iteration cycle.
 - Decisions: Aligned terminology with reviewer suggestions.
+
+[2026-01-15] #39 feat: enhance status command to show PR state and actionable review feedback
+- Files: src/commands/status.ts, src/lib/github.ts, src/lib/review-feedback.ts, src/lib/review-feedback.test.ts
+- Changes: Added getPrStatus() for PR state (open/closed/merged) and reviewDecision. Added countActionableFeedback() helper. Status now shows PR state, review decision, actionable comment counts with `gent fix` suggestion, and state-specific suggestions.
+- Decisions: Reused existing extractReviewFeedbackItems logic. Suggestions adapt based on PR state and feedback availability.

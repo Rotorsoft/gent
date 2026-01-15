@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractReviewFeedbackItems, formatReviewFeedbackSummary, summarizeReviewFeedback } from "./review-feedback.js";
+import { extractReviewFeedbackItems, formatReviewFeedbackSummary, summarizeReviewFeedback, countActionableFeedback } from "./review-feedback.js";
 import type { GitHubReviewData } from "../types/index.js";
 
 const sampleData: GitHubReviewData = {
@@ -163,5 +163,60 @@ describe("summarizeReviewFeedback", () => {
     const result = summarizeReviewFeedback({ reviews: [], reviewThreads: [], comments: [] });
     expect(result.items).toHaveLength(0);
     expect(result.summary).toBe("");
+  });
+});
+
+describe("countActionableFeedback", () => {
+  it("counts all actionable feedback items", () => {
+    const counts = countActionableFeedback(sampleData);
+    expect(counts.total).toBe(3);
+  });
+
+  it("counts unresolved threads", () => {
+    const counts = countActionableFeedback(sampleData);
+    expect(counts.unresolvedThreads).toBe(1);
+  });
+
+  it("counts changes requested reviews", () => {
+    const counts = countActionableFeedback(sampleData);
+    expect(counts.changesRequested).toBe(1);
+  });
+
+  it("returns zero counts for empty data", () => {
+    const counts = countActionableFeedback({ reviews: [], reviewThreads: [], comments: [] });
+    expect(counts.total).toBe(0);
+    expect(counts.unresolvedThreads).toBe(0);
+    expect(counts.changesRequested).toBe(0);
+  });
+
+  it("respects timestamp filtering", () => {
+    const counts = countActionableFeedback(sampleData, { afterTimestamp: "2026-01-14T12:08:00Z" });
+    // Should only count carol's review (approved with actionable text) and dave's thread
+    expect(counts.total).toBe(2);
+    expect(counts.changesRequested).toBe(0); // alice's review is before timestamp
+  });
+
+  it("counts multiple unresolved threads", () => {
+    const data: GitHubReviewData = {
+      reviews: [],
+      reviewThreads: [
+        {
+          isResolved: false,
+          path: "src/a.ts",
+          line: 10,
+          comments: [{ author: "a", body: "Fix this", createdAt: "2026-01-14T12:00:00Z" }],
+        },
+        {
+          isResolved: false,
+          path: "src/b.ts",
+          line: 20,
+          comments: [{ author: "b", body: "Update this", createdAt: "2026-01-14T12:00:00Z" }],
+        },
+      ],
+      comments: [],
+    };
+    const counts = countActionableFeedback(data);
+    expect(counts.total).toBe(2);
+    expect(counts.unresolvedThreads).toBe(2);
   });
 });

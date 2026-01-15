@@ -217,3 +217,33 @@ function truncateComment(body: string, maxLength = 200): string {
   }
   return `${normalized.slice(0, maxLength - 3)}...`;
 }
+
+export interface ReviewFeedbackCounts {
+  total: number;
+  unresolvedThreads: number;
+  changesRequested: number;
+}
+
+export function countActionableFeedback(
+  data: GitHubReviewData,
+  options?: ReviewFeedbackOptions
+): ReviewFeedbackCounts {
+  const items = extractReviewFeedbackItems(data, options);
+
+  let unresolvedThreads = 0;
+  let changesRequested = 0;
+
+  for (const item of items) {
+    if (item.source === "thread") {
+      unresolvedThreads++;
+    } else if (item.source === "review" && item.state === "CHANGES_REQUESTED") {
+      changesRequested++;
+    }
+  }
+
+  return {
+    total: items.length,
+    unresolvedThreads,
+    changesRequested,
+  };
+}

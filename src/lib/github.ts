@@ -185,10 +185,20 @@ export async function createPullRequest(options: {
   return stdout.trim();
 }
 
-export async function getPrForBranch(): Promise<{
+export interface PrBasicInfo {
   number: number;
   url: string;
-} | null> {
+}
+
+export interface PrStatusInfo {
+  number: number;
+  url: string;
+  state: "open" | "closed" | "merged";
+  reviewDecision: string | null;
+  isDraft: boolean;
+}
+
+export async function getPrForBranch(): Promise<PrBasicInfo | null> {
   try {
     const { stdout } = await execa("gh", [
       "pr",
@@ -198,6 +208,29 @@ export async function getPrForBranch(): Promise<{
     ]);
     const data = JSON.parse(stdout);
     return { number: data.number, url: data.url };
+  } catch {
+    return null;
+  }
+}
+
+export async function getPrStatus(): Promise<PrStatusInfo | null> {
+  try {
+    const { stdout } = await execa("gh", [
+      "pr",
+      "view",
+      "--json",
+      "number,url,state,reviewDecision,isDraft",
+    ]);
+    const data = JSON.parse(stdout);
+    // gh pr view returns state as OPEN, CLOSED, or MERGED (uppercase)
+    const state = (data.state?.toLowerCase() ?? "open") as "open" | "closed" | "merged";
+    return {
+      number: data.number,
+      url: data.url,
+      state,
+      reviewDecision: data.reviewDecision ?? null,
+      isDraft: data.isDraft ?? false,
+    };
   } catch {
     return null;
   }
