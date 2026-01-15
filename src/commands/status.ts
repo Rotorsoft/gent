@@ -1,7 +1,7 @@
 import { logger, colors } from "../utils/logger.js";
 import { loadConfig } from "../lib/config.js";
-import { getIssue, getPrForBranch } from "../lib/github.js";
-import { getCurrentBranch, isOnMainBranch, hasUncommittedChanges, getUnpushedCommits, getCommitsSinceBase, getDefaultBranch } from "../lib/git.js";
+import { getIssue, getPrStatus, getPrReviewData } from "../lib/github.js";
+import { getCurrentBranch, isOnMainBranch, hasUncommittedChanges, getUnpushedCommits, getCommitsSinceBase, getDefaultBranch, getLastCommitTimestamp } from "../lib/git.js";
 import { extractIssueNumber, parseBranchName } from "../lib/branch.js";
 import { getWorkflowLabels } from "../lib/labels.js";
 import { progressExists, readProgress } from "../lib/progress.js";
@@ -9,6 +9,30 @@ import { configExists } from "../lib/config.js";
 import { checkGhAuth, checkClaudeCli, checkGeminiCli, checkGitRepo } from "../utils/validators.js";
 import { getProviderDisplayName } from "../lib/ai-provider.js";
 import { getVersion, checkForUpdates } from "../lib/version.js";
+import { countActionableFeedback } from "../lib/review-feedback.js";
+
+function formatPrState(state: "open" | "closed" | "merged", isDraft: boolean): string {
+  if (state === "merged") {
+    return "Merged";
+  }
+  if (state === "closed") {
+    return "Closed";
+  }
+  return isDraft ? "Open (Draft)" : "Open";
+}
+
+function formatReviewDecision(decision: string): string {
+  switch (decision) {
+    case "APPROVED":
+      return "Approved";
+    case "CHANGES_REQUESTED":
+      return "Changes Requested";
+    case "REVIEW_REQUIRED":
+      return "Review Required";
+    default:
+      return decision.replace(/_/g, " ").toLowerCase();
+  }
+}
 
 export async function statusCommand(): Promise<void> {
   const version = getVersion();
@@ -130,7 +154,10 @@ export async function statusCommand(): Promise<void> {
 
   logger.newline();
 
-  // Linked issue status
+  // Linked issue status and PR status (only when not on main)
+  let prStatus: Awaited<ReturnType<typeof getPrStatus>> = null;
+  let hasActionableFeedback = false;
+
   if (!onMain) {
     const issueNumber = extractIssueNumber(currentBranch);
     if (issueNumber) {
@@ -159,10 +186,47 @@ export async function statusCommand(): Promise<void> {
 
     // PR status
     logger.bold("Pull Request:");
-    const pr = await getPrForBranch();
-    if (pr) {
-      logger.success(`  PR #${pr.number} exists`);
-      logger.info(`  ${colors.url(pr.url)}`);
+    prStatus = await getPrStatus();
+    if (prStatus) {
+      const stateDisplay = formatPrState(prStatus.state, prStatus.isDraft);
+      logger.info(`  PR #${prStatus.number}: ${stateDisplay}`);
+      logger.info(`  ${colors.url(prStatus.url)}`);
+
+      if (prStatus.state === "open") {
+        // Fetch review data to show actionable feedback
+        try {
+          const lastCommitTimestamp = await getLastCommitTimestamp();
+          const reviewData = await getPrReviewData(prStatus.number);
+          const counts = countActionableFeedback(reviewData, { afterTimestamp: lastCommitTimestamp });
+          hasActionableFeedback = counts.total > 0;
+
+          if (prStatus.reviewDecision) {
+            logger.info(`  Review: ${formatReviewDecision(prStatus.reviewDecision)}`);
+          }
+
+          if (counts.total > 0) {
+            logger.warning(`  ${counts.total} actionable review comment${counts.total > 1 ? "s" : ""} can be addressed with ${colors.command("gent fix")}`);
+            if (counts.unresolvedThreads > 0) {
+              logger.dim(`    ${counts.unresolvedThreads} unresolved thread${counts.unresolvedThreads > 1 ? "s" : ""}`);
+            }
+            if (counts.changesRequested > 0) {
+              logger.dim(`    ${counts.changesRequested} changes requested review${counts.changesRequested > 1 ? "s" : ""}`);
+            }
+          } else if (prStatus.reviewDecision === "APPROVED") {
+            logger.success("  Ready to merge!");
+          } else {
+            logger.info("  No actionable review comments");
+          }
+        } catch {
+          // Silently ignore review data fetch errors
+        }
+      } else if (prStatus.state === "merged") {
+        logger.success("  This PR has been merged!");
+        logger.dim(`  Run ${colors.command("git checkout main && git pull")} to sync`);
+      } else if (prStatus.state === "closed") {
+        logger.warning("  This PR was closed without merging");
+        logger.dim(`  Consider reopening or creating a new PR if changes are still needed`);
+      }
     } else {
       logger.info("  No PR created yet");
       logger.dim(`  Run ${colors.command("gent pr")} to create one`);
@@ -178,18 +242,29 @@ export async function statusCommand(): Promise<void> {
       `${colors.command("gent run --auto")} - Start working on highest priority issue`,
       `${colors.command("gent create <description>")} - Create a new ticket`,
     ]);
+  } else if (!prStatus) {
+    logger.list([
+      `${colors.command("gent pr")} - Create a pull request`,
+      `${colors.command("git push")} - Push your changes`,
+    ]);
+  } else if (prStatus.state === "merged") {
+    logger.list([
+      `${colors.command("git checkout main && git pull")} - Sync with merged changes`,
+    ]);
+  } else if (prStatus.state === "closed") {
+    logger.list([
+      `Reopen the PR if changes are still needed`,
+      `${colors.command("git checkout main")} - Return to main branch`,
+    ]);
+  } else if (hasActionableFeedback) {
+    logger.list([
+      `${colors.command("gent fix")} - Address review comments with AI`,
+      `${colors.command("git push")} - Push any local changes`,
+    ]);
   } else {
-    const pr = await getPrForBranch();
-    if (!pr) {
-      logger.list([
-        `${colors.command("gent pr")} - Create a pull request`,
-        `${colors.command("git push")} - Push your changes`,
-      ]);
-    } else {
-      logger.list([
-        `Review and merge your PR`,
-        `${colors.command("git checkout main")} - Return to main branch`,
-      ]);
-    }
+    logger.list([
+      `Review and merge your PR`,
+      `${colors.command("git checkout main")} - Return to main branch`,
+    ]);
   }
 }
