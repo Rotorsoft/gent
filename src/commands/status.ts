@@ -9,7 +9,7 @@ import { configExists } from "../lib/config.js";
 import { checkGhAuth, checkClaudeCli, checkGeminiCli, checkGitRepo } from "../utils/validators.js";
 import { getProviderDisplayName } from "../lib/ai-provider.js";
 import { getVersion, checkForUpdates } from "../lib/version.js";
-import { countActionableFeedback } from "../lib/review-feedback.js";
+import { summarizeReviewFeedback, type ReviewFeedbackItem } from "../lib/review-feedback.js";
 
 function formatPrState(state: "open" | "closed" | "merged", isDraft: boolean): string {
   if (state === "merged") {
@@ -32,6 +32,28 @@ function formatReviewDecision(decision: string): string {
     default:
       return decision.replace(/_/g, " ").toLowerCase();
   }
+}
+
+function formatFeedbackLocation(item: ReviewFeedbackItem): string {
+  if (item.path && item.line) {
+    return `${item.path}:${item.line}`;
+  }
+  if (item.path) {
+    return item.path;
+  }
+  if (item.source === "review") {
+    const stateLabel = item.state ? item.state.replace(/_/g, " ").toLowerCase() : "review";
+    return `[${stateLabel}]`;
+  }
+  return "[comment]";
+}
+
+function truncateFeedbackBody(body: string, maxLength: number): string {
+  const normalized = body.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, maxLength - 3)}...`;
 }
 
 export async function statusCommand(): Promise<void> {
@@ -197,20 +219,19 @@ export async function statusCommand(): Promise<void> {
         try {
           const lastCommitTimestamp = await getLastCommitTimestamp();
           const reviewData = await getPrReviewData(prStatus.number);
-          const counts = countActionableFeedback(reviewData, { afterTimestamp: lastCommitTimestamp });
-          hasActionableFeedback = counts.total > 0;
+          const { items } = summarizeReviewFeedback(reviewData, { afterTimestamp: lastCommitTimestamp });
+          hasActionableFeedback = items.length > 0;
 
           if (prStatus.reviewDecision) {
             logger.info(`  Review: ${formatReviewDecision(prStatus.reviewDecision)}`);
           }
 
-          if (counts.total > 0) {
-            logger.warning(`  ${counts.total} actionable review comment${counts.total > 1 ? "s" : ""} can be addressed with ${colors.command("gent fix")}`);
-            if (counts.unresolvedThreads > 0) {
-              logger.dim(`    ${counts.unresolvedThreads} unresolved thread${counts.unresolvedThreads > 1 ? "s" : ""}`);
-            }
-            if (counts.changesRequested > 0) {
-              logger.dim(`    ${counts.changesRequested} changes requested review${counts.changesRequested > 1 ? "s" : ""}`);
+          if (items.length > 0) {
+            logger.warning(`  ${items.length} actionable comment${items.length > 1 ? "s" : ""} to fix with ${colors.command("gent fix")}:`);
+            for (const item of items) {
+              const location = formatFeedbackLocation(item);
+              const body = truncateFeedbackBody(item.body, 60);
+              logger.dim(`    ${location}: ${body}`);
             }
           } else if (prStatus.reviewDecision === "APPROVED") {
             logger.success("  Ready to merge!");
