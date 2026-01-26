@@ -44,6 +44,12 @@ const DEFAULT_CONFIG: GentConfig = {
     provider: "claude",
     auto_fallback: true,
   },
+  video: {
+    enabled: true,
+    max_duration: 30,
+    width: 1280,
+    height: 720,
+  },
   validation: ["npm run typecheck", "npm run lint", "npm run test"],
 };
 
@@ -145,6 +151,10 @@ function mergeConfig(
       // Environment variable takes precedence
       ...(envProvider && { provider: envProvider }),
     },
+    video: {
+      ...defaults.video,
+      ...user.video,
+    },
     validation: user.validation ?? defaults.validation,
   };
 }
@@ -218,6 +228,13 @@ ai:
   provider: "${provider}"  # claude | gemini | codex
   # fallback_provider: "gemini"  # optional fallback when rate limited
   auto_fallback: true  # automatically switch to fallback on rate limit
+
+# Video capture for UI changes (requires Playwright)
+video:
+  enabled: true  # set to false to disable video capture for PRs with UI changes
+  max_duration: 30  # maximum video duration in seconds
+  width: 1280  # video width
+  height: 720  # video height
 
 # Validation commands (run before commit)
 validation:

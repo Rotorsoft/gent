@@ -9,7 +9,15 @@ export interface GentConfig {
   gemini: GeminiConfig;
   codex: CodexConfig;
   ai: AIConfig;
+  video: VideoConfig;
   validation: string[];
+}
+
+export interface VideoConfig {
+  enabled: boolean;
+  max_duration: number; // seconds
+  width: number;
+  height: number;
 }
 
 export interface AIConfig {

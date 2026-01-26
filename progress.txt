@@ -100,3 +100,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/status.ts
 - Changes: Removed duplicate update check from status command. The preAction hook in index.ts now handles update checks consistently for all commands.
 - Decisions: Single update check strategy via preAction hook; removed special-case logic from status command.
+
+[2026-01-26] #45 feat: add Playwright video capture for UI changes in PRs
+- Files: src/types/index.ts, src/lib/config.ts, src/lib/playwright.ts, src/lib/github-assets.ts, src/commands/pr.ts, src/index.ts, src/lib/playwright.test.ts, src/lib/github-assets.test.ts
+- Changes: Added VideoConfig type and configuration. Created playwright.ts for Playwright detection and UI change heuristics. When UI changes detected and Playwright available, adds instructions to AI prompt for video capture via MCP. Created github-assets.ts utility for future use.
+- Decisions: Video capture enabled by default, disabled via .gent.yml or --no-video. AI handles video capture autonomously via MCP (no manual URL needed). UI detection uses file patterns (tsx, vue, components/, pages/, etc).
