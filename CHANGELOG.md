@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/rotorsoft/gent/compare/v1.10.1...v1.11.0) (2026-01-26)
+
+
+### Features
+
+* add Playwright video capture for UI changes in PRs ([9383283](https://github.com/rotorsoft/gent/commit/938328326006db8f1e832a11c65423ddfb045ed5)), closes [#45](https://github.com/rotorsoft/gent/issues/45)
+
 ## [1.10.1](https://github.com/rotorsoft/gent/compare/v1.10.0...v1.10.1) (2026-01-15)
 
 
