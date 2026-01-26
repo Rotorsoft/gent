@@ -95,8 +95,13 @@ program
   .description("Create an AI-enhanced pull request")
   .option("-d, --draft", "Create as draft PR")
   .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
+  .option("--no-video", "Disable video capture for UI changes")
   .action(async (options) => {
-    await prCommand({ draft: options.draft, provider: options.provider });
+    await prCommand({
+      draft: options.draft,
+      provider: options.provider,
+      video: options.video,
+    });
   });
 
 program

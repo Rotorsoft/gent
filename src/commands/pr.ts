@@ -9,11 +9,13 @@ import { getCurrentBranch, isOnMainBranch, getDefaultBranch, getCommitsSinceBase
 import { extractIssueNumber } from "../lib/branch.js";
 import { getWorkflowLabels } from "../lib/labels.js";
 import { checkGhAuth, checkAIProvider } from "../utils/validators.js";
+import { isPlaywrightAvailable, hasUIChanges, getChangedFiles } from "../lib/playwright.js";
 import type { GitHubIssue, AIProvider } from "../types/index.js";
 
 export interface PrOptions {
   draft?: boolean;
   provider?: AIProvider;
+  video?: boolean;
 }
 
 export async function prCommand(options: PrOptions): Promise<void> {
@@ -109,8 +111,38 @@ export async function prCommand(options: PrOptions): Promise<void> {
   logger.info(`Commits: ${commits.length}`);
   logger.newline();
 
+  // Check for UI changes and video capture capability
+  // Video is enabled by default (config.video.enabled), but can be disabled with --no-video
+  const shouldCaptureVideo = options.video !== false && config.video.enabled;
+  let captureVideoInstructions = "";
+
+  if (shouldCaptureVideo) {
+    const changedFiles = await getChangedFiles(baseBranch);
+    const uiChangesDetected = hasUIChanges(changedFiles);
+
+    if (uiChangesDetected) {
+      logger.info("UI changes detected in this branch");
+
+      const playwrightAvailable = await isPlaywrightAvailable();
+      if (!playwrightAvailable) {
+        logger.warning("Playwright not available. Skipping video capture.");
+        logger.dim("Install Playwright with: npm install -D playwright");
+      } else {
+        logger.info("Playwright available - AI will capture demo video via MCP");
+        captureVideoInstructions = `
+
+IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
+1. Start the dev server if needed
+2. Navigate to the relevant pages showing the UI changes
+3. Capture a short demo video (max ${config.video.max_duration}s) showcasing the changes
+4. Upload the video to GitHub and include it in the PR description under a "## Demo Video" section
+`;
+      }
+    }
+  }
+
   // Generate PR description with AI
-  const prompt = buildPrPrompt(issue, commits, diffSummary);
+  const prompt = buildPrPrompt(issue, commits, diffSummary) + captureVideoInstructions;
 
   let prBody: string;
   try {
