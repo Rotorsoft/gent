@@ -122,17 +122,14 @@ program
 
 program
   .command("ui")
-  .description("Launch interactive TUI mode")
+  .description("Launch interactive dashboard")
   .action(async () => {
     await tuiCommand();
   });
 
-// Handle `gent` with no arguments - launch TUI
-if (process.argv.length === 2) {
-  tuiCommand().catch((error) => {
-    logger.error(`TUI error: ${error}`);
-    process.exit(1);
-  });
-} else {
-  program.parse();
-}
+// Launch dashboard when `gent` is run with no subcommand
+program.action(async () => {
+  await tuiCommand();
+});
+
+program.parse();
