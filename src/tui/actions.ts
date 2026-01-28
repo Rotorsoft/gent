@@ -16,9 +16,10 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
 
   // On main branch
   if (state.isOnMain) {
-    actions.push({ id: "create", label: "new ticket", shortcut: "n" });
-    actions.push({ id: "run-auto", label: "implement next", shortcut: "r" });
-    actions.push({ id: "list", label: "list issues", shortcut: "l" });
+    actions.push({ id: "create", label: "new", shortcut: "n" });
+    actions.push({ id: "run-auto", label: "run next", shortcut: "r" });
+    actions.push({ id: "list", label: "list", shortcut: "l" });
+    actions.push({ id: "switch-provider", label: "switch", shortcut: "s" });
     actions.push({ id: "quit", label: "quit", shortcut: "q" });
     return actions;
   }
@@ -29,12 +30,12 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     actions.push({ id: "commit", label: "commit", shortcut: "c" });
   }
 
-  if (state.hasUnpushedCommits && !state.hasUncommittedChanges) {
-    actions.push({ id: "push", label: "push", shortcut: "P" });
+  if (state.hasUnpushedCommits) {
+    actions.push({ id: "push", label: "Push", shortcut: "P" });
   }
 
   if (!state.pr && state.commits.length > 0) {
-    actions.push({ id: "pr", label: "create pr", shortcut: "C" });
+    actions.push({ id: "pr", label: "Create pr", shortcut: "C" });
   }
 
   if (state.pr && state.pr.state === "open") {
@@ -43,14 +44,15 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     }
 
     if (state.hasUIChanges && state.isPlaywrightAvailable && state.config.video.enabled) {
-      actions.push({ id: "video", label: "record video", shortcut: "v" });
+      actions.push({ id: "video", label: "video", shortcut: "v" });
     }
   }
 
   if (state.pr && (state.pr.state === "merged" || state.pr.state === "closed")) {
-    actions.push({ id: "checkout-main", label: "back to main", shortcut: "m" });
+    actions.push({ id: "checkout-main", label: "main", shortcut: "m" });
   }
 
+  actions.push({ id: "switch-provider", label: "switch", shortcut: "s" });
   actions.push({ id: "quit", label: "quit", shortcut: "q" });
 
   return actions;

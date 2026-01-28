@@ -100,7 +100,7 @@ describe("getAvailableActions", () => {
     expect(push!.shortcut).toBe("P");
   });
 
-  it("does not show push when uncommitted changes exist", () => {
+  it("shows both commit and push when uncommitted and unpushed exist", () => {
     const actions = getAvailableActions(createBaseState({
       isOnMain: false,
       branch: "ro/feature-123-test",
@@ -110,7 +110,7 @@ describe("getAvailableActions", () => {
     }));
     const ids = actions.map((a) => a.id);
 
-    expect(ids).not.toContain("push");
+    expect(ids).toContain("push");
     expect(ids).toContain("commit");
   });
 

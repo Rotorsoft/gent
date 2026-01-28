@@ -12,13 +12,16 @@ function termWidth(): number {
   return Math.min(process.stdout.columns || 80, 90);
 }
 
+function termHeight(): number {
+  return process.stdout.rows || 24;
+}
+
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
   return text.slice(0, max - 1) + "…";
 }
 
 function extractDescription(body: string, maxLen: number): string {
-  // Take first meaningful line from issue/PR body
   const lines = body.split("\n");
   for (const line of lines) {
     const trimmed = line.trim();
@@ -27,7 +30,6 @@ function extractDescription(body: string, maxLen: number): string {
     if (trimmed.startsWith("---")) continue;
     if (trimmed.startsWith("META:")) continue;
     if (trimmed.startsWith("**Type:**")) continue;
-    // Strip markdown bold/links
     const clean = trimmed.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
     return truncate(clean, maxLen);
   }
@@ -35,7 +37,6 @@ function extractDescription(body: string, maxLen: number): string {
 }
 
 // ── Box drawing ─────────────────────────────────────────────────
-// Every line is exactly `w` visible characters wide.
 
 function topRow(title: string, w: number): string {
   const label = ` ${title} `;
@@ -91,10 +92,34 @@ function reviewBadge(decision: string | null): string {
   }
 }
 
+// Rotating color palette for shortcut keys
+const shortcutColors = [
+  chalk.cyan.bold,
+  chalk.green.bold,
+  chalk.yellow.bold,
+  chalk.magenta.bold,
+  chalk.blue.bold,
+  chalk.red.bold,
+];
+
+function formatAction(a: TuiAction, color: (s: string) => string): string {
+  const key = a.shortcut;
+  const idx = a.label.indexOf(key);
+  if (idx >= 0) {
+    // Highlight the shortcut letter within the label
+    const before = a.label.slice(0, idx);
+    const after = a.label.slice(idx + key.length);
+    return chalk.dim(before) + color(key) + chalk.dim(after);
+  }
+  // Shortcut not in label — show separately
+  return color(key) + " " + chalk.dim(a.label);
+}
+
 function formatCommandBar(actions: TuiAction[], w: number): string[] {
-  const parts = actions.map((a) =>
-    chalk.inverse(` ${a.shortcut} `) + " " + chalk.dim(a.label),
-  );
+  const parts = actions.map((a, i) => {
+    const color = shortcutColors[i % shortcutColors.length];
+    return formatAction(a, color);
+  });
   const inner = w - 4;
   const lines: string[] = [];
   let cur = "";
@@ -111,33 +136,62 @@ function formatCommandBar(actions: TuiAction[], w: number): string[] {
   return lines;
 }
 
+// ── Modal ───────────────────────────────────────────────────────
+
+export function renderModal(message: string): void {
+  const w = termWidth();
+  const h = termHeight();
+  const modalW = Math.min(w - 4, Math.max(30, visibleLen(message) + 8));
+  const padX = Math.max(0, Math.floor((w - modalW) / 2));
+  const padY = Math.max(0, Math.floor((h - 5) / 2));
+  const indent = " ".repeat(padX);
+  const inner = modalW - 4;
+  const textPad = Math.max(0, inner - visibleLen(message));
+
+  const lines = [
+    indent + chalk.dim("┌" + "─".repeat(modalW - 2) + "┐"),
+    indent + chalk.dim("│") + " ".repeat(modalW - 2) + chalk.dim("│"),
+    indent + chalk.dim("│") + " " + chalk.bold(message) + " ".repeat(textPad) + " " + chalk.dim("│"),
+    indent + chalk.dim("│") + " ".repeat(modalW - 2) + chalk.dim("│"),
+    indent + chalk.dim("└" + "─".repeat(modalW - 2) + "┘"),
+  ];
+
+  // Position modal vertically centered
+  for (let i = 0; i < padY; i++) console.log();
+  for (const line of lines) console.log(line);
+}
+
+// ── Settings ────────────────────────────────────────────────────
+
+function renderSettings(state: TuiState, w: number): void {
+  const provider = getProviderDisplayName(state.config.ai.provider);
+  const provTag = state.isAIProviderAvailable ? chalk.green(provider) : chalk.red(provider);
+  const ghTag = state.isGhAuthenticated ? chalk.green("authenticated") : chalk.red("not authenticated");
+  const videoTag = state.config.video.enabled ? chalk.green("on") : chalk.dim("off");
+
+  console.log(row(chalk.dim("Provider: ") + provTag, w));
+  console.log(row(chalk.dim("GitHub:   ") + ghTag, w));
+  console.log(row(chalk.dim("Video:    ") + videoTag, w));
+}
+
 // ── Main render ─────────────────────────────────────────────────
 
 export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: string): void {
   const w = termWidth();
-  const descMax = w - 8; // room inside content rows
+  const descMax = w - 8;
   const version = getVersion();
 
-  // Header bar (outside the box)
-  const provider = getProviderDisplayName(state.config.ai.provider);
-  const provTag = state.isAIProviderAvailable ? chalk.green(provider) : chalk.red(provider);
-  const ghTag = state.isGhAuthenticated ? chalk.green("gh") : chalk.red("gh");
-  const left = chalk.bold(" gent ") + chalk.dim(`v${version}`);
-  const right = provTag + chalk.dim(" · ") + ghTag + " ";
-  const gap = Math.max(1, w - visibleLen(left) - visibleLen(right));
-  console.log(left + " ".repeat(gap) + right);
-  console.log();
+  const titleLabel = `gent v${version}`;
+  console.log(topRow(titleLabel, w));
 
   // ── Error states ──────────────────────────────────────────────
   if (!state.isGitRepo) {
-    console.log(topRow("Setup", w));
     console.log(row(chalk.red("Not a git repository"), w));
     console.log(row(chalk.dim("Run gent init in a git repo to get started"), w));
     console.log(botRow(w));
     return;
   }
   if (!state.isGhAuthenticated) {
-    console.log(topRow("Setup", w));
     console.log(row(chalk.red("GitHub CLI not authenticated"), w));
     console.log(row(chalk.dim("Run: gh auth login"), w));
     console.log(botRow(w));
@@ -146,28 +200,28 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
 
   // ── On main – nothing active ─────────────────────────────────
   if (state.isOnMain) {
-    console.log(topRow("Branch", w));
     console.log(row(chalk.magenta(state.branch) + chalk.dim("  ·  ready to start new work"), w));
     if (state.hasUncommittedChanges) {
       console.log(row(chalk.yellow("● uncommitted changes"), w));
     }
-    console.log(midRow("Workflow", w));
-    console.log(row(chalk.dim("No active ticket"), w));
+    console.log(midRow("Settings", w));
+    renderSettings(state, w);
+    if (hint) {
+      console.log(midRow("Hint", w));
+      console.log(row(chalk.yellow(hint), w));
+    }
     console.log(divRow(w));
     for (const line of formatCommandBar(actions, w)) {
       console.log(row(line, w));
     }
-    if (hint) console.log(row(chalk.dim(hint), w));
     console.log(botRow(w));
     console.log();
     return;
   }
 
   // ── Feature branch dashboard ──────────────────────────────────
-  let first = true;
   const section = (title: string) => {
-    console.log(first ? topRow(title, w) : midRow(title, w));
-    first = false;
+    console.log(midRow(title, w));
   };
 
   // Ticket
@@ -242,12 +296,21 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
     console.log(row(chalk.dim("No commits"), w));
   }
 
+  // Settings
+  section("Settings");
+  renderSettings(state, w);
+
+  // Hint
+  if (hint) {
+    section("Hint");
+    console.log(row(chalk.yellow(hint), w));
+  }
+
   // Command bar (inside the frame)
   console.log(divRow(w));
   for (const line of formatCommandBar(actions, w)) {
     console.log(row(line, w));
   }
-  if (hint) console.log(row(chalk.dim(hint), w));
   console.log(botRow(w));
 }
 

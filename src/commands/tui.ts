@@ -2,7 +2,7 @@ import inquirer from "inquirer";
 import { execa } from "execa";
 import { aggregateState, type TuiState } from "../tui/state.js";
 import { getAvailableActions } from "../tui/actions.js";
-import { renderDashboard, clearScreen } from "../tui/display.js";
+import { renderDashboard, renderModal, clearScreen } from "../tui/display.js";
 import { logger } from "../utils/logger.js";
 import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
@@ -10,24 +10,30 @@ import { runCommand } from "./run.js";
 import { prCommand } from "./pr.js";
 import { fixCommand } from "./fix.js";
 import { listCommand } from "./list.js";
-import { buildVideoPrompt } from "../lib/prompts.js";
-import { invokeAIInteractive } from "../lib/ai-provider.js";
-import { loadAgentInstructions } from "../lib/config.js";
+import { buildVideoPrompt, buildCommitMessagePrompt } from "../lib/prompts.js";
+import { invokeAI, invokeAIInteractive, getProviderDisplayName, getProviderEmail } from "../lib/ai-provider.js";
+import { loadAgentInstructions, updateConfigProvider } from "../lib/config.js";
+import type { AIProvider } from "../types/index.js";
+
+const CANCEL = Symbol("cancel");
+
+async function confirm(message: string): Promise<boolean> {
+  const { ok } = await inquirer.prompt<{ ok: boolean }>([
+    {
+      type: "confirm",
+      name: "ok",
+      message,
+      default: true,
+    },
+  ]);
+  return ok;
+}
 
 async function loadState(): Promise<TuiState> {
-  const spinner = createSpinner("Loading...");
-  spinner.start();
-  try {
-    const state = await aggregateState();
-    spinner.stop();
-    // Clear the spinner line
-    process.stdout.write("\x1B[1A\x1B[2K");
-    return state;
-  } catch (error) {
-    spinner.stop();
-    process.stdout.write("\x1B[1A\x1B[2K");
-    throw error;
-  }
+  clearScreen();
+  renderModal("Loading workflow state...");
+  const state = await aggregateState();
+  return state;
 }
 
 async function waitForKey(validKeys: string[]): Promise<string> {
@@ -66,71 +72,89 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
       return false;
 
     case "list":
-      console.log();
+      clearScreen();
       await listCommand({ status: "ready", limit: 20 });
       await promptContinue();
       return true;
 
-    case "run-auto":
-      console.log();
+    case "run-auto": {
+      clearScreen();
+      if (!await confirm("Start AI agent to implement next ticket?")) return true;
       await runCommand(undefined, { auto: true });
       return false;
+    }
 
     case "create": {
-      console.log();
+      clearScreen();
       const { description } = await inquirer.prompt<{ description: string }>([
         {
           type: "input",
           name: "description",
-          message: "Describe the ticket:",
-          validate: (input: string) => input.trim().length > 0 || "Description is required",
+          message: "Describe the ticket (empty to cancel):",
         },
       ]);
+      if (!description.trim()) {
+        logger.info("Cancelled");
+        return true;
+      }
       await createCommand(description, {});
       await promptContinue();
       return true;
     }
 
     case "commit":
-      console.log();
-      await handleCommit();
+      clearScreen();
+      await handleCommit(state);
       await promptContinue();
       return true;
 
     case "push":
-      console.log();
+      clearScreen();
       await handlePush();
       await promptContinue();
       return true;
 
-    case "pr":
-      console.log();
+    case "pr": {
+      clearScreen();
+      if (!await confirm("Create a pull request?")) return true;
       await prCommand({});
       await promptContinue();
       return true;
+    }
 
-    case "fix":
-      console.log();
+    case "fix": {
+      clearScreen();
+      if (!await confirm("Start AI agent to fix review feedback?")) return true;
       await fixCommand({});
       return false;
+    }
 
-    case "video":
-      console.log();
+    case "video": {
+      clearScreen();
+      if (!await confirm("Record video of UI changes?")) return true;
       await handleVideoCapture(state);
       await promptContinue();
       return true;
+    }
 
-    case "checkout-main":
-      console.log();
+    case "switch-provider":
+      clearScreen();
+      await handleSwitchProvider(state);
+      return true;
+
+    case "checkout-main": {
+      clearScreen();
+      if (!await confirm("Switch to main branch?")) return true;
       await handleCheckoutMain();
       return true;
+    }
 
     default:
       return true;
   }
 }
 
-async function handleCommit(): Promise<void> {
+async function handleCommit(state: TuiState): Promise<void> {
   try {
     const { stdout: status } = await execa("git", ["status", "--short"]);
     if (!status.trim()) {
@@ -140,46 +164,118 @@ async function handleCommit(): Promise<void> {
 
     logger.info("Changes:");
     console.log(status);
+    console.log();
 
-    const { message, confirmed } = await inquirer.prompt<{ message: string; confirmed: boolean }>([
-      {
-        type: "input",
-        name: "message",
-        message: "Commit message:",
-        validate: (input: string) => input.trim().length > 0 || "Commit message is required",
-      },
-      {
-        type: "confirm",
-        name: "confirmed",
-        message: "Stage all changes and commit?",
-        default: true,
-      },
-    ]);
+    // Stage all changes first so we can get a clean cached diff
+    await execa("git", ["add", "-A"]);
 
-    if (!confirmed) {
+    // Get staged diff for AI commit message generation
+    const { stdout: diffStat } = await execa("git", ["diff", "--cached", "--stat"]);
+    const { stdout: diffPatch } = await execa("git", ["diff", "--cached"]);
+    const diffContent = (diffStat + "\n\n" + diffPatch).slice(0, 4000);
+
+    const issueNumber = state.issue?.number ?? null;
+    const issueTitle = state.issue?.title ?? null;
+    const provider = state.config.ai.provider;
+    const providerName = getProviderDisplayName(provider);
+    logger.info(`Generating commit message with ${providerName}...`);
+
+    const message = await generateCommitMessage(diffContent, issueNumber, issueTitle, state);
+    if (message === CANCEL) {
+      await execa("git", ["reset", "HEAD"]);
+      logger.info("Cancelled");
+      return;
+    }
+
+    console.log();
+    logger.info(`Message: ${message}`);
+    console.log();
+
+    if (!await confirm("Commit with this message?")) {
+      await execa("git", ["reset", "HEAD"]);
       logger.info("Commit cancelled");
       return;
     }
 
+    const providerEmail = getProviderEmail(provider);
+    const fullMessage = `${message}\n\nCo-Authored-By: ${providerName} <${providerEmail}>`;
+
     const spinner = createSpinner("Committing...");
     spinner.start();
-    await execa("git", ["add", "-A"]);
-    await execa("git", ["commit", "-m", message]);
+    await execa("git", ["commit", "-m", fullMessage]);
     spinner.succeed("Changes committed");
   } catch (error) {
     logger.error(`Commit failed: ${error}`);
   }
 }
 
+async function generateCommitMessage(
+  diffContent: string,
+  issueNumber: number | null,
+  issueTitle: string | null,
+  state: TuiState,
+): Promise<string | typeof CANCEL> {
+  try {
+    const prompt = buildCommitMessagePrompt(diffContent, issueNumber, issueTitle);
+    const result = await invokeAI({ prompt, streamOutput: true }, state.config);
+    let message = result.output.trim().split("\n")[0].trim();
+    if ((message.startsWith('"') && message.endsWith('"')) ||
+        (message.startsWith("'") && message.endsWith("'"))) {
+      message = message.slice(1, -1);
+    }
+    return message;
+  } catch {
+    logger.warning("AI commit message generation failed");
+    console.log();
+    const { message } = await inquirer.prompt<{ message: string }>([
+      {
+        type: "input",
+        name: "message",
+        message: "Commit message (empty to cancel):",
+      },
+    ]);
+    return message.trim() || CANCEL;
+  }
+}
+
 async function handlePush(): Promise<void> {
   try {
+    const { stdout: branch } = await execa("git", ["branch", "--show-current"]);
+    if (!await confirm(`Push ${branch.trim()} to remote?`)) return;
+
     const spinner = createSpinner("Pushing...");
     spinner.start();
-    const { stdout: branch } = await execa("git", ["branch", "--show-current"]);
     await execa("git", ["push", "-u", "origin", branch.trim()]);
     spinner.succeed("Pushed to remote");
   } catch (error) {
     logger.error(`Push failed: ${error}`);
+  }
+}
+
+const PROVIDERS: AIProvider[] = ["claude", "gemini", "codex"];
+
+async function handleSwitchProvider(state: TuiState): Promise<void> {
+  const current = state.config.ai.provider;
+  const { provider } = await inquirer.prompt<{ provider: AIProvider }>([
+    {
+      type: "list",
+      name: "provider",
+      message: "Select AI provider:",
+      choices: PROVIDERS.map((p) => ({
+        name: p.charAt(0).toUpperCase() + p.slice(1) + (p === current ? " (current)" : ""),
+        value: p,
+      })),
+      default: current,
+    },
+  ]);
+
+  if (provider === current) return;
+
+  try {
+    updateConfigProvider(provider);
+    logger.success(`Provider switched to ${provider}`);
+  } catch (error) {
+    logger.error(`Failed to switch provider: ${error}`);
   }
 }
 
@@ -231,9 +327,9 @@ export async function tuiCommand(): Promise<void> {
   let running = true;
 
   while (running) {
+    const state = await loadState();
     clearScreen();
 
-    const state = await loadState();
     const actions = getAvailableActions(state);
 
     // Contextual hint

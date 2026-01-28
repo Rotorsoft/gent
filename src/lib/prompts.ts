@@ -125,6 +125,28 @@ ${issue ? `Closes #${issue.number}` : ""}
 Only output the PR description, nothing else.`;
 }
 
+export function buildCommitMessagePrompt(
+  diff: string,
+  issueNumber: number | null,
+  issueTitle: string | null,
+): string {
+  const issueContext = issueNumber
+    ? `\nRelated Issue: #${issueNumber}${issueTitle ? ` - ${issueTitle}` : ""}\n`
+    : "";
+
+  return `Generate a concise git commit message for the following changes.
+${issueContext}
+## Diff
+${diff}
+
+Rules:
+- Use conventional commit format: <type>: <short description>
+- Types: feat, fix, refactor, chore, docs, test, style, perf
+- Keep the first line under 72 characters
+- Do NOT include a body or footer
+- Output ONLY the commit message, nothing else`;
+}
+
 export function parseTicketMeta(
   output: string
 ): { type: string; priority: string; risk: string; area: string } | null {
