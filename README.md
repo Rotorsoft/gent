@@ -119,27 +119,22 @@ Repeat `gent fix` as needed until the PR is approved.
 Running `gent` with no arguments launches a dashboard that shows your current workflow at a glance:
 
 ```
- Gent v2.0.0                                              Claude | gh
-┌ Ticket ──────────────────────────────────────────────────────────────┐
-│ #47  Add interactive TUI interface                                   │
-│  IN PROGRESS   type:feature  priority:high  risk:medium  area:ui     │
-└──────────────────────────────────────────────────────────────────────┘
+ gent v2.0.0                                     Claude · gh
 
-┌ Branch ──────────────────────────────────────────────────────────────┐
-│ ro/feature-47-add-interactive-tui                                    │
-│ 3 commits ahead of main  ● uncommitted  ● unpushed                   │
-└──────────────────────────────────────────────────────────────────────┘
+┌ Ticket ──────────────────────────────────────────────┐
+│ #47  Add interactive TUI interface                   │
+│  IN PROGRESS   type:feature  priority:high  area:ui  │
+├ Branch ──────────────────────────────────────────────┤
+│ ro/feature-47-add-interactive-tui                    │
+│ 3 ahead  ·  ● uncommitted  ·  ● unpushed            │
+├ Pull Request ────────────────────────────────────────┤
+│ No PR created                                        │
+├ Commits ─────────────────────────────────────────────┤
+│ feat: add TUI state aggregation                      │
+│ feat: add TUI display components                     │
+└──────────────────────────────────────────────────────┘
 
-┌ Pull Request ────────────────────────────────────────────────────────┐
-│ No PR created yet                                                    │
-└──────────────────────────────────────────────────────────────────────┘
-
-┌ Commits ─────────────────────────────────────────────────────────────┐
-│   feat: add TUI state aggregation                                    │
-│   feat: add TUI display components                                   │
-└──────────────────────────────────────────────────────────────────────┘
-
- [c] commit   [p] create pr   [r] continue impl   [q] quit
+  c  commit    p  create pr    r  continue impl    q  quit
  Commit your changes before creating a PR
 ```
 

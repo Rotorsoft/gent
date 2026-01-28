@@ -6,214 +6,207 @@ import { getVersion } from "../lib/version.js";
 
 // eslint-disable-next-line no-control-regex
 const stripAnsi = (str: string) => str.replace(/\x1b\[[0-9;]*m/g, "");
-const visibleLength = (str: string) => stripAnsi(str).length;
+const visibleLen = (str: string) => stripAnsi(str).length;
 
-function padRight(str: string, len: number): string {
-  const visible = visibleLength(str);
-  return str + " ".repeat(Math.max(0, len - visible));
+function termWidth(): number {
+  return Math.min(process.stdout.columns || 80, 90);
 }
 
-function getTerminalWidth(): number {
-  return Math.min(process.stdout.columns || 80, 100);
+// All box-drawing helpers produce lines of exactly `w` visible characters.
+function topRow(title: string, w: number): string {
+  const label = ` ${title} `;
+  const fill = w - 2 - label.length; // 2 for ┌ and ┐
+  return chalk.dim("┌") + chalk.bold.cyan(label) + chalk.dim("─".repeat(Math.max(0, fill)) + "┐");
 }
 
-function renderPanel(title: string, lines: string[]): void {
-  const width = getTerminalWidth() - 2;
-  const inner = width - 2;
-  const titleStr = ` ${title} `;
-  const topBorderRight = "─".repeat(Math.max(0, width - titleStr.length - 1));
-
-  console.log(chalk.dim("┌") + chalk.bold.cyan(titleStr) + chalk.dim(topBorderRight + "┐"));
-  for (const line of lines) {
-    console.log(chalk.dim("│") + " " + padRight(line, inner - 1) + chalk.dim("│"));
-  }
-  console.log(chalk.dim("└" + "─".repeat(width) + "┘"));
+function midRow(title: string, w: number): string {
+  const label = ` ${title} `;
+  const fill = w - 2 - label.length;
+  return chalk.dim("├") + chalk.bold.cyan(label) + chalk.dim("─".repeat(Math.max(0, fill)) + "┤");
 }
 
-function formatWorkflowBadge(status: string): string {
+function botRow(w: number): string {
+  return chalk.dim("└" + "─".repeat(w - 2) + "┘");
+}
+
+function contentRow(text: string, w: number): string {
+  const inner = w - 4; // 2 for borders, 2 for padding spaces
+  const vis = visibleLen(text);
+  const pad = Math.max(0, inner - vis);
+  return chalk.dim("│") + " " + text + " ".repeat(pad) + " " + chalk.dim("│");
+}
+
+// ── Formatters ──────────────────────────────────────────────────
+
+function workflowBadge(status: string): string {
   switch (status) {
-    case "ready":
-      return chalk.bgGreen.black(" READY ");
-    case "in-progress":
-      return chalk.bgYellow.black(" IN PROGRESS ");
-    case "completed":
-      return chalk.bgBlue.white(" COMPLETED ");
-    case "blocked":
-      return chalk.bgRed.white(" BLOCKED ");
-    default:
-      return "";
+    case "ready":       return chalk.bgGreen.black(" READY ");
+    case "in-progress": return chalk.bgYellow.black(" IN PROGRESS ");
+    case "completed":   return chalk.bgBlue.white(" COMPLETED ");
+    case "blocked":     return chalk.bgRed.white(" BLOCKED ");
+    default:            return "";
   }
 }
 
-function formatPrState(state: "open" | "closed" | "merged", isDraft: boolean): string {
+function prBadge(state: "open" | "closed" | "merged", draft: boolean): string {
   if (state === "merged") return chalk.bgMagenta.white(" MERGED ");
   if (state === "closed") return chalk.bgRed.white(" CLOSED ");
-  return isDraft ? chalk.bgYellow.black(" DRAFT ") : chalk.bgGreen.black(" OPEN ");
+  return draft ? chalk.bgYellow.black(" DRAFT ") : chalk.bgGreen.black(" OPEN ");
 }
 
-function formatReviewBadge(decision: string | null): string {
+function reviewBadge(decision: string | null): string {
   if (!decision) return "";
   switch (decision) {
-    case "APPROVED":
-      return chalk.green(" Approved");
-    case "CHANGES_REQUESTED":
-      return chalk.red(" Changes requested");
-    case "REVIEW_REQUIRED":
-      return chalk.yellow(" Review required");
-    default:
-      return "";
+    case "APPROVED":           return "  " + chalk.green("Approved");
+    case "CHANGES_REQUESTED":  return "  " + chalk.red("Changes requested");
+    case "REVIEW_REQUIRED":    return "  " + chalk.yellow("Review pending");
+    default:                   return "";
   }
 }
+
+// ── Main render ─────────────────────────────────────────────────
 
 export function renderDashboard(state: TuiState): void {
+  const w = termWidth();
   const version = getVersion();
-  const providerName = getProviderDisplayName(state.config.ai.provider);
-  const providerOk = state.isAIProviderAvailable ? chalk.green(providerName) : chalk.red(providerName);
-  const ghStatus = state.isGhAuthenticated ? chalk.green("gh") : chalk.red("gh");
 
-  // Header line
-  const left = chalk.bold(" Gent ") + chalk.dim(`v${version}`);
-  const right = providerOk + chalk.dim(" | ") + ghStatus + " ";
-  const headerPad = Math.max(0, getTerminalWidth() - visibleLength(left) - visibleLength(right));
-  console.log(left + " ".repeat(headerPad) + right);
+  // Header bar (outside the box)
+  const provider = getProviderDisplayName(state.config.ai.provider);
+  const provTag = state.isAIProviderAvailable ? chalk.green(provider) : chalk.red(provider);
+  const ghTag = state.isGhAuthenticated ? chalk.green("gh") : chalk.red("gh");
+  const left = chalk.bold(" gent ") + chalk.dim(`v${version}`);
+  const right = provTag + chalk.dim(" · ") + ghTag + " ";
+  const gap = Math.max(1, w - visibleLen(left) - visibleLen(right));
+  console.log(left + " ".repeat(gap) + right);
   console.log();
 
-  // Prerequisites errors
+  // ── Error states ──────────────────────────────────────────────
   if (!state.isGitRepo) {
-    renderPanel("Setup Required", [
-      chalk.red("Not a git repository"),
-      chalk.dim("Initialize with: gent init"),
-    ]);
+    console.log(topRow("Setup", w));
+    console.log(contentRow(chalk.red("Not a git repository"), w));
+    console.log(contentRow(chalk.dim("Run gent init in a git repo to get started"), w));
+    console.log(botRow(w));
     return;
   }
-
   if (!state.isGhAuthenticated) {
-    renderPanel("Setup Required", [
-      chalk.red("GitHub CLI not authenticated"),
-      chalk.dim("Run: gh auth login"),
-    ]);
+    console.log(topRow("Setup", w));
+    console.log(contentRow(chalk.red("GitHub CLI not authenticated"), w));
+    console.log(contentRow(chalk.dim("Run: gh auth login"), w));
+    console.log(botRow(w));
     return;
   }
 
-  // When on main with nothing current
+  // ── On main – nothing active ─────────────────────────────────
   if (state.isOnMain) {
-    renderPanel("Branch", [
-      chalk.magenta(state.branch) + chalk.dim("  Ready to start new work"),
-      ...(state.hasUncommittedChanges ? [chalk.yellow("uncommitted changes")] : []),
-    ]);
-    console.log();
-    renderPanel("Workflow", [
-      chalk.dim("No active ticket. Start by creating or implementing an issue."),
-    ]);
+    console.log(topRow("Branch", w));
+    console.log(contentRow(chalk.magenta(state.branch) + chalk.dim("  ·  ready to start new work"), w));
+    if (state.hasUncommittedChanges) {
+      console.log(contentRow(chalk.yellow("● uncommitted changes"), w));
+    }
+    console.log(midRow("Workflow", w));
+    console.log(contentRow(chalk.dim("No active ticket"), w));
+    console.log(botRow(w));
     console.log();
     return;
   }
 
-  // ---- Ticket panel ----
+  // ── Feature branch dashboard ──────────────────────────────────
+  let first = true;
+
+  // Ticket section
+  const section = (title: string) => {
+    console.log(first ? topRow(title, w) : midRow(title, w));
+    first = false;
+  };
+
+  section("Ticket");
   if (state.issue) {
-    const labelParts: string[] = [];
-    const typeLabel = state.issue.labels.find((l) => l.startsWith("type:"));
-    const priorityLabel = state.issue.labels.find((l) => l.startsWith("priority:"));
-    const riskLabel = state.issue.labels.find((l) => l.startsWith("risk:"));
-    const areaLabel = state.issue.labels.find((l) => l.startsWith("area:"));
-    if (typeLabel) labelParts.push(chalk.dim(typeLabel));
-    if (priorityLabel) labelParts.push(chalk.dim(priorityLabel));
-    if (riskLabel) labelParts.push(chalk.dim(riskLabel));
-    if (areaLabel) labelParts.push(chalk.dim(areaLabel));
-
-    const ticketLines: string[] = [
+    console.log(contentRow(
       chalk.cyan(`#${state.issue.number}`) + "  " + chalk.bold(state.issue.title),
-    ];
-    if (state.workflowStatus !== "none") {
-      ticketLines.push(formatWorkflowBadge(state.workflowStatus) + "  " + labelParts.join("  "));
-    } else if (labelParts.length > 0) {
-      ticketLines.push(labelParts.join("  "));
+      w,
+    ));
+    const tags: string[] = [];
+    if (state.workflowStatus !== "none") tags.push(workflowBadge(state.workflowStatus));
+    for (const prefix of ["type:", "priority:", "risk:", "area:"]) {
+      const l = state.issue.labels.find((x) => x.startsWith(prefix));
+      if (l) tags.push(chalk.dim(l));
     }
-    renderPanel("Ticket", ticketLines);
+    if (tags.length) console.log(contentRow(tags.join("  "), w));
   } else {
-    renderPanel("Ticket", [chalk.dim("No linked issue found")]);
+    console.log(contentRow(chalk.dim("No linked issue"), w));
   }
-  console.log();
 
-  // ---- Branch panel ----
-  const branchIndicators: string[] = [];
+  // Branch section
+  section("Branch");
+  console.log(contentRow(chalk.magenta(state.branch), w));
+  const bits: string[] = [];
   if (state.commits.length > 0) {
-    branchIndicators.push(chalk.dim(`${state.commits.length} commit${state.commits.length !== 1 ? "s" : ""} ahead of ${state.baseBranch}`));
+    bits.push(chalk.dim(`${state.commits.length} ahead`));
   }
-  if (state.hasUncommittedChanges) {
-    branchIndicators.push(chalk.yellow("● uncommitted"));
-  }
-  if (state.hasUnpushedCommits) {
-    branchIndicators.push(chalk.yellow("● unpushed"));
-  }
+  if (state.hasUncommittedChanges) bits.push(chalk.yellow("● uncommitted"));
+  if (state.hasUnpushedCommits) bits.push(chalk.yellow("● unpushed"));
   if (!state.hasUncommittedChanges && !state.hasUnpushedCommits && state.commits.length > 0) {
-    branchIndicators.push(chalk.green("● synced"));
+    bits.push(chalk.green("● synced"));
   }
+  if (bits.length) console.log(contentRow(bits.join(chalk.dim("  ·  ")), w));
 
-  renderPanel("Branch", [
-    chalk.magenta(state.branch),
-    ...(branchIndicators.length > 0 ? [branchIndicators.join("  ")] : []),
-  ]);
-  console.log();
-
-  // ---- PR panel ----
+  // PR section
+  section("Pull Request");
   if (state.pr) {
-    const prLines: string[] = [
-      chalk.cyan(`#${state.pr.number}`) + "  " + formatPrState(state.pr.state, state.pr.isDraft) + formatReviewBadge(state.pr.reviewDecision),
-    ];
+    console.log(contentRow(
+      chalk.cyan(`#${state.pr.number}`) + "  " + prBadge(state.pr.state, state.pr.isDraft) + reviewBadge(state.pr.reviewDecision),
+      w,
+    ));
     if (state.hasActionableFeedback) {
-      prLines.push(chalk.yellow(`${state.reviewFeedback.length} actionable comment${state.reviewFeedback.length !== 1 ? "s" : ""} pending`));
+      const n = state.reviewFeedback.length;
+      console.log(contentRow(chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`), w));
     }
     if (state.hasUIChanges && state.isPlaywrightAvailable && state.config.video.enabled && state.pr.state === "open") {
-      prLines.push(chalk.cyan("UI changes detected") + chalk.dim(" - video capture available"));
+      console.log(contentRow(chalk.cyan("UI changes detected") + chalk.dim(" · video capture available"), w));
     }
-    prLines.push(chalk.dim(state.pr.url));
-    renderPanel("Pull Request", prLines);
+    console.log(contentRow(chalk.dim(state.pr.url), w));
   } else {
-    renderPanel("Pull Request", [chalk.dim("No PR created yet")]);
+    console.log(contentRow(chalk.dim("No PR created"), w));
   }
-  console.log();
 
-  // ---- Commits panel ----
+  // Commits section
+  section("Commits");
   if (state.commits.length > 0) {
-    const maxCommits = 8;
-    const displayCommits = state.commits.slice(0, maxCommits).map((c) => chalk.dim("  ") + c);
-    if (state.commits.length > maxCommits) {
-      displayCommits.push(chalk.dim(`  ... and ${state.commits.length - maxCommits} more`));
+    const max = 6;
+    for (const c of state.commits.slice(0, max)) {
+      console.log(contentRow(c, w));
     }
-    renderPanel("Commits", displayCommits);
+    if (state.commits.length > max) {
+      console.log(contentRow(chalk.dim(`… and ${state.commits.length - max} more`), w));
+    }
   } else {
-    renderPanel("Commits", [chalk.dim("No commits yet")]);
+    console.log(contentRow(chalk.dim("No commits"), w));
   }
+
+  console.log(botRow(w));
   console.log();
 }
 
+// ── Command bar ─────────────────────────────────────────────────
+
 export function renderCommandBar(actions: TuiAction[]): void {
-  const shortcuts = actions.map((a) => {
-    return chalk.bold(`[${a.shortcut}]`) + " " + a.label;
-  });
-
-  // Wrap shortcuts into lines that fit terminal width
-  const width = getTerminalWidth();
+  const parts = actions.map((a) =>
+    chalk.inverse(` ${a.shortcut} `) + " " + chalk.dim(a.label),
+  );
+  const w = termWidth();
   const lines: string[] = [];
-  let currentLine = " ";
-
-  for (const shortcut of shortcuts) {
-    const candidate = currentLine + (currentLine.length > 1 ? "   " : "") + shortcut;
-    if (visibleLength(candidate) > width - 2) {
-      lines.push(currentLine);
-      currentLine = " " + shortcut;
+  let cur = " ";
+  for (const part of parts) {
+    const next = cur + (cur.length > 1 ? "   " : "") + part;
+    if (visibleLen(next) > w - 1) {
+      lines.push(cur);
+      cur = " " + part;
     } else {
-      currentLine = candidate;
+      cur = next;
     }
   }
-  if (currentLine.length > 1) {
-    lines.push(currentLine);
-  }
-
-  for (const line of lines) {
-    console.log(line);
-  }
+  if (cur.length > 1) lines.push(cur);
+  for (const line of lines) console.log(line);
 }
 
 export function renderHint(message: string): void {
