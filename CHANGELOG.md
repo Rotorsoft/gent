@@ -1,3 +1,20 @@
+# [1.12.0](https://github.com/rotorsoft/gent/compare/v1.11.0...v1.12.0) (2026-01-28)
+
+
+### Bug Fixes
+
+* redesign dashboard as single bordered frame with section dividers ([ccc5a7c](https://github.com/rotorsoft/gent/commit/ccc5a7c72b35e8e708af7445dc7c43c2195df068))
+* remove always-visible "continue impl" action from dashboard ([7b42f3f](https://github.com/rotorsoft/gent/commit/7b42f3fb822e72bc4f23d4b2b8a173336359acef))
+* show descriptions in ticket/PR panels and move commands into frame ([e49964d](https://github.com/rotorsoft/gent/commit/e49964d9444a4976734ac5b2c0f343710b4abc43))
+* strip backticks and code fences from AI commit messages ([fe3f15c](https://github.com/rotorsoft/gent/commit/fe3f15c830e3a1321c1f758797f46f1bb731b45e))
+* use Commander default action for dashboard instead of argv check ([b46503e](https://github.com/rotorsoft/gent/commit/b46503e7adb2ac4322e594d5542e79fd5f769685))
+* use unique case-sensitive shortcuts for push (P) and create pr (C) ([ae6e35c](https://github.com/rotorsoft/gent/commit/ae6e35cd8beb8b1b340137dbe0dfd797beed83f7))
+
+
+### Features
+
+* add interactive dashboard with context-aware workflow actions ([0c65d5a](https://github.com/rotorsoft/gent/commit/0c65d5a11d556b6dbd7eb559531f4ed69803b9b3)), closes [#47](https://github.com/rotorsoft/gent/issues/47)
+
 # [1.11.0](https://github.com/rotorsoft/gent/compare/v1.10.1...v1.11.0) (2026-01-26)
 
 
