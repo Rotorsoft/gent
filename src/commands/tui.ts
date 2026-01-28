@@ -219,10 +219,14 @@ async function generateCommitMessage(
     const prompt = buildCommitMessagePrompt(diffContent, issueNumber, issueTitle);
     const result = await invokeAI({ prompt, streamOutput: true }, state.config);
     let message = result.output.trim().split("\n")[0].trim();
-    if ((message.startsWith('"') && message.endsWith('"')) ||
-        (message.startsWith("'") && message.endsWith("'"))) {
-      message = message.slice(1, -1);
+    // Strip wrapping quotes, backticks, or code fences
+    for (const q of ['"', "'", "`"]) {
+      if (message.startsWith(q) && message.endsWith(q)) {
+        message = message.slice(1, -1);
+        break;
+      }
     }
+    message = message.replace(/^```\w*\s*/, "").replace(/\s*```$/, "");
     return message;
   } catch {
     logger.warning("AI commit message generation failed");
