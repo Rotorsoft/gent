@@ -77,13 +77,6 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
       await runCommand(undefined, { auto: true });
       return false;
 
-    case "run":
-      console.log();
-      if (state.issue) {
-        await runCommand(String(state.issue.number), {});
-      }
-      return false;
-
     case "create": {
       console.log();
       const { description } = await inquirer.prompt<{ description: string }>([

@@ -51,10 +51,6 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     actions.push({ id: "checkout-main", label: "back to main", shortcut: "m" });
   }
 
-  if (state.issue && state.workflowStatus !== "completed") {
-    actions.push({ id: "run", label: "continue impl", shortcut: "r" });
-  }
-
   actions.push({ id: "quit", label: "quit", shortcut: "q" });
 
   return actions;

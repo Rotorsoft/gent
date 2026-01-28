@@ -199,7 +199,7 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("checkout-main");
   });
 
-  it("shows continue impl when issue in progress", () => {
+  it("does not show run on feature branch without actionable feedback", () => {
     const actions = getAvailableActions(createBaseState({
       isOnMain: false,
       branch: "ro/feature-123-test",
@@ -215,7 +215,7 @@ describe("getAvailableActions", () => {
     }));
     const ids = actions.map((a) => a.id);
 
-    expect(ids).toContain("run");
+    expect(ids).not.toContain("run");
   });
 
   it("always includes quit on feature branch", () => {
