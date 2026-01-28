@@ -30,11 +30,11 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   }
 
   if (state.hasUnpushedCommits && !state.hasUncommittedChanges) {
-    actions.push({ id: "push", label: "push", shortcut: "p" });
+    actions.push({ id: "push", label: "push", shortcut: "P" });
   }
 
   if (!state.pr && state.commits.length > 0) {
-    actions.push({ id: "pr", label: "create pr", shortcut: "p" });
+    actions.push({ id: "pr", label: "create pr", shortcut: "C" });
   }
 
   if (state.pr && state.pr.state === "open") {

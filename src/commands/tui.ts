@@ -48,12 +48,11 @@ async function waitForKey(validKeys: string[]): Promise<string> {
         return;
       }
 
-      const lower = key.toLowerCase();
-      if (validKeys.includes(lower)) {
+      if (validKeys.includes(key)) {
         stdin.setRawMode(wasRaw ?? false);
         stdin.pause();
         stdin.removeListener("data", onData);
-        resolve(lower);
+        resolve(key);
       }
     };
 

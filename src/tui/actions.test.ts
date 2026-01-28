@@ -87,16 +87,17 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("commit");
   });
 
-  it("shows push when unpushed commits exist and no uncommitted changes", () => {
+  it("shows push with P shortcut when unpushed commits exist", () => {
     const actions = getAvailableActions(createBaseState({
       isOnMain: false,
       branch: "ro/feature-123-test",
       hasUnpushedCommits: true,
       commits: ["feat: test"],
     }));
-    const ids = actions.map((a) => a.id);
+    const push = actions.find((a) => a.id === "push");
 
-    expect(ids).toContain("push");
+    expect(push).toBeDefined();
+    expect(push!.shortcut).toBe("P");
   });
 
   it("does not show push when uncommitted changes exist", () => {
@@ -113,15 +114,16 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("commit");
   });
 
-  it("shows create pr when no PR exists but commits do", () => {
+  it("shows create pr with C shortcut when no PR exists but commits do", () => {
     const actions = getAvailableActions(createBaseState({
       isOnMain: false,
       branch: "ro/feature-123-test",
       commits: ["feat: test"],
     }));
-    const ids = actions.map((a) => a.id);
+    const pr = actions.find((a) => a.id === "pr");
 
-    expect(ids).toContain("pr");
+    expect(pr).toBeDefined();
+    expect(pr!.shortcut).toBe("C");
   });
 
   it("shows fix feedback when PR has actionable feedback", () => {
