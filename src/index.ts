@@ -7,6 +7,7 @@ import { runCommand } from "./commands/run.js";
 import { prCommand } from "./commands/pr.js";
 import { fixCommand } from "./commands/fix.js";
 import { statusCommand } from "./commands/status.js";
+import { tuiCommand } from "./commands/tui.js";
 import { getVersion, checkForUpdates, formatUpgradeNotification } from "./lib/version.js";
 import { logger } from "./utils/logger.js";
 
@@ -119,4 +120,19 @@ program
     await statusCommand();
   });
 
-program.parse();
+program
+  .command("ui")
+  .description("Launch interactive TUI mode")
+  .action(async () => {
+    await tuiCommand();
+  });
+
+// Handle `gent` with no arguments - launch TUI
+if (process.argv.length === 2) {
+  tuiCommand().catch((error) => {
+    logger.error(`TUI error: ${error}`);
+    process.exit(1);
+  });
+} else {
+  program.parse();
+}

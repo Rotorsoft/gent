@@ -24,8 +24,9 @@ This is a TypeScript CLI tool (`gent`) that integrates AI (Claude, Gemini, or Co
 
 ### Entry Point and Commands
 
-- `src/index.ts` - CLI entry point using Commander.js, defines all commands
-- `src/commands/` - Each command (init, create, list, run, pr, status, setup-labels) has its own file
+- `src/index.ts` - CLI entry point using Commander.js, defines all commands. Running with no args launches the dashboard.
+- `src/commands/` - Each command (init, create, list, run, pr, status, setup-labels, tui) has its own file
+- `src/tui/` - Dashboard components: state aggregation, context-aware actions, panel rendering
 
 ### Core Libraries
 

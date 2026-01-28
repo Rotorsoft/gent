@@ -208,3 +208,50 @@ export function generateFallbackTitle(description: string): string {
   }
   return truncated;
 }
+
+/**
+ * Build prompt for Playwright video capture of UI changes.
+ * Instructs AI to upload video to GitHub assets rather than committing to repo.
+ */
+export function buildVideoPrompt(
+  issueNumber: number,
+  issueTitle: string,
+  videoConfig: { max_duration: number; width: number; height: number },
+  agentInstructions: string | null
+): string {
+  return `You are helping capture a Playwright video demonstration of UI changes for GitHub Issue #${issueNumber}: ${issueTitle}
+
+${agentInstructions ? `## Project-Specific Instructions\n${agentInstructions}\n\n` : ""}
+
+## Task: Record UI Demo Video
+
+Create a short video (max ${videoConfig.max_duration}s) demonstrating the UI changes made for this issue.
+
+### Video Requirements
+- Resolution: ${videoConfig.width}x${videoConfig.height}
+- Format: WebM or MP4
+- Duration: Under ${videoConfig.max_duration} seconds
+- Show the key UI interactions and visual changes
+
+### Steps
+
+1. **Start the development server** if not already running
+2. **Use Playwright to record video** of the relevant UI interactions:
+   - Navigate to the affected pages/components
+   - Demonstrate the new or changed functionality
+   - Show before/after if applicable
+
+3. **Upload video to GitHub** as a release asset or use GitHub's drag-drop upload:
+   - Create a GitHub release or upload to issue comments
+   - Get the permanent URL for the video
+   - Do NOT commit video files to the repository
+
+4. **Add video to PR** by commenting with the video URL or embedding it
+
+### Important
+- Upload video to GitHub assets, NOT to the repository
+- Keep the video concise - focus on demonstrating the changes
+- Ensure the video clearly shows the UI improvements
+
+Output the GitHub URL where the video was uploaded when complete.`;
+}

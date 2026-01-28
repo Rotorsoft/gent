@@ -105,3 +105,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/types/index.ts, src/lib/config.ts, src/lib/playwright.ts, src/lib/github-assets.ts, src/commands/pr.ts, src/index.ts, src/lib/playwright.test.ts, src/lib/github-assets.test.ts
 - Changes: Added VideoConfig type and configuration. Created playwright.ts for Playwright detection and UI change heuristics. When UI changes detected and Playwright available, adds instructions to AI prompt for video capture via MCP. Created github-assets.ts utility for future use.
 - Decisions: Video capture enabled by default, disabled via .gent.yml or --no-video. AI handles video capture autonomously via MCP (no manual URL needed). UI detection uses file patterns (tsx, vue, components/, pages/, etc).
+
+[2026-01-28] #47 feat: add interactive dashboard with context-aware workflow actions
+- Files: src/tui/state.ts, src/tui/actions.ts, src/tui/display.ts, src/tui/state.test.ts, src/tui/actions.test.ts, src/commands/tui.ts, src/index.ts, src/lib/prompts.ts, README.md, AGENT.md, progress.txt
+- Changes: Added dashboard launched via `gent` (no args) or `gent ui`. Panels for Ticket/Branch/PR/Commits with keyboard shortcuts at bottom. State aggregation from git, GitHub issues/PRs, labels, and Playwright. Video capture prompt builder for UI changes. Dashboard auto-refreshes after actions.
+- Decisions: Used existing inquirer+chalk+ora instead of adding TUI library. Raw stdin for single-key input. htop-inspired panel layout with badges. No action menu - bottom command bar with shortcuts instead.

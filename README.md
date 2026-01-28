@@ -114,6 +114,44 @@ The AI will:
 
 Repeat `gent fix` as needed until the PR is approved.
 
+## Dashboard
+
+Running `gent` with no arguments launches a dashboard that shows your current workflow at a glance:
+
+```
+ Gent v2.0.0                                              Claude | gh
+┌ Ticket ──────────────────────────────────────────────────────────────┐
+│ #47  Add interactive TUI interface                                   │
+│  IN PROGRESS   type:feature  priority:high  risk:medium  area:ui     │
+└──────────────────────────────────────────────────────────────────────┘
+
+┌ Branch ──────────────────────────────────────────────────────────────┐
+│ ro/feature-47-add-interactive-tui                                    │
+│ 3 commits ahead of main  ● uncommitted  ● unpushed                   │
+└──────────────────────────────────────────────────────────────────────┘
+
+┌ Pull Request ────────────────────────────────────────────────────────┐
+│ No PR created yet                                                    │
+└──────────────────────────────────────────────────────────────────────┘
+
+┌ Commits ─────────────────────────────────────────────────────────────┐
+│   feat: add TUI state aggregation                                    │
+│   feat: add TUI display components                                   │
+└──────────────────────────────────────────────────────────────────────┘
+
+ [c] commit   [p] create pr   [r] continue impl   [q] quit
+ Commit your changes before creating a PR
+```
+
+The dashboard adapts to your current context:
+- **On main branch** - offers to create new tickets or implement open issues
+- **Uncommitted changes** - prompts to commit before other actions
+- **No PR yet** - offers to create a pull request
+- **PR with review feedback** - offers to fix review comments
+- **UI changes with Playwright** - offers to record demo videos
+
+You can also launch it explicitly with `gent ui`.
+
 ## Commands
 
 ### `gent init`
@@ -235,6 +273,18 @@ Displays:
 - Linked issue status
 - PR status
 - Suggested actions
+
+### `gent ui`
+
+Launch the interactive dashboard. Also available by running `gent` with no arguments.
+
+```bash
+gent ui
+# or simply
+gent
+```
+
+The dashboard displays panels for Ticket, Branch, Pull Request, and Commits with context-aware keyboard shortcuts at the bottom. Actions refresh the dashboard automatically after completion.
 
 ## Configuration
 
