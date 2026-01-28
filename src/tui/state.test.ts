@@ -186,6 +186,7 @@ describe("aggregateState", () => {
     });
     vi.mocked(github.getPrStatus).mockResolvedValue({
       number: 456,
+      title: "Add TUI",
       url: "https://github.com/test/repo/pull/456",
       state: "open",
       reviewDecision: "CHANGES_REQUESTED",

@@ -132,6 +132,7 @@ describe("getAvailableActions", () => {
       branch: "ro/feature-123-test",
       pr: {
         number: 456,
+        title: "Test PR",
         url: "https://github.com/test/repo/pull/456",
         state: "open",
         reviewDecision: "CHANGES_REQUESTED",
@@ -151,6 +152,7 @@ describe("getAvailableActions", () => {
       branch: "ro/feature-123-test",
       pr: {
         number: 456,
+        title: "Test PR",
         url: "https://github.com/test/repo/pull/456",
         state: "open",
         reviewDecision: null,
@@ -170,6 +172,7 @@ describe("getAvailableActions", () => {
       branch: "ro/feature-123-test",
       pr: {
         number: 456,
+        title: "Test PR",
         url: "https://github.com/test/repo/pull/456",
         state: "open",
         reviewDecision: null,
@@ -190,6 +193,7 @@ describe("getAvailableActions", () => {
       branch: "ro/feature-123-test",
       pr: {
         number: 456,
+        title: "Test PR",
         url: "https://github.com/test/repo/pull/456",
         state: "merged",
         reviewDecision: null,

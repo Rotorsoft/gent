@@ -12,10 +12,34 @@ function termWidth(): number {
   return Math.min(process.stdout.columns || 80, 90);
 }
 
-// All box-drawing helpers produce lines of exactly `w` visible characters.
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max - 1) + "…";
+}
+
+function extractDescription(body: string, maxLen: number): string {
+  // Take first meaningful line from issue/PR body
+  const lines = body.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith("#")) continue;
+    if (trimmed.startsWith("---")) continue;
+    if (trimmed.startsWith("META:")) continue;
+    if (trimmed.startsWith("**Type:**")) continue;
+    // Strip markdown bold/links
+    const clean = trimmed.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    return truncate(clean, maxLen);
+  }
+  return "";
+}
+
+// ── Box drawing ─────────────────────────────────────────────────
+// Every line is exactly `w` visible characters wide.
+
 function topRow(title: string, w: number): string {
   const label = ` ${title} `;
-  const fill = w - 2 - label.length; // 2 for ┌ and ┐
+  const fill = w - 2 - label.length;
   return chalk.dim("┌") + chalk.bold.cyan(label) + chalk.dim("─".repeat(Math.max(0, fill)) + "┐");
 }
 
@@ -25,14 +49,17 @@ function midRow(title: string, w: number): string {
   return chalk.dim("├") + chalk.bold.cyan(label) + chalk.dim("─".repeat(Math.max(0, fill)) + "┤");
 }
 
+function divRow(w: number): string {
+  return chalk.dim("├" + "─".repeat(w - 2) + "┤");
+}
+
 function botRow(w: number): string {
   return chalk.dim("└" + "─".repeat(w - 2) + "┘");
 }
 
-function contentRow(text: string, w: number): string {
-  const inner = w - 4; // 2 for borders, 2 for padding spaces
-  const vis = visibleLen(text);
-  const pad = Math.max(0, inner - vis);
+function row(text: string, w: number): string {
+  const inner = w - 4;
+  const pad = Math.max(0, inner - visibleLen(text));
   return chalk.dim("│") + " " + text + " ".repeat(pad) + " " + chalk.dim("│");
 }
 
@@ -64,10 +91,31 @@ function reviewBadge(decision: string | null): string {
   }
 }
 
+function formatCommandBar(actions: TuiAction[], w: number): string[] {
+  const parts = actions.map((a) =>
+    chalk.inverse(` ${a.shortcut} `) + " " + chalk.dim(a.label),
+  );
+  const inner = w - 4;
+  const lines: string[] = [];
+  let cur = "";
+  for (const part of parts) {
+    const next = cur + (cur.length > 0 ? "   " : "") + part;
+    if (visibleLen(next) > inner) {
+      lines.push(cur);
+      cur = part;
+    } else {
+      cur = next;
+    }
+  }
+  if (cur.length > 0) lines.push(cur);
+  return lines;
+}
+
 // ── Main render ─────────────────────────────────────────────────
 
-export function renderDashboard(state: TuiState): void {
+export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: string): void {
   const w = termWidth();
+  const descMax = w - 8; // room inside content rows
   const version = getVersion();
 
   // Header bar (outside the box)
@@ -83,15 +131,15 @@ export function renderDashboard(state: TuiState): void {
   // ── Error states ──────────────────────────────────────────────
   if (!state.isGitRepo) {
     console.log(topRow("Setup", w));
-    console.log(contentRow(chalk.red("Not a git repository"), w));
-    console.log(contentRow(chalk.dim("Run gent init in a git repo to get started"), w));
+    console.log(row(chalk.red("Not a git repository"), w));
+    console.log(row(chalk.dim("Run gent init in a git repo to get started"), w));
     console.log(botRow(w));
     return;
   }
   if (!state.isGhAuthenticated) {
     console.log(topRow("Setup", w));
-    console.log(contentRow(chalk.red("GitHub CLI not authenticated"), w));
-    console.log(contentRow(chalk.dim("Run: gh auth login"), w));
+    console.log(row(chalk.red("GitHub CLI not authenticated"), w));
+    console.log(row(chalk.dim("Run: gh auth login"), w));
     console.log(botRow(w));
     return;
   }
@@ -99,12 +147,17 @@ export function renderDashboard(state: TuiState): void {
   // ── On main – nothing active ─────────────────────────────────
   if (state.isOnMain) {
     console.log(topRow("Branch", w));
-    console.log(contentRow(chalk.magenta(state.branch) + chalk.dim("  ·  ready to start new work"), w));
+    console.log(row(chalk.magenta(state.branch) + chalk.dim("  ·  ready to start new work"), w));
     if (state.hasUncommittedChanges) {
-      console.log(contentRow(chalk.yellow("● uncommitted changes"), w));
+      console.log(row(chalk.yellow("● uncommitted changes"), w));
     }
     console.log(midRow("Workflow", w));
-    console.log(contentRow(chalk.dim("No active ticket"), w));
+    console.log(row(chalk.dim("No active ticket"), w));
+    console.log(divRow(w));
+    for (const line of formatCommandBar(actions, w)) {
+      console.log(row(line, w));
+    }
+    if (hint) console.log(row(chalk.dim(hint), w));
     console.log(botRow(w));
     console.log();
     return;
@@ -112,105 +165,90 @@ export function renderDashboard(state: TuiState): void {
 
   // ── Feature branch dashboard ──────────────────────────────────
   let first = true;
-
-  // Ticket section
   const section = (title: string) => {
     console.log(first ? topRow(title, w) : midRow(title, w));
     first = false;
   };
 
+  // Ticket
   section("Ticket");
   if (state.issue) {
-    console.log(contentRow(
-      chalk.cyan(`#${state.issue.number}`) + "  " + chalk.bold(state.issue.title),
+    console.log(row(
+      chalk.cyan(`#${state.issue.number}`) + "  " + chalk.bold(truncate(state.issue.title, descMax - 6)),
       w,
     ));
+    const desc = extractDescription(state.issue.body, descMax);
+    if (desc) console.log(row(chalk.dim(desc), w));
     const tags: string[] = [];
     if (state.workflowStatus !== "none") tags.push(workflowBadge(state.workflowStatus));
     for (const prefix of ["type:", "priority:", "risk:", "area:"]) {
       const l = state.issue.labels.find((x) => x.startsWith(prefix));
       if (l) tags.push(chalk.dim(l));
     }
-    if (tags.length) console.log(contentRow(tags.join("  "), w));
+    if (tags.length) console.log(row(tags.join("  "), w));
   } else {
-    console.log(contentRow(chalk.dim("No linked issue"), w));
+    console.log(row(chalk.dim("No linked issue"), w));
   }
 
-  // Branch section
+  // Branch
   section("Branch");
-  console.log(contentRow(chalk.magenta(state.branch), w));
+  console.log(row(chalk.magenta(state.branch), w));
   const bits: string[] = [];
-  if (state.commits.length > 0) {
-    bits.push(chalk.dim(`${state.commits.length} ahead`));
-  }
+  if (state.commits.length > 0) bits.push(chalk.dim(`${state.commits.length} ahead`));
   if (state.hasUncommittedChanges) bits.push(chalk.yellow("● uncommitted"));
   if (state.hasUnpushedCommits) bits.push(chalk.yellow("● unpushed"));
   if (!state.hasUncommittedChanges && !state.hasUnpushedCommits && state.commits.length > 0) {
     bits.push(chalk.green("● synced"));
   }
-  if (bits.length) console.log(contentRow(bits.join(chalk.dim("  ·  ")), w));
+  if (bits.length) console.log(row(bits.join(chalk.dim("  ·  ")), w));
 
-  // PR section
+  // Pull Request
   section("Pull Request");
   if (state.pr) {
-    console.log(contentRow(
-      chalk.cyan(`#${state.pr.number}`) + "  " + prBadge(state.pr.state, state.pr.isDraft) + reviewBadge(state.pr.reviewDecision),
+    const titleText = state.pr.title
+      ? "  " + truncate(state.pr.title, descMax - 12)
+      : "";
+    console.log(row(
+      chalk.cyan(`#${state.pr.number}`) + titleText,
+      w,
+    ));
+    console.log(row(
+      prBadge(state.pr.state, state.pr.isDraft) + reviewBadge(state.pr.reviewDecision),
       w,
     ));
     if (state.hasActionableFeedback) {
       const n = state.reviewFeedback.length;
-      console.log(contentRow(chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`), w));
+      console.log(row(chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`), w));
     }
     if (state.hasUIChanges && state.isPlaywrightAvailable && state.config.video.enabled && state.pr.state === "open") {
-      console.log(contentRow(chalk.cyan("UI changes detected") + chalk.dim(" · video capture available"), w));
+      console.log(row(chalk.cyan("UI changes detected") + chalk.dim(" · video capture available"), w));
     }
-    console.log(contentRow(chalk.dim(state.pr.url), w));
+    console.log(row(chalk.dim(state.pr.url), w));
   } else {
-    console.log(contentRow(chalk.dim("No PR created"), w));
+    console.log(row(chalk.dim("No PR created"), w));
   }
 
-  // Commits section
+  // Commits
   section("Commits");
   if (state.commits.length > 0) {
     const max = 6;
     for (const c of state.commits.slice(0, max)) {
-      console.log(contentRow(c, w));
+      console.log(row(c, w));
     }
     if (state.commits.length > max) {
-      console.log(contentRow(chalk.dim(`… and ${state.commits.length - max} more`), w));
+      console.log(row(chalk.dim(`… and ${state.commits.length - max} more`), w));
     }
   } else {
-    console.log(contentRow(chalk.dim("No commits"), w));
+    console.log(row(chalk.dim("No commits"), w));
   }
 
+  // Command bar (inside the frame)
+  console.log(divRow(w));
+  for (const line of formatCommandBar(actions, w)) {
+    console.log(row(line, w));
+  }
+  if (hint) console.log(row(chalk.dim(hint), w));
   console.log(botRow(w));
-  console.log();
-}
-
-// ── Command bar ─────────────────────────────────────────────────
-
-export function renderCommandBar(actions: TuiAction[]): void {
-  const parts = actions.map((a) =>
-    chalk.inverse(` ${a.shortcut} `) + " " + chalk.dim(a.label),
-  );
-  const w = termWidth();
-  const lines: string[] = [];
-  let cur = " ";
-  for (const part of parts) {
-    const next = cur + (cur.length > 1 ? "   " : "") + part;
-    if (visibleLen(next) > w - 1) {
-      lines.push(cur);
-      cur = " " + part;
-    } else {
-      cur = next;
-    }
-  }
-  if (cur.length > 1) lines.push(cur);
-  for (const line of lines) console.log(line);
-}
-
-export function renderHint(message: string): void {
-  console.log(chalk.dim(` ${message}`));
 }
 
 export function clearScreen(): void {

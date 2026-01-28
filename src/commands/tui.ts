@@ -2,7 +2,7 @@ import inquirer from "inquirer";
 import { execa } from "execa";
 import { aggregateState, type TuiState } from "../tui/state.js";
 import { getAvailableActions } from "../tui/actions.js";
-import { renderDashboard, renderCommandBar, renderHint, clearScreen } from "../tui/display.js";
+import { renderDashboard, clearScreen } from "../tui/display.js";
 import { logger } from "../utils/logger.js";
 import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
@@ -234,20 +234,19 @@ export async function tuiCommand(): Promise<void> {
     clearScreen();
 
     const state = await loadState();
-
-    renderDashboard(state);
-
     const actions = getAvailableActions(state);
-    renderCommandBar(actions);
 
-    // Show contextual hints
+    // Contextual hint
+    let hint: string | undefined;
     if (state.isOnMain) {
-      renderHint("Select an action to get started");
+      hint = "Select an action to get started";
     } else if (state.hasUncommittedChanges && !state.pr) {
-      renderHint("Commit your changes before creating a PR");
+      hint = "Commit your changes before creating a PR";
     } else if (state.hasActionableFeedback) {
-      renderHint("Review feedback needs attention");
+      hint = "Review feedback needs attention";
     }
+
+    renderDashboard(state, actions, hint);
 
     // Wait for a valid keypress
     const validKeys = actions.map((a) => a.shortcut);
