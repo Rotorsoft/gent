@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import type { GentConfig, AIProvider } from "../types/index.js";
@@ -157,6 +157,20 @@ function mergeConfig(
     },
     validation: user.validation ?? defaults.validation,
   };
+}
+
+export function updateConfigProvider(provider: AIProvider, cwd: string = process.cwd()): void {
+  const configPath = getConfigPath(cwd);
+  if (!existsSync(configPath)) {
+    writeFileSync(configPath, generateDefaultConfig(provider), "utf-8");
+    return;
+  }
+  const content = readFileSync(configPath, "utf-8");
+  const updated = content.replace(
+    /^(\s*provider:\s*)"[^"]*"/m,
+    `$1"${provider}"`,
+  );
+  writeFileSync(configPath, updated, "utf-8");
 }
 
 export function generateDefaultConfig(provider: AIProvider = "claude"): string {

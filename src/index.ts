@@ -7,6 +7,7 @@ import { runCommand } from "./commands/run.js";
 import { prCommand } from "./commands/pr.js";
 import { fixCommand } from "./commands/fix.js";
 import { statusCommand } from "./commands/status.js";
+import { tuiCommand } from "./commands/tui.js";
 import { getVersion, checkForUpdates, formatUpgradeNotification } from "./lib/version.js";
 import { logger } from "./utils/logger.js";
 
@@ -118,5 +119,17 @@ program
   .action(async () => {
     await statusCommand();
   });
+
+program
+  .command("ui")
+  .description("Launch interactive dashboard")
+  .action(async () => {
+    await tuiCommand();
+  });
+
+// Launch dashboard when `gent` is run with no subcommand
+program.action(async () => {
+  await tuiCommand();
+});
 
 program.parse();

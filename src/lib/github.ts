@@ -192,6 +192,7 @@ export interface PrBasicInfo {
 
 export interface PrStatusInfo {
   number: number;
+  title: string;
   url: string;
   state: "open" | "closed" | "merged";
   reviewDecision: string | null;
@@ -219,13 +220,14 @@ export async function getPrStatus(): Promise<PrStatusInfo | null> {
       "pr",
       "view",
       "--json",
-      "number,url,state,reviewDecision,isDraft",
+      "number,title,url,state,reviewDecision,isDraft",
     ]);
     const data = JSON.parse(stdout);
     // gh pr view returns state as OPEN, CLOSED, or MERGED (uppercase)
     const state = (data.state?.toLowerCase() ?? "open") as "open" | "closed" | "merged";
     return {
       number: data.number,
+      title: data.title ?? "",
       url: data.url,
       state,
       reviewDecision: data.reviewDecision ?? null,
