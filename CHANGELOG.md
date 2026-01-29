@@ -1,3 +1,11 @@
+## [1.13.4](https://github.com/rotorsoft/gent/compare/v1.13.3...v1.13.4) (2026-01-29)
+
+
+### Bug Fixes
+
+* continue after run ([138558c](https://github.com/rotorsoft/gent/commit/138558c5d761e85a59ba667b68278688616b52a4))
+* lint errors in test ([d4ec98d](https://github.com/rotorsoft/gent/commit/d4ec98d0ffc1a1456b813cf77dadfeb6c84c89db))
+
 ## [1.13.3](https://github.com/rotorsoft/gent/compare/v1.13.2...v1.13.3) (2026-01-29)
 
 
