@@ -279,7 +279,7 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
   if (state.commits.length > 0) {
     const max = 6;
     for (const c of state.commits.slice(0, max)) {
-      console.log(row(c, w));
+      console.log(row(c.substring(0, w - 5), w));
     }
     if (state.commits.length > max) {
       console.log(row(chalk.dim(`… and ${state.commits.length - max} more`), w));
