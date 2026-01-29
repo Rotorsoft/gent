@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { executeAction } from "./tui.js";
 import inquirer from "inquirer";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as aiProvider from "../lib/ai-provider.js";
 import * as display from "../tui/display.js";
 import type { TuiState } from "../tui/state.js";
+import { executeAction } from "./tui.js";
 
 // Mock dependencies
 vi.mock("inquirer");
@@ -32,10 +32,8 @@ describe("executeAction", () => {
       isGitRepo: true,
       isGhAuthenticated: true,
       isAIProviderAvailable: true,
-      config: {
-        ai: { provider: "claude" },
-        // @ts-ignore - minimal config for test
-      } as any,
+      // @ts-expect-error - minimal config for test
+      config: { ai: { provider: "claude" } as any },
       hasConfig: true,
       hasProgress: false,
       branch: "feature-branch",
@@ -70,6 +68,7 @@ describe("executeAction", () => {
 
     // Mock AI invocation
     vi.mocked(aiProvider.invokeAIInteractive).mockResolvedValue({
+      // @ts-expect-error - minimal AI response for test
       result: Promise.resolve({} as any),
       provider: "claude",
     });
