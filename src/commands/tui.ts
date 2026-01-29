@@ -136,7 +136,7 @@ async function executeAction(
       return true;
     }
 
-    case "implement": {
+    case "run": {
       clearScreen();
       const hasCommits = state.commits.length > 0;
       const hasFeedback = state.hasActionableFeedback;
@@ -150,7 +150,7 @@ async function executeAction(
         msg = "Start AI agent to implement this ticket from scratch?";
       }
       if (!(await confirm(msg))) return true;
-      await handleImplement(state);
+      await handleRun(state);
       return false;
     }
 
@@ -305,7 +305,7 @@ async function generateCommitMessage(
   }
 }
 
-async function handleImplement(state: TuiState): Promise<void> {
+async function handleRun(state: TuiState): Promise<void> {
   if (!state.issue) {
     logger.error("No linked issue found");
     return;

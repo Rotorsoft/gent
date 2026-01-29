@@ -130,3 +130,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/display.ts, src/tui/actions.test.ts
 - Changes: Removed redundant Settings section rendering from the main branch view in display.ts. Updated actions.test.ts to explicitly assert all expected actions on main branch.
 - Decisions: Centralized settings rendering at the top of the dashboard for consistency across all branch types.
+
+[2026-01-29] #58 refactor: rename 'implement' action to 'run' with 'u' shortcut
+- Files: src/tui/actions.ts, src/commands/tui.ts, src/tui/actions.test.ts
+- Changes: Renamed the 'implement' TUI action to 'run' and updated its keyboard shortcut to 'u'. Updated command handlers and unit tests accordingly.
+- Decisions: Used 'u' for run as 'r' was taken by PR and 'c' by commit.

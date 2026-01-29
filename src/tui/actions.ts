@@ -38,7 +38,7 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   }
 
   if (state.issue && state.pr?.state !== "merged") {
-    actions.push({ id: "implement", label: "implement", shortcut: "i" });
+    actions.push({ id: "run", label: "run", shortcut: "u" });
   }
 
   if (state.pr && state.pr.state === "open") {
