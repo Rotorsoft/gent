@@ -221,6 +221,58 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("checkout-main");
   });
 
+  it("does not show implement when PR is merged", () => {
+    const actions = getAvailableActions(createBaseState({
+      isOnMain: false,
+      branch: "ro/feature-123-test",
+      issue: {
+        number: 123,
+        title: "Test",
+        body: "Desc",
+        labels: ["ai-completed"],
+        state: "open",
+        url: "https://github.com/test/repo/issues/123",
+      },
+      pr: {
+        number: 456,
+        title: "Test PR",
+        url: "https://github.com/test/repo/pull/456",
+        state: "merged",
+        reviewDecision: null,
+        isDraft: false,
+      },
+    }));
+    const ids = actions.map((a) => a.id);
+
+    expect(ids).not.toContain("implement");
+  });
+
+  it("shows implement when PR is open", () => {
+    const actions = getAvailableActions(createBaseState({
+      isOnMain: false,
+      branch: "ro/feature-123-test",
+      issue: {
+        number: 123,
+        title: "Test",
+        body: "Desc",
+        labels: ["ai-in-progress"],
+        state: "open",
+        url: "https://github.com/test/repo/issues/123",
+      },
+      pr: {
+        number: 456,
+        title: "Test PR",
+        url: "https://github.com/test/repo/pull/456",
+        state: "open",
+        reviewDecision: null,
+        isDraft: false,
+      },
+    }));
+    const ids = actions.map((a) => a.id);
+
+    expect(ids).toContain("implement");
+  });
+
   it("does not show implement without issue on feature branch", () => {
     const actions = getAvailableActions(createBaseState({
       isOnMain: false,

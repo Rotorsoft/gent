@@ -12,9 +12,6 @@ function termWidth(): number {
   return Math.min(process.stdout.columns || 80, 90);
 }
 
-function termHeight(): number {
-  return process.stdout.rows || 24;
-}
 
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
@@ -136,30 +133,6 @@ function formatCommandBar(actions: TuiAction[], w: number): string[] {
   return lines;
 }
 
-// ── Modal ───────────────────────────────────────────────────────
-
-export function renderModal(message: string): void {
-  const w = termWidth();
-  const h = termHeight();
-  const modalW = Math.min(w - 4, Math.max(30, visibleLen(message) + 8));
-  const padX = Math.max(0, Math.floor((w - modalW) / 2));
-  const padY = Math.max(0, Math.floor((h - 5) / 2));
-  const indent = " ".repeat(padX);
-  const inner = modalW - 4;
-  const textPad = Math.max(0, inner - visibleLen(message));
-
-  const lines = [
-    indent + chalk.dim("┌" + "─".repeat(modalW - 2) + "┐"),
-    indent + chalk.dim("│") + " ".repeat(modalW - 2) + chalk.dim("│"),
-    indent + chalk.dim("│") + " " + chalk.bold(message) + " ".repeat(textPad) + " " + chalk.dim("│"),
-    indent + chalk.dim("│") + " ".repeat(modalW - 2) + chalk.dim("│"),
-    indent + chalk.dim("└" + "─".repeat(modalW - 2) + "┘"),
-  ];
-
-  // Position modal vertically centered
-  for (let i = 0; i < padY; i++) console.log();
-  for (const line of lines) console.log(line);
-}
 
 /**
  * Render a framed panel for action output.
@@ -190,12 +163,12 @@ function renderSettings(state: TuiState, w: number): void {
 
 // ── Main render ─────────────────────────────────────────────────
 
-export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: string): void {
+export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: string, refreshing?: boolean): void {
   const w = termWidth();
   const descMax = w - 8;
   const version = getVersion();
 
-  const titleLabel = `gent v${version}`;
+  const titleLabel = refreshing ? `gent v${version}  ${chalk.yellow("Refreshing…")}` : `gent v${version}`;
   console.log(topRow(titleLabel, w));
 
   // ── Error states ──────────────────────────────────────────────
