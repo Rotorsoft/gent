@@ -51,6 +51,7 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     actions.push({ id: "checkout-main", label: "main", shortcut: "m" });
   }
 
+  actions.push({ id: "list", label: "list", shortcut: "l" });
   actions.push({ id: "switch-provider", label: "switch", shortcut: "s" });
   actions.push({ id: "quit", label: "quit", shortcut: "q" });
 
