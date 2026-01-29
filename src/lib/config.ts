@@ -3,6 +3,28 @@ import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import type { GentConfig, AIProvider } from "../types/index.js";
 
+// Module-level variable to hold runtime provider override (e.g. from TUI)
+let runtimeProvider: AIProvider | null = null;
+
+export function setRuntimeProvider(provider: AIProvider): void {
+  runtimeProvider = provider;
+}
+
+/**
+ * Helper to resolve the active provider based on precedence:
+ * 1. CLI options (explicit flag)
+ * 2. Runtime override (in-memory state)
+ * 3. Environment variable (GENT_AI_PROVIDER)
+ * 4. Configuration (file)
+ * 5. Default
+ */
+export function resolveProvider(
+  options: { provider?: AIProvider } | undefined,
+  config: GentConfig
+): AIProvider {
+  return options?.provider ?? config.ai.provider;
+}
+
 const DEFAULT_CONFIG: GentConfig = {
   version: 1,
   github: {
@@ -81,7 +103,9 @@ export function loadConfig(cwd: string = process.cwd()): GentConfig {
   }
 }
 
-export function loadAgentInstructions(cwd: string = process.cwd()): string | null {
+export function loadAgentInstructions(
+  cwd: string = process.cwd()
+): string | null {
   const agentPath = getAgentPath(cwd);
 
   if (!agentPath) {
@@ -109,6 +133,9 @@ function mergeConfig(
     | "gemini"
     | "codex"
     | undefined;
+
+  // Runtime override takes precedence over env var
+  const effectiveProvider = runtimeProvider ?? envProvider;
 
   return {
     version: user.version ?? defaults.version,
@@ -148,8 +175,8 @@ function mergeConfig(
     ai: {
       ...defaults.ai,
       ...user.ai,
-      // Environment variable takes precedence
-      ...(envProvider && { provider: envProvider }),
+      // Runtime/Env takes precedence
+      ...(effectiveProvider && { provider: effectiveProvider }),
     },
     video: {
       ...defaults.video,
@@ -159,7 +186,10 @@ function mergeConfig(
   };
 }
 
-export function updateConfigProvider(provider: AIProvider, cwd: string = process.cwd()): void {
+export function updateConfigProvider(
+  provider: AIProvider,
+  cwd: string = process.cwd()
+): void {
   const configPath = getConfigPath(cwd);
   if (!existsSync(configPath)) {
     writeFileSync(configPath, generateDefaultConfig(provider), "utf-8");
@@ -168,7 +198,7 @@ export function updateConfigProvider(provider: AIProvider, cwd: string = process
   const content = readFileSync(configPath, "utf-8");
   const updated = content.replace(
     /^(\s*provider:\s*)"[^"]*"/m,
-    `$1"${provider}"`,
+    `$1"${provider}"`
   );
   writeFileSync(configPath, updated, "utf-8");
 }

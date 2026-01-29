@@ -2,7 +2,11 @@ import inquirer from "inquirer";
 import chalk from "chalk";
 import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
-import { loadConfig, loadAgentInstructions } from "../lib/config.js";
+import {
+  loadConfig,
+  loadAgentInstructions,
+  resolveProvider,
+} from "../lib/config.js";
 import {
   buildTicketPrompt,
   parseTicketMeta,
@@ -39,7 +43,7 @@ export async function createCommand(
   const config = loadConfig();
 
   // Determine which provider to use
-  const provider = options.provider ?? config.ai.provider;
+  const provider = resolveProvider(options, config);
   const providerName = getProviderDisplayName(provider);
 
   // Validate prerequisites
@@ -54,7 +58,9 @@ export async function createCommand(
   }
 
   if (!aiOk) {
-    logger.error(`${providerName} CLI not found. Please install ${provider} CLI first.`);
+    logger.error(
+      `${providerName} CLI not found. Please install ${provider} CLI first.`
+    );
     return;
   }
 
@@ -66,16 +72,32 @@ export async function createCommand(
 
   while (true) {
     // Build prompt and invoke AI
-    const prompt = buildTicketPrompt(description, agentInstructions, additionalHints);
+    const prompt = buildTicketPrompt(
+      description,
+      agentInstructions,
+      additionalHints
+    );
 
     try {
       // Show visual indicator before AI output
-      console.log(chalk.dim(`┌─ Generating ticket with ${providerName}... ──────────────────────────┐`));
+      console.log(
+        chalk.dim(
+          `┌─ Generating ticket with ${providerName}... ──────────────────────────┐`
+        )
+      );
       logger.newline();
-      const result = await invokeAI({ prompt, streamOutput: true }, config, options.provider);
+      const result = await invokeAI(
+        { prompt, streamOutput: true },
+        config,
+        options.provider
+      );
       aiOutput = result.output;
       logger.newline();
-      console.log(chalk.dim("└────────────────────────────────────────────────────────────┘"));
+      console.log(
+        chalk.dim(
+          "└────────────────────────────────────────────────────────────┘"
+        )
+      );
       logger.newline();
     } catch (error) {
       logger.error(`${providerName} invocation failed: ${error}`);
@@ -85,7 +107,9 @@ export async function createCommand(
     // Parse metadata
     const meta = parseTicketMeta(aiOutput);
     if (!meta) {
-      logger.warning("Could not parse metadata from AI output. Using defaults.");
+      logger.warning(
+        "Could not parse metadata from AI output. Using defaults."
+      );
     }
 
     const finalMeta: TicketMeta = meta || {
@@ -96,7 +120,9 @@ export async function createCommand(
     };
 
     // Extract issue body (without META line) and append signature
-    const issueBody = extractIssueBody(aiOutput) + `\n\n---\n*Created with ${providerName} by [gent](https://github.com/Rotorsoft/gent)*`;
+    const issueBody =
+      extractIssueBody(aiOutput) +
+      `\n\n---\n*Created with ${providerName} by [gent](https://github.com/Rotorsoft/gent)*`;
 
     // Determine title: user override > AI-generated > fallback
     let title: string;

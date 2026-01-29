@@ -56,11 +56,7 @@ export async function hasUncommittedChanges(): Promise<boolean> {
 
 export async function getUnpushedCommits(): Promise<boolean> {
   try {
-    const { stdout } = await execa("git", [
-      "log",
-      "@{u}..HEAD",
-      "--oneline",
-    ]);
+    const { stdout } = await execa("git", ["log", "@{u}..HEAD", "--oneline"]);
     return stdout.trim().length > 0;
   } catch {
     // No upstream set
@@ -147,11 +143,7 @@ export async function getCommitsSinceBase(
 
 export async function getDiffSummary(base: string = "main"): Promise<string> {
   try {
-    const { stdout } = await execa("git", [
-      "diff",
-      `${base}...HEAD`,
-      "--stat",
-    ]);
+    const { stdout } = await execa("git", ["diff", `${base}...HEAD`, "--stat"]);
     return stdout.trim();
   } catch {
     return "";
@@ -174,7 +166,10 @@ export async function getLastCommitTimestamp(): Promise<string> {
 }
 
 export async function listLocalBranches(): Promise<string[]> {
-  const { stdout } = await execa("git", ["branch", "--format=%(refname:short)"]);
+  const { stdout } = await execa("git", [
+    "branch",
+    "--format=%(refname:short)",
+  ]);
   return stdout.trim().split("\n").filter(Boolean);
 }
 

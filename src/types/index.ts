@@ -223,7 +223,15 @@ export const DEFAULT_LABELS: Record<string, GitHubLabel[]> = {
       description: "Background workers",
     },
     { name: "area:shared", color: "C2E0C6", description: "Shared libraries" },
-    { name: "area:testing", color: "E99695", description: "Test infrastructure" },
-    { name: "area:infra", color: "BFD4F2", description: "Infrastructure/DevOps" },
+    {
+      name: "area:testing",
+      color: "E99695",
+      description: "Test infrastructure",
+    },
+    {
+      name: "area:infra",
+      color: "BFD4F2",
+      description: "Infrastructure/DevOps",
+    },
   ],
 };

@@ -6,15 +6,28 @@ vi.mock("../lib/config.js", () => ({
     version: 1,
     github: {
       labels: {
-        workflow: { ready: "ai-ready", in_progress: "ai-in-progress", completed: "ai-completed", blocked: "ai-blocked" },
+        workflow: {
+          ready: "ai-ready",
+          in_progress: "ai-in-progress",
+          completed: "ai-completed",
+          blocked: "ai-blocked",
+        },
         types: ["feature", "fix"],
         priorities: ["high", "medium", "low"],
         risks: ["low", "medium", "high"],
         areas: ["ui", "api"],
       },
     },
-    branch: { pattern: "{author}/{type}-{issue}-{slug}", author_source: "git", author_env_var: "GENT_AUTHOR" },
-    progress: { file: "progress.txt", archive_threshold: 500, archive_dir: ".gent/archive" },
+    branch: {
+      pattern: "{author}/{type}-{issue}-{slug}",
+      author_source: "git",
+      author_env_var: "GENT_AUTHOR",
+    },
+    progress: {
+      file: "progress.txt",
+      archive_threshold: 500,
+      archive_dir: ".gent/archive",
+    },
     ai: { provider: "claude", auto_fallback: false },
     video: { enabled: true, max_duration: 30, width: 1280, height: 720 },
     validation: ["npm run typecheck", "npm run lint", "npm run test"],
@@ -126,7 +139,10 @@ describe("aggregateState", () => {
     vi.mocked(git.isOnMainBranch).mockResolvedValue(false);
     vi.mocked(git.hasUncommittedChanges).mockResolvedValue(true);
     vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
-    vi.mocked(git.getCommitsSinceBase).mockResolvedValue(["feat: add TUI", "fix: typo"]);
+    vi.mocked(git.getCommitsSinceBase).mockResolvedValue([
+      "feat: add TUI",
+      "fix: typo",
+    ]);
     vi.mocked(git.getUnpushedCommits).mockResolvedValue(true);
     vi.mocked(branch.parseBranchName).mockReturnValue({
       name: "ro/feature-123-add-tui",
@@ -145,7 +161,9 @@ describe("aggregateState", () => {
       url: "https://github.com/test/repo/issues/123",
     });
     vi.mocked(github.getPrStatus).mockResolvedValue(null);
-    vi.mocked(playwright.getChangedFiles).mockResolvedValue(["src/tui/index.tsx"]);
+    vi.mocked(playwright.getChangedFiles).mockResolvedValue([
+      "src/tui/index.tsx",
+    ]);
     vi.mocked(playwright.hasUIChanges).mockReturnValue(true);
     vi.mocked(playwright.isPlaywrightAvailable).mockResolvedValue(true);
 
@@ -173,7 +191,9 @@ describe("aggregateState", () => {
     vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
     vi.mocked(git.getCommitsSinceBase).mockResolvedValue(["feat: add TUI"]);
     vi.mocked(git.getUnpushedCommits).mockResolvedValue(false);
-    vi.mocked(git.getLastCommitTimestamp).mockResolvedValue("2024-01-01T00:00:00Z");
+    vi.mocked(git.getLastCommitTimestamp).mockResolvedValue(
+      "2024-01-01T00:00:00Z"
+    );
     vi.mocked(branch.parseBranchName).mockReturnValue(null);
     vi.mocked(branch.extractIssueNumber).mockReturnValue(123);
     vi.mocked(github.getIssue).mockResolvedValue({
@@ -202,10 +222,17 @@ describe("aggregateState", () => {
     vi.mocked(playwright.isPlaywrightAvailable).mockResolvedValue(false);
 
     // Mock summarizeReviewFeedback to return actionable items
-    const { summarizeReviewFeedback } = await import("../lib/review-feedback.js");
+    const { summarizeReviewFeedback } =
+      await import("../lib/review-feedback.js");
     vi.mocked(summarizeReviewFeedback).mockReturnValue({
       summary: "1 actionable item",
-      items: [{ source: "comment" as const, body: "Please fix this", author: "reviewer" }],
+      items: [
+        {
+          source: "comment" as const,
+          body: "Please fix this",
+          author: "reviewer",
+        },
+      ],
     });
 
     const state = await aggregateState();

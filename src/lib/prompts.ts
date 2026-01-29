@@ -128,7 +128,7 @@ Only output the PR description, nothing else.`;
 export function buildCommitMessagePrompt(
   diff: string,
   issueNumber: number | null,
-  issueTitle: string | null,
+  issueTitle: string | null
 ): string {
   const issueContext = issueNumber
     ? `\nRelated Issue: #${issueNumber}${issueTitle ? ` - ${issueTitle}` : ""}\n`
@@ -168,7 +168,9 @@ export function parseTicketMeta(
 
 export function extractIssueBody(output: string): string {
   // Remove the META line from the output
-  let body = output.replace(/\n?META:type=\w+,priority=\w+,risk=\w+,area=\w+\s*$/, "").trim();
+  let body = output
+    .replace(/\n?META:type=\w+,priority=\w+,risk=\w+,area=\w+\s*$/, "")
+    .trim();
 
   // Strip the TITLE line if present
   body = body.replace(/^TITLE:\s*.+\n+/, "");
@@ -195,8 +197,10 @@ export function extractTitle(output: string): string | null {
   let title = match[1].trim();
 
   // Remove surrounding quotes if present
-  if ((title.startsWith('"') && title.endsWith('"')) ||
-      (title.startsWith("'") && title.endsWith("'"))) {
+  if (
+    (title.startsWith('"') && title.endsWith('"')) ||
+    (title.startsWith("'") && title.endsWith("'"))
+  ) {
     title = title.slice(1, -1);
   }
 

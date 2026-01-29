@@ -36,7 +36,8 @@ async function resolveAuthor(config: GentConfig): Promise<string> {
 
 export function parseBranchName(branchName: string): BranchInfo | null {
   // Pattern 1: author/type-issue-slug (e.g., ro/feature-123-add-login)
-  const pattern1 = /^([^/]+)\/(feature|fix|refactor|chore|docs|test)-(\d+)-(.+)$/;
+  const pattern1 =
+    /^([^/]+)\/(feature|fix|refactor|chore|docs|test)-(\d+)-(.+)$/;
   const match1 = branchName.match(pattern1);
   if (match1) {
     return {

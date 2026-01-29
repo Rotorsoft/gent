@@ -115,7 +115,8 @@ export async function checkForUpdates(
 
   // Use cached result if still valid
   if (cache && now - cache.checkedAt < checkIntervalMs) {
-    const updateAvailable = compareVersions(cache.latestVersion, currentVersion) > 0;
+    const updateAvailable =
+      compareVersions(cache.latestVersion, currentVersion) > 0;
     return {
       currentVersion,
       latestVersion: cache.latestVersion,
@@ -142,7 +143,9 @@ export async function checkForUpdates(
   return {
     currentVersion,
     latestVersion: cache?.latestVersion || null,
-    updateAvailable: cache ? compareVersions(cache.latestVersion, currentVersion) > 0 : false,
+    updateAvailable: cache
+      ? compareVersions(cache.latestVersion, currentVersion) > 0
+      : false,
     lastChecked: cache?.checkedAt || null,
   };
 }

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { getVersion, compareVersions, formatUpgradeNotification } from "./version.js";
+import {
+  getVersion,
+  compareVersions,
+  formatUpgradeNotification,
+} from "./version.js";
 
 describe("version", () => {
   describe("getVersion", () => {

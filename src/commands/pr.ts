@@ -2,14 +2,33 @@ import inquirer from "inquirer";
 import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
 import { loadConfig } from "../lib/config.js";
-import { getIssue, createPullRequest, getPrForBranch, assignIssue, getCurrentUser, updateIssueLabels } from "../lib/github.js";
+import {
+  getIssue,
+  createPullRequest,
+  getPrForBranch,
+  assignIssue,
+  getCurrentUser,
+  updateIssueLabels,
+} from "../lib/github.js";
 import { buildPrPrompt } from "../lib/prompts.js";
 import { invokeAI, getProviderDisplayName } from "../lib/ai-provider.js";
-import { getCurrentBranch, isOnMainBranch, getDefaultBranch, getCommitsSinceBase, getDiffSummary, getUnpushedCommits, pushBranch } from "../lib/git.js";
+import {
+  getCurrentBranch,
+  isOnMainBranch,
+  getDefaultBranch,
+  getCommitsSinceBase,
+  getDiffSummary,
+  getUnpushedCommits,
+  pushBranch,
+} from "../lib/git.js";
 import { extractIssueNumber } from "../lib/branch.js";
 import { getWorkflowLabels } from "../lib/labels.js";
 import { checkGhAuth, checkAIProvider } from "../utils/validators.js";
-import { isPlaywrightAvailable, hasUIChanges, getChangedFiles } from "../lib/playwright.js";
+import {
+  isPlaywrightAvailable,
+  hasUIChanges,
+  getChangedFiles,
+} from "../lib/playwright.js";
 import type { GitHubIssue, AIProvider } from "../types/index.js";
 
 export interface PrOptions {
@@ -40,7 +59,9 @@ export async function prCommand(options: PrOptions): Promise<void> {
   }
 
   if (!aiOk) {
-    logger.error(`${providerName} CLI not found. Please install ${provider} CLI first.`);
+    logger.error(
+      `${providerName} CLI not found. Please install ${provider} CLI first.`
+    );
     process.exit(1);
   }
 
@@ -53,7 +74,9 @@ export async function prCommand(options: PrOptions): Promise<void> {
   // Check for existing PR
   const existingPr = await getPrForBranch();
   if (existingPr) {
-    logger.warning(`A PR already exists for this branch: ${colors.url(existingPr.url)}`);
+    logger.warning(
+      `A PR already exists for this branch: ${colors.url(existingPr.url)}`
+    );
     return;
   }
 
@@ -91,7 +114,9 @@ export async function prCommand(options: PrOptions): Promise<void> {
   if (issueNumber) {
     try {
       issue = await getIssue(issueNumber);
-      logger.info(`Linked issue: ${colors.issue(`#${issueNumber}`)} - ${issue.title}`);
+      logger.info(
+        `Linked issue: ${colors.issue(`#${issueNumber}`)} - ${issue.title}`
+      );
     } catch {
       logger.warning(`Could not fetch issue #${issueNumber}`);
     }
@@ -128,7 +153,9 @@ export async function prCommand(options: PrOptions): Promise<void> {
         logger.warning("Playwright not available. Skipping video capture.");
         logger.dim("Install Playwright with: npm install -D playwright");
       } else {
-        logger.info("Playwright available - AI will capture demo video via MCP");
+        logger.info(
+          "Playwright available - AI will capture demo video via MCP"
+        );
         captureVideoInstructions = `
 
 IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
@@ -142,13 +169,20 @@ IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
   }
 
   // Generate PR description with AI
-  const prompt = buildPrPrompt(issue, commits, diffSummary) + captureVideoInstructions;
+  const prompt =
+    buildPrPrompt(issue, commits, diffSummary) + captureVideoInstructions;
 
   let prBody: string;
   try {
-    logger.info(`Generating PR description with ${colors.provider(providerName)}...`);
+    logger.info(
+      `Generating PR description with ${colors.provider(providerName)}...`
+    );
     logger.newline();
-    const result = await invokeAI({ prompt, streamOutput: true }, config, options.provider);
+    const result = await invokeAI(
+      { prompt, streamOutput: true },
+      config,
+      options.provider
+    );
     prBody = result.output;
     logger.newline();
   } catch (error) {
@@ -196,7 +230,9 @@ IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
         add: [workflowLabels.completed],
         remove: [workflowLabels.inProgress],
       });
-      logger.success(`Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.completed)}`);
+      logger.success(
+        `Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.completed)}`
+      );
     } catch {
       // Non-critical, ignore
     }

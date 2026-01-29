@@ -16,10 +16,9 @@ export interface AIProviderResult {
   rateLimited?: boolean;
 }
 
-
 async function invokeInternal(
   provider: AIProvider,
-  options: AIProviderOptions,
+  options: AIProviderOptions
 ): Promise<string> {
   switch (provider) {
     case "claude":
@@ -38,22 +37,27 @@ async function invokeInternal(
 export async function invokeAI(
   options: AIProviderOptions,
   config: GentConfig,
-  providerOverride?: AIProvider,
+  providerOverride?: AIProvider
 ): Promise<AIProviderResult> {
   const provider = providerOverride ?? config.ai.provider;
 
   try {
     const output = await invokeInternal(provider, options);
 
-
     return { output, provider };
   } catch (error) {
     // Check for rate limiting
     if (isRateLimitError(error, provider)) {
       // Try fallback if configured
-      if (config.ai.auto_fallback && config.ai.fallback_provider && !providerOverride) {
+      if (
+        config.ai.auto_fallback &&
+        config.ai.fallback_provider &&
+        !providerOverride
+      ) {
         const fallback = config.ai.fallback_provider;
-        logger.warning(`Rate limit reached on ${getProviderDisplayName(provider)}, switching to ${getProviderDisplayName(fallback)}...`);
+        logger.warning(
+          `Rate limit reached on ${getProviderDisplayName(provider)}, switching to ${getProviderDisplayName(fallback)}...`
+        );
 
         const output = await invokeInternal(fallback, options);
 
@@ -78,7 +82,7 @@ export async function invokeAI(
 export async function invokeAIInteractive(
   prompt: string,
   config: GentConfig,
-  providerOverride?: AIProvider,
+  providerOverride?: AIProvider
 ): Promise<{ result: ResultPromise; provider: AIProvider }> {
   const provider = providerOverride ?? config.ai.provider;
 
@@ -171,7 +175,11 @@ function isRateLimitError(error: unknown, provider: AIProvider): boolean {
   // Check for common rate limit patterns in error messages
   if ("message" in error && typeof error.message === "string") {
     const msg = error.message.toLowerCase();
-    if (msg.includes("rate limit") || msg.includes("quota exceeded") || msg.includes("too many requests")) {
+    if (
+      msg.includes("rate limit") ||
+      msg.includes("quota exceeded") ||
+      msg.includes("too many requests")
+    ) {
       return true;
     }
   }
@@ -182,7 +190,9 @@ function isRateLimitError(error: unknown, provider: AIProvider): boolean {
 /**
  * Internal Claude invocation
  */
-async function invokeClaudeInternal(options: AIProviderOptions): Promise<string> {
+async function invokeClaudeInternal(
+  options: AIProviderOptions
+): Promise<string> {
   const args = ["--print"];
 
   if (options.permissionMode) {
@@ -238,7 +248,9 @@ async function invokeClaudeInternal(options: AIProviderOptions): Promise<string>
 /**
  * Internal Gemini invocation
  */
-async function invokeGeminiInternal(options: AIProviderOptions): Promise<string> {
+async function invokeGeminiInternal(
+  options: AIProviderOptions
+): Promise<string> {
   // Gemini CLI uses different argument structure
   const args: string[] = [];
 
@@ -290,7 +302,9 @@ async function invokeGeminiInternal(options: AIProviderOptions): Promise<string>
 /**
  * Internal Codex invocation
  */
-async function invokeCodexInternal(options: AIProviderOptions): Promise<string> {
+async function invokeCodexInternal(
+  options: AIProviderOptions
+): Promise<string> {
   // Use non-interactive mode to avoid TTY requirements
   const args = ["exec", options.prompt];
 

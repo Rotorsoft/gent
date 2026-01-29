@@ -26,7 +26,7 @@ describe("github-assets", () => {
       const markdown = formatVideoMarkdown(url);
 
       expect(markdown).toContain(`<video src="${url}"`);
-      expect(markdown).toContain('controls');
+      expect(markdown).toContain("controls");
       expect(markdown).toContain('width="100%"');
     });
   });

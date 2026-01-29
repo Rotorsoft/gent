@@ -3,7 +3,11 @@ import { join } from "node:path";
 import inquirer from "inquirer";
 import { logger, colors } from "../utils/logger.js";
 import { checkGitRepo } from "../utils/validators.js";
-import { configExists, generateDefaultConfig, getConfigPath } from "../lib/config.js";
+import {
+  configExists,
+  generateDefaultConfig,
+  getConfigPath,
+} from "../lib/config.js";
 import { initializeProgress } from "../lib/progress.js";
 import { loadConfig } from "../lib/config.js";
 
@@ -123,11 +127,14 @@ export async function initCommand(options: { force?: boolean }): Promise<void> {
   logger.success(`Created ${colors.file(config.progress.file)}`);
 
   logger.newline();
-  logger.box("Setup Complete", `Next steps:
+  logger.box(
+    "Setup Complete",
+    `Next steps:
 1. Edit ${colors.file("AGENT.md")} with your project-specific instructions
 2. Edit ${colors.file(".gent.yml")} to customize settings
 3. Run ${colors.command("gent setup-labels")} to create GitHub labels
-4. Run ${colors.command("gent create <description>")} to create your first ticket`);
+4. Run ${colors.command("gent create <description>")} to create your first ticket`
+  );
 
   // Ask about setting up labels
   const { setupLabels } = await inquirer.prompt([

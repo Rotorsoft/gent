@@ -130,9 +130,7 @@ function formatChoice(choice: TicketChoice): string {
   const num = colors.issue(`#${choice.issueNumber}`);
   const cat = categoryLabel(choice.category);
   const title =
-    choice.title.length > 50
-      ? choice.title.slice(0, 50) + "..."
-      : choice.title;
+    choice.title.length > 50 ? choice.title.slice(0, 50) + "..." : choice.title;
   return `${num} ${cat} ${title}`;
 }
 
@@ -205,12 +203,7 @@ export async function listCommand(options: ListOptions): Promise<void> {
       return;
     }
 
-    await presentSelector(
-      choices,
-      currentBranch,
-      defaultBranch,
-      config
-    );
+    await presentSelector(choices, currentBranch, defaultBranch, config);
     return;
   }
 
@@ -353,15 +346,10 @@ async function presentSelector(
       });
       logger.success(`Switched to ${colors.branch(targetBranch)}`);
     } else if (await remoteBranchExists(targetBranch)) {
-      await withSpinner(
-        `Fetching ${targetBranch} from remote...`,
-        async () => {
-          await fetchAndCheckout(targetBranch);
-        }
-      );
-      logger.success(
-        `Fetched and switched to ${colors.branch(targetBranch)}`
-      );
+      await withSpinner(`Fetching ${targetBranch} from remote...`, async () => {
+        await fetchAndCheckout(targetBranch);
+      });
+      logger.success(`Fetched and switched to ${colors.branch(targetBranch)}`);
     } else {
       logger.warning(
         `Branch ${colors.branch(targetBranch)} not found locally or on remote.`
@@ -379,8 +367,7 @@ async function confirmDirty(): Promise<boolean> {
     {
       type: "confirm",
       name: "proceed",
-      message:
-        "Continue anyway? (changes will carry over to the new branch)",
+      message: "Continue anyway? (changes will carry over to the new branch)",
       default: false,
     },
   ]);
