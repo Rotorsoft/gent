@@ -191,7 +191,7 @@ describe("getAvailableActions", () => {
     expect(impl!.shortcut).toBe("u");
   });
 
-  it("shows video when UI changes detected and Playwright available", () => {
+  it("does not show video action", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -209,27 +209,6 @@ describe("getAvailableActions", () => {
       })
     );
     const ids = actions.map((a) => a.id);
-
-    expect(ids).toContain("video");
-  });
-
-  it("hides video when disabled in config", () => {
-    const state = createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      pr: {
-        number: 456,
-        title: "Test PR",
-        url: "https://github.com/test/repo/pull/456",
-        state: "open",
-        reviewDecision: null,
-        isDraft: false,
-      },
-      hasUIChanges: true,
-      isPlaywrightAvailable: true,
-    });
-    state.config.video.enabled = false;
-    const ids = getAvailableActions(state).map((a) => a.id);
 
     expect(ids).not.toContain("video");
   });

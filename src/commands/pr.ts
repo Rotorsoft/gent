@@ -247,6 +247,32 @@ IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
   if (options.draft) {
     logger.dim("Created as draft. Mark as ready for review when done.");
   }
+
+  // Suggest video creation if UI changes detected and Playwright available
+  if (shouldCaptureVideo) {
+    const changedFilesForHint =
+      captureVideoInstructions !== ""
+        ? [] // already checked above
+        : await getChangedFiles(baseBranch);
+    const uiChangesForHint =
+      captureVideoInstructions !== ""
+        ? true
+        : hasUIChanges(changedFilesForHint);
+
+    if (uiChangesForHint) {
+      const playwrightOk = await isPlaywrightAvailable();
+      if (playwrightOk) {
+        logger.bold("Next Steps");
+        logger.info(
+          "Run `claude` with Playwright MCP to record a demo video of the changes."
+        );
+        logger.info(
+          "Upload the result to GitHub Assets to keep the repo light."
+        );
+        logger.newline();
+      }
+    }
+  }
 }
 
 function generateFallbackBody(

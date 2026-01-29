@@ -13,7 +13,6 @@ import { createCommand } from "./create.js";
 import { prCommand } from "./pr.js";
 import { listCommand } from "./list.js";
 import {
-  buildVideoPrompt,
   buildCommitMessagePrompt,
   buildImplementationPrompt,
 } from "../lib/prompts.js";
@@ -151,14 +150,6 @@ export async function executeAction(
       }
       if (!(await confirm(msg))) return true;
       await handleRun(state);
-      await promptContinue();
-      return true;
-    }
-
-    case "video": {
-      clearScreen();
-      if (!(await confirm("Record video of UI changes?"))) return true;
-      await handleVideoCapture(state);
       await promptContinue();
       return true;
     }
@@ -357,7 +348,8 @@ async function handleRun(state: TuiState): Promise<void> {
   console.log();
 
   try {
-    await invokeAIInteractive(prompt, state.config);
+    const { result } = await invokeAIInteractive(prompt, state.config);
+    await result;
   } catch (error) {
     logger.error(`${providerName} session failed: ${error}`);
   }
@@ -412,36 +404,6 @@ async function handleCheckoutMain(): Promise<void> {
     spinner.succeed("Switched to main");
   } catch (error) {
     logger.error(`Checkout failed: ${error}`);
-  }
-}
-
-async function handleVideoCapture(state: TuiState): Promise<void> {
-  if (!state.issue) {
-    logger.error("No linked issue found");
-    return;
-  }
-
-  const providerName = getProviderDisplayName(state.config.ai.provider);
-
-  clearScreen();
-  renderActionPanel("Video Capture", [
-    `Recording: #${state.issue.number} ${state.issue.title}`,
-    `Provider: ${providerName}`,
-  ]);
-  console.log();
-
-  try {
-    const agentInstructions = loadAgentInstructions();
-    const videoPrompt = buildVideoPrompt(
-      state.issue.number,
-      state.issue.title,
-      state.config.video,
-      agentInstructions
-    );
-    await invokeAIInteractive(videoPrompt, state.config);
-    logger.success("Video capture completed");
-  } catch (error) {
-    logger.error(`Video capture failed: ${error}`);
   }
 }
 
