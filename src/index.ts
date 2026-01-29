@@ -70,7 +70,7 @@ program
 
 program
   .command("list")
-  .description("List GitHub issues by label/status")
+  .description("List and switch to GitHub issues")
   .option("-l, --label <label>", "Filter by label")
   .option("-s, --status <status>", "Filter by workflow status (ready, in-progress, completed, blocked, all)")
   .option("-n, --limit <number>", "Maximum number of issues to show", "20")
@@ -85,10 +85,9 @@ program
 program
   .command("run [issue-number]")
   .description("Run AI to implement a GitHub issue")
-  .option("-a, --auto", "Auto-select highest priority ai-ready issue")
   .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
   .action(async (issueNumber, options) => {
-    await runCommand(issueNumber, { auto: options.auto, provider: options.provider });
+    await runCommand(issueNumber, { provider: options.provider });
   });
 
 program

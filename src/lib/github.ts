@@ -358,3 +358,30 @@ export async function replyToReviewComment(
 export async function addPrComment(prNumber: number, body: string): Promise<void> {
   await execa("gh", ["pr", "comment", String(prNumber), "--body", body]);
 }
+
+export interface OpenPr {
+  number: number;
+  title: string;
+  headRefName: string;
+  url: string;
+}
+
+export async function listOpenPrs(limit: number = 30): Promise<OpenPr[]> {
+  const { stdout } = await execa("gh", [
+    "pr",
+    "list",
+    "--state",
+    "open",
+    "--json",
+    "number,title,headRefName,url",
+    "--limit",
+    String(limit),
+  ]);
+  const data = JSON.parse(stdout);
+  return data.map((d: { number: number; title: string; headRefName: string; url: string }) => ({
+    number: d.number,
+    title: d.title,
+    headRefName: d.headRefName,
+    url: d.url,
+  }));
+}

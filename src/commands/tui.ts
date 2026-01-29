@@ -6,7 +6,6 @@ import { renderDashboard, renderModal, renderActionPanel, clearScreen } from "..
 import { logger } from "../utils/logger.js";
 import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
-import { runCommand } from "./run.js";
 import { prCommand } from "./pr.js";
 import { listCommand } from "./list.js";
 import { buildVideoPrompt, buildCommitMessagePrompt, buildImplementationPrompt } from "../lib/prompts.js";
@@ -71,22 +70,15 @@ async function executeAction(actionId: string, state: TuiState, providerSetter: 
     case "quit":
       return false;
 
-    case "list":
+    case "list": {
       clearScreen();
-      await listCommand({ status: "ready", limit: 20 });
+      try {
+        await listCommand({});
+      } catch (error) {
+        logger.error(`List failed: ${error}`);
+      }
       await promptContinue();
       return true;
-
-    case "run-auto": {
-      clearScreen();
-      if (!await confirm("Start AI agent to implement next ticket?")) return true;
-      try {
-        await runCommand(undefined, { auto: true });
-      } catch (error) {
-        logger.error(`Run failed: ${error}`);
-        await promptContinue();
-      }
-      return false;
     }
 
     case "create": {

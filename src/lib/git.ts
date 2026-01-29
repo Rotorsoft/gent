@@ -172,3 +172,22 @@ export async function getLastCommitTimestamp(): Promise<string> {
   const { stdout } = await execa("git", ["log", "-1", "--format=%cI"]);
   return stdout.trim();
 }
+
+export async function listLocalBranches(): Promise<string[]> {
+  const { stdout } = await execa("git", ["branch", "--format=%(refname:short)"]);
+  return stdout.trim().split("\n").filter(Boolean);
+}
+
+export async function remoteBranchExists(name: string): Promise<boolean> {
+  try {
+    await execa("git", ["ls-remote", "--exit-code", "--heads", "origin", name]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchAndCheckout(name: string): Promise<void> {
+  await execa("git", ["fetch", "origin", `${name}:${name}`]);
+  await execa("git", ["checkout", name]);
+}

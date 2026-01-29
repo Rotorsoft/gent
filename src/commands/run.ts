@@ -2,18 +2,17 @@ import inquirer from "inquirer";
 import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
 import { loadConfig, loadAgentInstructions } from "../lib/config.js";
-import { getIssue, listIssues, updateIssueLabels, addIssueComment } from "../lib/github.js";
+import { getIssue, updateIssueLabels, addIssueComment } from "../lib/github.js";
 import { buildImplementationPrompt } from "../lib/prompts.js";
 import { invokeAIInteractive, getProviderDisplayName } from "../lib/ai-provider.js";
 import { getCurrentBranch, isOnMainBranch, createBranch, branchExists, checkoutBranch, hasUncommittedChanges, getCurrentCommitSha, hasNewCommits } from "../lib/git.js";
 import { generateBranchName } from "../lib/branch.js";
-import { getWorkflowLabels, extractTypeFromLabels, sortByPriority } from "../lib/labels.js";
+import { getWorkflowLabels, extractTypeFromLabels } from "../lib/labels.js";
 import { readProgress } from "../lib/progress.js";
 import { checkGhAuth, checkAIProvider, isValidIssueNumber } from "../utils/validators.js";
 import type { GitHubIssue, AIProvider } from "../types/index.js";
 
 export interface RunOptions {
-  auto?: boolean;
   provider?: AIProvider;
 }
 
@@ -69,23 +68,14 @@ export async function runCommand(
   // Get issue number
   let issueNumber: number;
 
-  if (options.auto) {
-    // Auto-select highest priority ai-ready issue
-    const autoIssue = await autoSelectIssue(workflowLabels.ready);
-    if (!autoIssue) {
-      logger.error("No ai-ready issues found.");
-      return;
-    }
-    issueNumber = autoIssue.number;
-    logger.info(`Auto-selected: ${colors.issue(`#${issueNumber}`)} - ${autoIssue.title}`);
-  } else if (issueNumberArg) {
+  if (issueNumberArg) {
     if (!isValidIssueNumber(issueNumberArg)) {
       logger.error("Invalid issue number.");
       return;
     }
     issueNumber = parseInt(issueNumberArg, 10);
   } else {
-    logger.error("Please provide an issue number or use --auto");
+    logger.error("Please provide an issue number. Use 'gent switch' to browse tickets.");
     return;
   }
 
@@ -310,32 +300,3 @@ Labels: ${issue.labels.join(", ")}`);
 4. Create PR: ${colors.command("gent pr")}`);
 }
 
-async function autoSelectIssue(readyLabel: string): Promise<GitHubIssue | null> {
-  // Try critical first
-  let issues = await listIssues({
-    labels: [readyLabel, "priority:critical"],
-    state: "open",
-    limit: 1,
-  });
-  if (issues.length > 0) return issues[0];
-
-  // Try high
-  issues = await listIssues({
-    labels: [readyLabel, "priority:high"],
-    state: "open",
-    limit: 1,
-  });
-  if (issues.length > 0) return issues[0];
-
-  // Get any ai-ready and sort
-  issues = await listIssues({
-    labels: [readyLabel],
-    state: "open",
-    limit: 10,
-  });
-
-  if (issues.length === 0) return null;
-
-  sortByPriority(issues);
-  return issues[0];
-}

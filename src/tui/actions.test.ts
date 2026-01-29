@@ -65,7 +65,6 @@ describe("getAvailableActions", () => {
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("create");
-    expect(ids).toContain("run-auto");
     expect(ids).toContain("list");
     expect(ids).toContain("quit");
 
