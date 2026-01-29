@@ -1,3 +1,10 @@
+## [1.13.3](https://github.com/rotorsoft/gent/compare/v1.13.2...v1.13.3) (2026-01-29)
+
+
+### Bug Fixes
+
+* remove duplicate settings section in TUI on main branch ([aaaf3bc](https://github.com/rotorsoft/gent/commit/aaaf3bc76f73e16d86a600918f552f4a24fe2956)), closes [#56](https://github.com/rotorsoft/gent/issues/56)
+
 ## [1.13.2](https://github.com/rotorsoft/gent/compare/v1.13.1...v1.13.2) (2026-01-29)
 
 
