@@ -1,8 +1,8 @@
 import chalk from "chalk";
-import type { TuiState } from "./state.js";
-import type { TuiAction } from "./actions.js";
 import { getProviderDisplayName } from "../lib/ai-provider.js";
 import { getVersion } from "../lib/version.js";
+import type { TuiAction } from "./actions.js";
+import type { TuiState } from "./state.js";
 
 // eslint-disable-next-line no-control-regex
 const stripAnsi = (str: string) => str.replace(/\x1b\[[0-9;]*m/g, "");
@@ -65,11 +65,11 @@ function row(text: string, w: number): string {
 
 function workflowBadge(status: string): string {
   switch (status) {
-    case "ready":       return chalk.bgGreen.black(" READY ");
+    case "ready": return chalk.bgGreen.black(" READY ");
     case "in-progress": return chalk.bgYellow.black(" IN PROGRESS ");
-    case "completed":   return chalk.bgBlue.white(" COMPLETED ");
-    case "blocked":     return chalk.bgRed.white(" BLOCKED ");
-    default:            return "";
+    case "completed": return chalk.bgBlue.white(" COMPLETED ");
+    case "blocked": return chalk.bgRed.white(" BLOCKED ");
+    default: return "";
   }
 }
 
@@ -82,10 +82,10 @@ function prBadge(state: "open" | "closed" | "merged", draft: boolean): string {
 function reviewBadge(decision: string | null): string {
   if (!decision) return "";
   switch (decision) {
-    case "APPROVED":           return "  " + chalk.green("Approved");
-    case "CHANGES_REQUESTED":  return "  " + chalk.red("Changes requested");
-    case "REVIEW_REQUIRED":    return "  " + chalk.yellow("Review pending");
-    default:                   return "";
+    case "APPROVED": return "  " + chalk.green("Approved");
+    case "CHANGES_REQUESTED": return "  " + chalk.red("Changes requested");
+    case "REVIEW_REQUIRED": return "  " + chalk.yellow("Review pending");
+    default: return "";
   }
 }
 
@@ -170,6 +170,7 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
 
   const titleLabel = `gent v${version}`;
   console.log(topRow(titleLabel, w));
+  renderSettings(state, w);
 
   // ── Error states ──────────────────────────────────────────────
   if (!state.isGitRepo) {
@@ -286,10 +287,6 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
   } else {
     console.log(row(chalk.dim("No commits"), w));
   }
-
-  // Settings
-  section("Settings");
-  renderSettings(state, w);
 
   // Hint
   if (hint) {
