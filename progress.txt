@@ -116,7 +116,7 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Changes: Replaced process.exit calls with return in create/run commands to prevent TUI termination. Renamed fix action to implement (shortcut i) for context-aware implementation. Added renderActionPanel for framed output. Included review feedback context in implementation prompts. Added error handling around TUI command calls.
 - Decisions: Kept command functions reusable by replacing process.exit with return. Action panel shows session context before handing off to AI provider.
 
-[2026-01-28] #51 feat: replace "run next" with interactive ticket selector for branch switching
-- Files: src/commands/switch.ts, src/commands/switch.test.ts, src/commands/run.ts, src/commands/tui.ts, src/commands/list.ts, src/tui/actions.ts, src/tui/actions.test.ts, src/index.ts, src/lib/git.ts, src/lib/github.ts
-- Changes: Added `gent switch` command with interactive ticket selector grouped by status (in progress, open PRs, ready). Removed `--auto` flag and `autoSelectIssue` from run command. Updated TUI dashboard to use switch action (shortcut w). Added git helpers for listing branches and fetching remote branches. Added `listOpenPrs` to github.ts.
-- Decisions: Used inquirer list prompt with separators for category grouping. Branch resolution scans local branches via parseBranchName, falls back to remote, offers creation if none found. Dirty working tree shows warning but allows proceeding.
+[2026-01-28] #51 feat: replace "run next" with interactive ticket selector in list command
+- Files: src/commands/list.ts, src/commands/list.test.ts, src/commands/run.ts, src/commands/tui.ts, src/tui/actions.ts, src/tui/actions.test.ts, src/index.ts, src/lib/git.ts, src/lib/github.ts
+- Changes: Consolidated `switch` and `list` commands into a single interactive `gent list` command. Displays tickets grouped by status (in progress, open PRs, ready) with branch switching on selection. Removed `--auto` flag and `autoSelectIssue` from run command. Removed separate `switch` command. TUI uses unified list action (shortcut l).
+- Decisions: Single command handles both listing and switching. Branch resolution scans local branches via parseBranchName, falls back to remote, offers creation if none found. Dirty working tree warning deferred until after selection.

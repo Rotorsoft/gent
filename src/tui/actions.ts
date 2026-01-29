@@ -17,7 +17,6 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   // On main branch
   if (state.isOnMain) {
     actions.push({ id: "create", label: "new", shortcut: "n" });
-    actions.push({ id: "switch", label: "switch", shortcut: "w" });
     actions.push({ id: "list", label: "list", shortcut: "l" });
     actions.push({ id: "switch-provider", label: "switch", shortcut: "s" });
     actions.push({ id: "quit", label: "quit", shortcut: "q" });

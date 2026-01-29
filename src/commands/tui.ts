@@ -8,7 +8,6 @@ import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
 import { prCommand } from "./pr.js";
 import { listCommand } from "./list.js";
-import { switchCommand } from "./switch.js";
 import { buildVideoPrompt, buildCommitMessagePrompt, buildImplementationPrompt } from "../lib/prompts.js";
 import { invokeAI, invokeAIInteractive, getProviderDisplayName, getProviderEmail } from "../lib/ai-provider.js";
 import { loadAgentInstructions } from "../lib/config.js";
@@ -71,18 +70,12 @@ async function executeAction(actionId: string, state: TuiState, providerSetter: 
     case "quit":
       return false;
 
-    case "list":
-      clearScreen();
-      await listCommand({ status: "ready", limit: 20 });
-      await promptContinue();
-      return true;
-
-    case "switch": {
+    case "list": {
       clearScreen();
       try {
-        await switchCommand();
+        await listCommand({});
       } catch (error) {
-        logger.error(`Switch failed: ${error}`);
+        logger.error(`List failed: ${error}`);
       }
       await promptContinue();
       return true;

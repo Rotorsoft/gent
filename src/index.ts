@@ -4,7 +4,6 @@ import { setupLabelsCommand } from "./commands/setup-labels.js";
 import { createCommand } from "./commands/create.js";
 import { listCommand } from "./commands/list.js";
 import { runCommand } from "./commands/run.js";
-import { switchCommand } from "./commands/switch.js";
 import { prCommand } from "./commands/pr.js";
 import { fixCommand } from "./commands/fix.js";
 import { statusCommand } from "./commands/status.js";
@@ -71,7 +70,7 @@ program
 
 program
   .command("list")
-  .description("List GitHub issues by label/status")
+  .description("List and switch to GitHub issues")
   .option("-l, --label <label>", "Filter by label")
   .option("-s, --status <status>", "Filter by workflow status (ready, in-progress, completed, blocked, all)")
   .option("-n, --limit <number>", "Maximum number of issues to show", "20")
@@ -89,13 +88,6 @@ program
   .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
   .action(async (issueNumber, options) => {
     await runCommand(issueNumber, { provider: options.provider });
-  });
-
-program
-  .command("switch")
-  .description("Interactive ticket selector to switch branches")
-  .action(async () => {
-    await switchCommand();
   });
 
 program

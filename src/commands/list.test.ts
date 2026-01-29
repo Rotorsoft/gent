@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findBranchForIssue, buildTicketChoices } from "./switch.js";
+import { findBranchForIssue, buildTicketChoices } from "./list.js";
 import type { GitHubIssue } from "../types/index.js";
 import type { OpenPr } from "../lib/github.js";
 
