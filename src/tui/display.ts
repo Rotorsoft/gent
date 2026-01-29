@@ -168,7 +168,7 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
   const descMax = w - 8;
   const version = getVersion();
 
-  const titleLabel = refreshing ? `gent v${version}  ${chalk.yellow("Refreshing…")}` : `gent v${version}`;
+  const titleLabel = `gent v${version}`;
   console.log(topRow(titleLabel, w));
 
   // ── Error states ──────────────────────────────────────────────
@@ -198,8 +198,12 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
       console.log(row(chalk.yellow(hint), w));
     }
     console.log(divRow(w));
-    for (const line of formatCommandBar(actions, w)) {
-      console.log(row(line, w));
+    if (refreshing) {
+      console.log(row(chalk.yellow("Refreshing…"), w));
+    } else {
+      for (const line of formatCommandBar(actions, w)) {
+        console.log(row(line, w));
+      }
     }
     console.log(botRow(w));
     console.log();
@@ -295,8 +299,12 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
 
   // Command bar (inside the frame)
   console.log(divRow(w));
-  for (const line of formatCommandBar(actions, w)) {
-    console.log(row(line, w));
+  if (refreshing) {
+    console.log(row(chalk.yellow("Refreshing…"), w));
+  } else {
+    for (const line of formatCommandBar(actions, w)) {
+      console.log(row(line, w));
+    }
   }
   console.log(botRow(w));
 }
