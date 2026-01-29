@@ -125,3 +125,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/actions.ts, src/tui/actions.test.ts, src/tui/display.ts, src/commands/tui.ts
 - Changes: Added PR merged state check to hide implement action. Replaced clear-screen modal refresh with inline "Refreshing…" label in dashboard title bar, re-rendering last state while loading new data.
 - Decisions: First load still uses modal since no previous state exists. Refreshing indicator shown in title row to avoid layout changes.
+
+[2026-01-29] #56 fix: remove duplicate settings section in TUI on main branch
+- Files: src/tui/display.ts, src/tui/actions.test.ts
+- Changes: Removed redundant Settings section rendering from the main branch view in display.ts. Updated actions.test.ts to explicitly assert all expected actions on main branch.
+- Decisions: Centralized settings rendering at the top of the dashboard for consistency across all branch types.

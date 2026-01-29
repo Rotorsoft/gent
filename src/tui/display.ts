@@ -229,8 +229,6 @@ export function renderDashboard(
     if (state.hasUncommittedChanges) {
       console.log(row(chalk.yellow("● uncommitted changes"), w));
     }
-    console.log(midRow("Settings", w));
-    renderSettings(state, w);
     if (hint) {
       console.log(midRow("Hint", w));
       console.log(row(chalk.yellow(hint), w));
