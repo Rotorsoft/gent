@@ -3,6 +3,28 @@ import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import type { GentConfig, AIProvider } from "../types/index.js";
 
+// Module-level variable to hold runtime provider override (e.g. from TUI)
+let runtimeProvider: AIProvider | null = null;
+
+export function setRuntimeProvider(provider: AIProvider): void {
+  runtimeProvider = provider;
+}
+
+/**
+ * Helper to resolve the active provider based on precedence:
+ * 1. CLI options (explicit flag)
+ * 2. Runtime override (in-memory state)
+ * 3. Environment variable (GENT_AI_PROVIDER)
+ * 4. Configuration (file)
+ * 5. Default
+ */
+export function resolveProvider(
+  options: { provider?: AIProvider } | undefined,
+  config: GentConfig
+): AIProvider {
+  return options?.provider ?? config.ai.provider;
+}
+
 const DEFAULT_CONFIG: GentConfig = {
   version: 1,
   github: {
@@ -110,6 +132,9 @@ function mergeConfig(
     | "codex"
     | undefined;
 
+  // Runtime override takes precedence over env var
+  const effectiveProvider = runtimeProvider ?? envProvider;
+
   return {
     version: user.version ?? defaults.version,
     github: {
@@ -148,8 +173,8 @@ function mergeConfig(
     ai: {
       ...defaults.ai,
       ...user.ai,
-      // Environment variable takes precedence
-      ...(envProvider && { provider: envProvider }),
+      // Runtime/Env takes precedence
+      ...(effectiveProvider && { provider: effectiveProvider }),
     },
     video: {
       ...defaults.video,

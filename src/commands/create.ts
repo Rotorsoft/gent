@@ -2,7 +2,7 @@ import inquirer from "inquirer";
 import chalk from "chalk";
 import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
-import { loadConfig, loadAgentInstructions } from "../lib/config.js";
+import { loadConfig, loadAgentInstructions, resolveProvider } from "../lib/config.js";
 import {
   buildTicketPrompt,
   parseTicketMeta,
@@ -39,7 +39,7 @@ export async function createCommand(
   const config = loadConfig();
 
   // Determine which provider to use
-  const provider = options.provider ?? config.ai.provider;
+  const provider = resolveProvider(options, config);
   const providerName = getProviderDisplayName(provider);
 
   // Validate prerequisites
