@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/rotorsoft/gent/compare/v1.13.4...v1.14.0) (2026-01-29)
+
+
+### Features
+
+* remove video command from TUI and suggest video after PR creation ([8e4a0b0](https://github.com/rotorsoft/gent/commit/8e4a0b08991d0e188e08eb49ebde6af1f8cbaa87)), closes [#62](https://github.com/rotorsoft/gent/issues/62)
+
 ## [1.13.4](https://github.com/rotorsoft/gent/compare/v1.13.3...v1.13.4) (2026-01-29)
 
 
