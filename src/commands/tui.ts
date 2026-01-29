@@ -75,7 +75,7 @@ async function waitForKey(validKeys: string[]): Promise<string> {
   });
 }
 
-async function executeAction(
+export async function executeAction(
   actionId: string,
   state: TuiState
 ): Promise<boolean> {
@@ -151,7 +151,8 @@ async function executeAction(
       }
       if (!(await confirm(msg))) return true;
       await handleRun(state);
-      return false;
+      await promptContinue();
+      return true;
     }
 
     case "video": {
