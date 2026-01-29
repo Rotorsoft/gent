@@ -134,9 +134,15 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
     case "implement": {
       clearScreen();
       const hasCommits = state.commits.length > 0;
-      const msg = hasCommits
-        ? "Start AI agent to continue implementation from existing commits?"
-        : "Start AI agent to implement this ticket from scratch?";
+      const hasFeedback = state.hasActionableFeedback;
+      let msg: string;
+      if (hasFeedback && hasCommits) {
+        msg = "Start AI agent to address review feedback?";
+      } else if (hasCommits) {
+        msg = "Start AI agent to continue implementation from existing commits?";
+      } else {
+        msg = "Start AI agent to implement this ticket from scratch?";
+      }
       if (!await confirm(msg)) return true;
       await handleImplement(state);
       return false;

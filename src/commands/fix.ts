@@ -106,7 +106,7 @@ export async function fixCommand(options: FixOptions): Promise<void> {
 
   const agentInstructions = loadAgentInstructions();
   const progressContent = readProgress(config);
-  const prompt = buildImplementationPrompt(issue, agentInstructions, progressContent, config, summary);
+  const prompt = buildImplementationPrompt(issue, agentInstructions, progressContent, config, `## Review Feedback\n${summary}`);
 
   logger.newline();
   logger.info(`Starting ${colors.provider(providerName)} fix session...`);

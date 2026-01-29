@@ -101,17 +101,31 @@ describe("buildImplementationPrompt", () => {
     expect(prompt).toContain("npm run typecheck");
   });
 
-  it("should include review feedback when provided", () => {
+  it("should include extra context when provided", () => {
     const config = createTestConfig("claude");
     const prompt = buildImplementationPrompt(
       mockIssue,
       null,
       null,
       config,
-      "- [Review] @alice: Please update the logic."
+      "## Review Feedback\n- [Review] @alice: Please update the logic."
     );
     expect(prompt).toContain("## Review Feedback");
     expect(prompt).toContain("@alice");
+  });
+
+  it("should include multiple context sections", () => {
+    const config = createTestConfig("claude");
+    const prompt = buildImplementationPrompt(
+      mockIssue,
+      null,
+      null,
+      config,
+      "## Current Progress\n- feat: initial work\n\n## Review Feedback\n- Fix the tests"
+    );
+    expect(prompt).toContain("## Current Progress");
+    expect(prompt).toContain("## Review Feedback");
+    expect(prompt).toContain("Fix the tests");
   });
 });
 
