@@ -50,12 +50,12 @@ export async function createCommand(
 
   if (!ghAuth) {
     logger.error("Not authenticated with GitHub. Run 'gh auth login' first.");
-    process.exit(1);
+    return;
   }
 
   if (!aiOk) {
     logger.error(`${providerName} CLI not found. Please install ${provider} CLI first.`);
-    process.exit(1);
+    return;
   }
 
   const agentInstructions = loadAgentInstructions();

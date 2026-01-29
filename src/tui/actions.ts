@@ -30,7 +30,7 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     actions.push({ id: "commit", label: "commit", shortcut: "c" });
   }
 
-  if (state.hasUnpushedCommits) {
+  if (state.hasUnpushedCommits && state.commits.length > 0) {
     actions.push({ id: "push", label: "Push", shortcut: "P" });
   }
 
@@ -38,11 +38,11 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     actions.push({ id: "pr", label: "Create pr", shortcut: "C" });
   }
 
-  if (state.pr && state.pr.state === "open") {
-    if (state.hasActionableFeedback) {
-      actions.push({ id: "fix", label: "fix feedback", shortcut: "f" });
-    }
+  if (state.issue) {
+    actions.push({ id: "implement", label: "implement", shortcut: "i" });
+  }
 
+  if (state.pr && state.pr.state === "open") {
     if (state.hasUIChanges && state.isPlaywrightAvailable && state.config.video.enabled) {
       actions.push({ id: "video", label: "video", shortcut: "v" });
     }

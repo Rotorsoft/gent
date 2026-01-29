@@ -126,24 +126,41 @@ describe("getAvailableActions", () => {
     expect(pr!.shortcut).toBe("C");
   });
 
-  it("shows fix feedback when PR has actionable feedback", () => {
+  it("shows implement when issue exists on feature branch", () => {
     const actions = getAvailableActions(createBaseState({
       isOnMain: false,
       branch: "ro/feature-123-test",
-      pr: {
-        number: 456,
-        title: "Test PR",
-        url: "https://github.com/test/repo/pull/456",
+      issue: {
+        number: 123,
+        title: "Test",
+        body: "Desc",
+        labels: ["ai-in-progress"],
         state: "open",
-        reviewDecision: "CHANGES_REQUESTED",
-        isDraft: false,
+        url: "https://github.com/test/repo/issues/123",
       },
-      hasActionableFeedback: true,
-      reviewFeedback: [{ source: "comment", body: "Fix this", actionable: true } as never],
     }));
     const ids = actions.map((a) => a.id);
 
-    expect(ids).toContain("fix");
+    expect(ids).toContain("implement");
+  });
+
+  it("uses i shortcut for implement action", () => {
+    const actions = getAvailableActions(createBaseState({
+      isOnMain: false,
+      branch: "ro/feature-123-test",
+      issue: {
+        number: 123,
+        title: "Test",
+        body: "Desc",
+        labels: ["ai-in-progress"],
+        state: "open",
+        url: "https://github.com/test/repo/issues/123",
+      },
+    }));
+    const impl = actions.find((a) => a.id === "implement");
+
+    expect(impl).toBeDefined();
+    expect(impl!.shortcut).toBe("i");
   });
 
   it("shows video when UI changes detected and Playwright available", () => {
@@ -205,23 +222,27 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("checkout-main");
   });
 
-  it("does not show run on feature branch without actionable feedback", () => {
+  it("does not show implement without issue on feature branch", () => {
     const actions = getAvailableActions(createBaseState({
       isOnMain: false,
       branch: "ro/feature-123-test",
-      issue: {
-        number: 123,
-        title: "Test",
-        body: "Desc",
-        labels: ["ai-in-progress"],
-        state: "open",
-        url: "https://github.com/test/repo/issues/123",
-      },
-      workflowStatus: "in-progress",
+      issue: null,
     }));
     const ids = actions.map((a) => a.id);
 
-    expect(ids).not.toContain("run");
+    expect(ids).not.toContain("implement");
+  });
+
+  it("does not show push without commits even when unpushed flag is set", () => {
+    const actions = getAvailableActions(createBaseState({
+      isOnMain: false,
+      branch: "ro/feature-123-test",
+      hasUnpushedCommits: true,
+      commits: [],
+    }));
+    const ids = actions.map((a) => a.id);
+
+    expect(ids).not.toContain("push");
   });
 
   it("always includes quit on feature branch", () => {

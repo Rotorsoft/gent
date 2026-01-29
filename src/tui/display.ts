@@ -161,6 +161,20 @@ export function renderModal(message: string): void {
   for (const line of lines) console.log(line);
 }
 
+/**
+ * Render a framed panel for action output.
+ * Shows a titled box with multiline content, used for command results
+ * and AI interaction status within the TUI.
+ */
+export function renderActionPanel(title: string, content: string[]): void {
+  const w = termWidth();
+  console.log(topRow(title, w));
+  for (const line of content) {
+    console.log(row(line, w));
+  }
+  console.log(botRow(w));
+}
+
 // ── Settings ────────────────────────────────────────────────────
 
 function renderSettings(state: TuiState, w: number): void {

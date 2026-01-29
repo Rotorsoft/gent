@@ -38,12 +38,12 @@ export async function runCommand(
 
   if (!ghAuth) {
     logger.error("Not authenticated with GitHub. Run 'gh auth login' first.");
-    process.exit(1);
+    return;
   }
 
   if (!aiOk) {
     logger.error(`${providerName} CLI not found. Please install ${provider} CLI first.`);
-    process.exit(1);
+    return;
   }
 
   // Check for uncommitted changes
@@ -60,7 +60,7 @@ export async function runCommand(
     ]);
     if (!proceed) {
       logger.info("Aborting. Please commit or stash your changes first.");
-      process.exit(0);
+      return;
     }
   }
 
@@ -74,19 +74,19 @@ export async function runCommand(
     const autoIssue = await autoSelectIssue(workflowLabels.ready);
     if (!autoIssue) {
       logger.error("No ai-ready issues found.");
-      process.exit(1);
+      return;
     }
     issueNumber = autoIssue.number;
     logger.info(`Auto-selected: ${colors.issue(`#${issueNumber}`)} - ${autoIssue.title}`);
   } else if (issueNumberArg) {
     if (!isValidIssueNumber(issueNumberArg)) {
       logger.error("Invalid issue number.");
-      process.exit(1);
+      return;
     }
     issueNumber = parseInt(issueNumberArg, 10);
   } else {
     logger.error("Please provide an issue number or use --auto");
-    process.exit(1);
+    return;
   }
 
   // Fetch issue details

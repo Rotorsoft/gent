@@ -2,17 +2,17 @@ import inquirer from "inquirer";
 import { execa } from "execa";
 import { aggregateState, type TuiState } from "../tui/state.js";
 import { getAvailableActions } from "../tui/actions.js";
-import { renderDashboard, renderModal, clearScreen } from "../tui/display.js";
+import { renderDashboard, renderModal, renderActionPanel, clearScreen } from "../tui/display.js";
 import { logger } from "../utils/logger.js";
 import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
 import { runCommand } from "./run.js";
 import { prCommand } from "./pr.js";
-import { fixCommand } from "./fix.js";
 import { listCommand } from "./list.js";
-import { buildVideoPrompt, buildCommitMessagePrompt } from "../lib/prompts.js";
+import { buildVideoPrompt, buildCommitMessagePrompt, buildImplementationPrompt } from "../lib/prompts.js";
 import { invokeAI, invokeAIInteractive, getProviderDisplayName, getProviderEmail } from "../lib/ai-provider.js";
-import { loadAgentInstructions, updateConfigProvider } from "../lib/config.js";
+import { loadAgentInstructions } from "../lib/config.js";
+import { readProgress } from "../lib/progress.js";
 import type { AIProvider } from "../types/index.js";
 
 const CANCEL = Symbol("cancel");
@@ -66,7 +66,7 @@ async function waitForKey(validKeys: string[]): Promise<string> {
   });
 }
 
-async function executeAction(actionId: string, state: TuiState): Promise<boolean> {
+async function executeAction(actionId: string, state: TuiState, providerSetter: (p: AIProvider) => void): Promise<boolean> {
   switch (actionId) {
     case "quit":
       return false;
@@ -80,7 +80,12 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
     case "run-auto": {
       clearScreen();
       if (!await confirm("Start AI agent to implement next ticket?")) return true;
-      await runCommand(undefined, { auto: true });
+      try {
+        await runCommand(undefined, { auto: true });
+      } catch (error) {
+        logger.error(`Run failed: ${error}`);
+        await promptContinue();
+      }
       return false;
     }
 
@@ -97,7 +102,11 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
         logger.info("Cancelled");
         return true;
       }
-      await createCommand(description, {});
+      try {
+        await createCommand(description, {});
+      } catch (error) {
+        logger.error(`Create failed: ${error}`);
+      }
       await promptContinue();
       return true;
     }
@@ -122,10 +131,20 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
       return true;
     }
 
-    case "fix": {
+    case "implement": {
       clearScreen();
-      if (!await confirm("Start AI agent to fix review feedback?")) return true;
-      await fixCommand({});
+      const hasCommits = state.commits.length > 0;
+      const hasFeedback = state.hasActionableFeedback;
+      let msg: string;
+      if (hasFeedback && hasCommits) {
+        msg = "Start AI agent to address review feedback?";
+      } else if (hasCommits) {
+        msg = "Start AI agent to continue implementation from existing commits?";
+      } else {
+        msg = "Start AI agent to implement this ticket from scratch?";
+      }
+      if (!await confirm(msg)) return true;
+      await handleImplement(state);
       return false;
     }
 
@@ -139,7 +158,7 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
 
     case "switch-provider":
       clearScreen();
-      await handleSwitchProvider(state);
+      await handleSwitchProvider(state, providerSetter);
       return true;
 
     case "checkout-main": {
@@ -242,6 +261,60 @@ async function generateCommitMessage(
   }
 }
 
+async function handleImplement(state: TuiState): Promise<void> {
+  if (!state.issue) {
+    logger.error("No linked issue found");
+    return;
+  }
+
+  const agentInstructions = loadAgentInstructions();
+  const progressContent = readProgress(state.config);
+
+  // Build context based on current state
+  const contextParts: string[] = [];
+
+  if (state.commits.length > 0) {
+    contextParts.push(
+      `## Current Progress\nThere are ${state.commits.length} existing commit(s) on this branch:\n${state.commits.map((c) => `- ${c}`).join("\n")}\n\nContinue the implementation from where it left off. Review the existing work and complete any remaining tasks.`
+    );
+  }
+
+  if (state.hasActionableFeedback && state.reviewFeedback.length > 0) {
+    const feedbackLines = state.reviewFeedback
+      .map((f) => `- [${f.source}] ${f.body.slice(0, 200)}`)
+      .join("\n");
+    contextParts.push(`## Review Feedback\n${feedbackLines}`);
+  }
+
+  const extraContext = contextParts.length > 0 ? contextParts.join("\n\n") : null;
+
+  const prompt = buildImplementationPrompt(
+    state.issue,
+    agentInstructions,
+    progressContent,
+    state.config,
+    extraContext,
+  );
+
+  const providerName = getProviderDisplayName(state.config.ai.provider);
+
+  clearScreen();
+  renderActionPanel(`${providerName} Session`, [
+    `Implementing: #${state.issue.number} ${state.issue.title}`,
+    state.commits.length > 0
+      ? `Continuing from ${state.commits.length} existing commit(s)`
+      : "Starting fresh implementation",
+    ...(state.hasActionableFeedback ? [`Includes ${state.reviewFeedback.length} review feedback item(s)`] : []),
+  ]);
+  console.log();
+
+  try {
+    await invokeAIInteractive(prompt, state.config);
+  } catch (error) {
+    logger.error(`${providerName} session failed: ${error}`);
+  }
+}
+
 async function handlePush(): Promise<void> {
   try {
     const { stdout: branch } = await execa("git", ["branch", "--show-current"]);
@@ -258,7 +331,10 @@ async function handlePush(): Promise<void> {
 
 const PROVIDERS: AIProvider[] = ["claude", "gemini", "codex"];
 
-async function handleSwitchProvider(state: TuiState): Promise<void> {
+async function handleSwitchProvider(
+  state: TuiState,
+  setProvider: (p: AIProvider) => void,
+): Promise<void> {
   const current = state.config.ai.provider;
   const { provider } = await inquirer.prompt<{ provider: AIProvider }>([
     {
@@ -275,12 +351,8 @@ async function handleSwitchProvider(state: TuiState): Promise<void> {
 
   if (provider === current) return;
 
-  try {
-    updateConfigProvider(provider);
-    logger.success(`Provider switched to ${provider}`);
-  } catch (error) {
-    logger.error(`Failed to switch provider: ${error}`);
-  }
+  setProvider(provider);
+  logger.success(`Provider switched to ${provider} (session only)`);
 }
 
 async function handleCheckoutMain(): Promise<void> {
@@ -300,6 +372,15 @@ async function handleVideoCapture(state: TuiState): Promise<void> {
     logger.error("No linked issue found");
     return;
   }
+
+  const providerName = getProviderDisplayName(state.config.ai.provider);
+
+  clearScreen();
+  renderActionPanel("Video Capture", [
+    `Recording: #${state.issue.number} ${state.issue.title}`,
+    `Provider: ${providerName}`,
+  ]);
+  console.log();
 
   try {
     const agentInstructions = loadAgentInstructions();
@@ -329,9 +410,20 @@ async function promptContinue(): Promise<void> {
 
 export async function tuiCommand(): Promise<void> {
   let running = true;
+  let providerOverride: AIProvider | null = null;
+
+  const setProvider = (p: AIProvider) => {
+    providerOverride = p;
+  };
 
   while (running) {
     const state = await loadState();
+
+    // Apply in-memory provider override (avoids writing to .gent.yml)
+    if (providerOverride) {
+      state.config.ai.provider = providerOverride;
+    }
+
     clearScreen();
 
     const actions = getAvailableActions(state);
@@ -355,7 +447,7 @@ export async function tuiCommand(): Promise<void> {
     // Find the matching action
     const action = actions.find((a) => a.shortcut === key);
     if (action) {
-      running = await executeAction(action.id, state);
+      running = await executeAction(action.id, state, setProvider);
     }
   }
 }
