@@ -1,3 +1,15 @@
+# [1.13.0](https://github.com/rotorsoft/gent/compare/v1.12.1...v1.13.0) (2026-01-29)
+
+
+### Bug Fixes
+
+* make list action available on feature branches too ([d16b973](https://github.com/rotorsoft/gent/commit/d16b973f0f67a1155d4e2d88075681a936bb8d13))
+
+
+### Features
+
+* replace "run next" with interactive ticket selector for branch switching ([0a493aa](https://github.com/rotorsoft/gent/commit/0a493aaee0ea15ac50e73e9872a2be6f27569657)), closes [#51](https://github.com/rotorsoft/gent/issues/51)
+
 ## [1.12.1](https://github.com/rotorsoft/gent/compare/v1.12.0...v1.12.1) (2026-01-29)
 
 
