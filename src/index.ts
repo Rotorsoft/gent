@@ -8,7 +8,11 @@ import { prCommand } from "./commands/pr.js";
 import { fixCommand } from "./commands/fix.js";
 import { statusCommand } from "./commands/status.js";
 import { tuiCommand } from "./commands/tui.js";
-import { getVersion, checkForUpdates, formatUpgradeNotification } from "./lib/version.js";
+import {
+  getVersion,
+  checkForUpdates,
+  formatUpgradeNotification,
+} from "./lib/version.js";
 import { logger } from "./utils/logger.js";
 
 const version = getVersion();
@@ -21,7 +25,9 @@ function startVersionCheck(): void {
     .then((result) => {
       if (result.updateAvailable && result.latestVersion) {
         logger.newline();
-        logger.warning(formatUpgradeNotification(result.currentVersion, result.latestVersion));
+        logger.warning(
+          formatUpgradeNotification(result.currentVersion, result.latestVersion)
+        );
       }
     })
     .catch(() => {
@@ -33,7 +39,9 @@ const program = new Command();
 
 program
   .name("gent")
-  .description("AI-powered GitHub workflow CLI - leverage AI (Claude, Gemini, or Codex) to create tickets, implement features, and manage PRs")
+  .description(
+    "AI-powered GitHub workflow CLI - leverage AI (Claude, Gemini, or Codex) to create tickets, implement features, and manage PRs"
+  )
   .version(version)
   .option("--skip-update-check", "Skip checking for CLI updates")
   .hook("preAction", (thisCommand) => {
@@ -62,17 +70,27 @@ program
   .command("create <description>")
   .description("Create an AI-enhanced GitHub issue")
   .option("-y, --yes", "Skip confirmation and create issue immediately")
-  .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
+  .option(
+    "-p, --provider <provider>",
+    "AI provider to use (claude, gemini, or codex)"
+  )
   .option("-t, --title <title>", "Override the generated issue title")
   .action(async (description, options) => {
-    await createCommand(description, { yes: options.yes, provider: options.provider, title: options.title });
+    await createCommand(description, {
+      yes: options.yes,
+      provider: options.provider,
+      title: options.title,
+    });
   });
 
 program
   .command("list")
   .description("List and switch to GitHub issues")
   .option("-l, --label <label>", "Filter by label")
-  .option("-s, --status <status>", "Filter by workflow status (ready, in-progress, completed, blocked, all)")
+  .option(
+    "-s, --status <status>",
+    "Filter by workflow status (ready, in-progress, completed, blocked, all)"
+  )
   .option("-n, --limit <number>", "Maximum number of issues to show", "20")
   .action(async (options) => {
     await listCommand({
@@ -85,7 +103,10 @@ program
 program
   .command("run [issue-number]")
   .description("Run AI to implement a GitHub issue")
-  .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
+  .option(
+    "-p, --provider <provider>",
+    "AI provider to use (claude, gemini, or codex)"
+  )
   .action(async (issueNumber, options) => {
     await runCommand(issueNumber, { provider: options.provider });
   });
@@ -94,7 +115,10 @@ program
   .command("pr")
   .description("Create an AI-enhanced pull request")
   .option("-d, --draft", "Create as draft PR")
-  .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
+  .option(
+    "-p, --provider <provider>",
+    "AI provider to use (claude, gemini, or codex)"
+  )
   .option("--no-video", "Disable video capture for UI changes")
   .action(async (options) => {
     await prCommand({
@@ -107,7 +131,10 @@ program
 program
   .command("fix")
   .description("Apply PR review feedback using AI")
-  .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
+  .option(
+    "-p, --provider <provider>",
+    "AI provider to use (claude, gemini, or codex)"
+  )
   .action(async (options) => {
     await fixCommand({ provider: options.provider });
   });

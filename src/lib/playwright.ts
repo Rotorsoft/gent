@@ -42,7 +42,9 @@ export function hasUIChanges(changedFiles: string[]): boolean {
 /**
  * Get list of changed files from git diff
  */
-export async function getChangedFiles(baseBranch: string = "main"): Promise<string[]> {
+export async function getChangedFiles(
+  baseBranch: string = "main"
+): Promise<string[]> {
   try {
     const { stdout } = await execa("git", [
       "diff",

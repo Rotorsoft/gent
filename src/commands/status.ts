@@ -1,17 +1,36 @@
 import { logger, colors } from "../utils/logger.js";
 import { loadConfig } from "../lib/config.js";
 import { getIssue, getPrStatus, getPrReviewData } from "../lib/github.js";
-import { getCurrentBranch, isOnMainBranch, hasUncommittedChanges, getUnpushedCommits, getCommitsSinceBase, getDefaultBranch, getLastCommitTimestamp } from "../lib/git.js";
+import {
+  getCurrentBranch,
+  isOnMainBranch,
+  hasUncommittedChanges,
+  getUnpushedCommits,
+  getCommitsSinceBase,
+  getDefaultBranch,
+  getLastCommitTimestamp,
+} from "../lib/git.js";
 import { extractIssueNumber, parseBranchName } from "../lib/branch.js";
 import { getWorkflowLabels } from "../lib/labels.js";
 import { progressExists, readProgress } from "../lib/progress.js";
 import { configExists } from "../lib/config.js";
-import { checkGhAuth, checkClaudeCli, checkGeminiCli, checkGitRepo } from "../utils/validators.js";
+import {
+  checkGhAuth,
+  checkClaudeCli,
+  checkGeminiCli,
+  checkGitRepo,
+} from "../utils/validators.js";
 import { getProviderDisplayName } from "../lib/ai-provider.js";
 import { getVersion } from "../lib/version.js";
-import { summarizeReviewFeedback, type ReviewFeedbackItem } from "../lib/review-feedback.js";
+import {
+  summarizeReviewFeedback,
+  type ReviewFeedbackItem,
+} from "../lib/review-feedback.js";
 
-function formatPrState(state: "open" | "closed" | "merged", isDraft: boolean): string {
+function formatPrState(
+  state: "open" | "closed" | "merged",
+  isDraft: boolean
+): string {
   if (state === "merged") {
     return "Merged";
   }
@@ -42,7 +61,9 @@ function formatFeedbackLocation(item: ReviewFeedbackItem): string {
     return item.path;
   }
   if (item.source === "review") {
-    const stateLabel = item.state ? item.state.replace(/_/g, " ").toLowerCase() : "review";
+    const stateLabel = item.state
+      ? item.state.replace(/_/g, " ").toLowerCase()
+      : "review";
     return `[${stateLabel}]`;
   }
   return "[comment]";
@@ -95,7 +116,9 @@ export async function statusCommand(): Promise<void> {
   logger.info(`  Active: ${colors.provider(providerName)}`);
   if (config.ai.fallback_provider) {
     const fallbackName = getProviderDisplayName(config.ai.fallback_provider);
-    logger.info(`  Fallback: ${fallbackName} (auto: ${config.ai.auto_fallback ? "enabled" : "disabled"})`);
+    logger.info(
+      `  Fallback: ${fallbackName} (auto: ${config.ai.auto_fallback ? "enabled" : "disabled"})`
+    );
   }
   logger.newline();
 
@@ -211,15 +234,21 @@ export async function statusCommand(): Promise<void> {
         try {
           const lastCommitTimestamp = await getLastCommitTimestamp();
           const reviewData = await getPrReviewData(prStatus.number);
-          const { items } = summarizeReviewFeedback(reviewData, { afterTimestamp: lastCommitTimestamp });
+          const { items } = summarizeReviewFeedback(reviewData, {
+            afterTimestamp: lastCommitTimestamp,
+          });
           hasActionableFeedback = items.length > 0;
 
           if (prStatus.reviewDecision) {
-            logger.info(`  Review: ${formatReviewDecision(prStatus.reviewDecision)}`);
+            logger.info(
+              `  Review: ${formatReviewDecision(prStatus.reviewDecision)}`
+            );
           }
 
           if (items.length > 0) {
-            logger.warning(`  ${items.length} actionable comment${items.length > 1 ? "s" : ""} to fix with ${colors.command("gent fix")}:`);
+            logger.warning(
+              `  ${items.length} actionable comment${items.length > 1 ? "s" : ""} to fix with ${colors.command("gent fix")}:`
+            );
             for (const item of items) {
               const location = formatFeedbackLocation(item);
               const body = truncateFeedbackBody(item.body, 60);
@@ -235,10 +264,14 @@ export async function statusCommand(): Promise<void> {
         }
       } else if (prStatus.state === "merged") {
         logger.success("  This PR has been merged!");
-        logger.dim(`  Run ${colors.command("git checkout main && git pull")} to sync`);
+        logger.dim(
+          `  Run ${colors.command("git checkout main && git pull")} to sync`
+        );
       } else if (prStatus.state === "closed") {
         logger.warning("  This PR was closed without merging");
-        logger.dim(`  Consider reopening or creating a new PR if changes are still needed`);
+        logger.dim(
+          `  Consider reopening or creating a new PR if changes are still needed`
+        );
       }
     } else {
       logger.info("  No PR created yet");

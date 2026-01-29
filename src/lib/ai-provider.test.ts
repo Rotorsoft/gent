@@ -18,7 +18,7 @@ const mockExeca = vi.mocked(execa);
 // Minimal config for testing
 const createTestConfig = (
   provider: AIProvider,
-  fallback?: AIProvider,
+  fallback?: AIProvider
 ): GentConfig => ({
   version: 1,
   github: {
@@ -120,7 +120,7 @@ describe("ai-provider", () => {
       expect(mockExeca).toHaveBeenCalledWith(
         "claude",
         ["--permission-mode", "default", "test prompt"],
-        { stdio: "inherit" },
+        { stdio: "inherit" }
       );
     });
 

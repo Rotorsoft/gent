@@ -18,7 +18,11 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   if (state.isOnMain) {
     actions.push({ id: "create", label: "new ticket", shortcut: "n" });
     actions.push({ id: "list", label: "list tickets", shortcut: "l" });
-    actions.push({ id: "switch-provider", label: "switch session provider", shortcut: "s" });
+    actions.push({
+      id: "switch-provider",
+      label: "switch session provider",
+      shortcut: "s",
+    });
     actions.push({ id: "quit", label: "quit", shortcut: "q" });
     return actions;
   }
@@ -42,17 +46,28 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   }
 
   if (state.pr && state.pr.state === "open") {
-    if (state.hasUIChanges && state.isPlaywrightAvailable && state.config.video.enabled) {
+    if (
+      state.hasUIChanges &&
+      state.isPlaywrightAvailable &&
+      state.config.video.enabled
+    ) {
       actions.push({ id: "video", label: "video playwright", shortcut: "v" });
     }
   }
 
-  if (state.pr && (state.pr.state === "merged" || state.pr.state === "closed")) {
+  if (
+    state.pr &&
+    (state.pr.state === "merged" || state.pr.state === "closed")
+  ) {
     actions.push({ id: "checkout-main", label: "main branch", shortcut: "m" });
   }
 
   actions.push({ id: "list", label: "list tickets", shortcut: "l" });
-  actions.push({ id: "switch-provider", label: "switch session provider", shortcut: "s" });
+  actions.push({
+    id: "switch-provider",
+    label: "switch session provider",
+    shortcut: "s",
+  });
   actions.push({ id: "quit", label: "quit", shortcut: "q" });
 
   return actions;

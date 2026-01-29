@@ -1,5 +1,10 @@
 import { loadConfig, configExists } from "../lib/config.js";
-import { getIssue, getPrStatus, getPrReviewData, type PrStatusInfo } from "../lib/github.js";
+import {
+  getIssue,
+  getPrStatus,
+  getPrReviewData,
+  type PrStatusInfo,
+} from "../lib/github.js";
 import {
   getCurrentBranch,
   isOnMainBranch,
@@ -12,12 +17,28 @@ import {
 import { extractIssueNumber, parseBranchName } from "../lib/branch.js";
 import { getWorkflowLabels } from "../lib/labels.js";
 import { progressExists } from "../lib/progress.js";
-import { checkGhAuth, checkAIProvider, checkGitRepo } from "../utils/validators.js";
-import { summarizeReviewFeedback, type ReviewFeedbackItem } from "../lib/review-feedback.js";
-import { hasUIChanges, getChangedFiles, isPlaywrightAvailable } from "../lib/playwright.js";
+import {
+  checkGhAuth,
+  checkAIProvider,
+  checkGitRepo,
+} from "../utils/validators.js";
+import {
+  summarizeReviewFeedback,
+  type ReviewFeedbackItem,
+} from "../lib/review-feedback.js";
+import {
+  hasUIChanges,
+  getChangedFiles,
+  isPlaywrightAvailable,
+} from "../lib/playwright.js";
 import type { GentConfig, GitHubIssue, BranchInfo } from "../types/index.js";
 
-export type WorkflowStatus = "ready" | "in-progress" | "completed" | "blocked" | "none";
+export type WorkflowStatus =
+  | "ready"
+  | "in-progress"
+  | "completed"
+  | "blocked"
+  | "none";
 
 export interface TuiState {
   // Prerequisites
@@ -127,12 +148,15 @@ export async function aggregateState(): Promise<TuiState> {
     const issueNumber = extractIssueNumber(branch);
 
     // Fetch issue, PR status, and UI change detection in parallel
-    const [issueResult, prResult, changedFiles, playwrightResult] = await Promise.all([
-      issueNumber ? getIssue(issueNumber).catch(() => null) : Promise.resolve(null),
-      getPrStatus().catch(() => null),
-      getChangedFiles(baseBranch),
-      isPlaywrightAvailable(),
-    ]);
+    const [issueResult, prResult, changedFiles, playwrightResult] =
+      await Promise.all([
+        issueNumber
+          ? getIssue(issueNumber).catch(() => null)
+          : Promise.resolve(null),
+        getPrStatus().catch(() => null),
+        getChangedFiles(baseBranch),
+        isPlaywrightAvailable(),
+      ]);
 
     issue = issueResult;
     pr = prResult;
@@ -157,7 +181,9 @@ export async function aggregateState(): Promise<TuiState> {
       try {
         const lastCommitTimestamp = await getLastCommitTimestamp();
         const reviewData = await getPrReviewData(pr.number);
-        const { items } = summarizeReviewFeedback(reviewData, { afterTimestamp: lastCommitTimestamp });
+        const { items } = summarizeReviewFeedback(reviewData, {
+          afterTimestamp: lastCommitTimestamp,
+        });
         reviewFeedback = items;
         hasActionableFeedback = items.length > 0;
       } catch {

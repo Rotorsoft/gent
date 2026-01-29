@@ -11,15 +11,28 @@ function createBaseState(overrides: Partial<TuiState> = {}): TuiState {
       version: 1,
       github: {
         labels: {
-          workflow: { ready: "ai-ready", in_progress: "ai-in-progress", completed: "ai-completed", blocked: "ai-blocked" },
+          workflow: {
+            ready: "ai-ready",
+            in_progress: "ai-in-progress",
+            completed: "ai-completed",
+            blocked: "ai-blocked",
+          },
           types: ["feature"],
           priorities: ["high"],
           risks: ["low"],
           areas: ["ui"],
         },
       },
-      branch: { pattern: "{author}/{type}-{issue}-{slug}", author_source: "git", author_env_var: "GENT_AUTHOR" },
-      progress: { file: "progress.txt", archive_threshold: 500, archive_dir: ".gent/archive" },
+      branch: {
+        pattern: "{author}/{type}-{issue}-{slug}",
+        author_source: "git",
+        author_env_var: "GENT_AUTHOR",
+      },
+      progress: {
+        file: "progress.txt",
+        archive_threshold: 500,
+        archive_dir: ".gent/archive",
+      },
       ai: { provider: "claude", auto_fallback: false },
       video: { enabled: true, max_duration: 30, width: 1280, height: 720 },
       validation: [],
@@ -55,7 +68,9 @@ describe("getAvailableActions", () => {
   });
 
   it("shows only quit when not authenticated", () => {
-    const actions = getAvailableActions(createBaseState({ isGhAuthenticated: false }));
+    const actions = getAvailableActions(
+      createBaseState({ isGhAuthenticated: false })
+    );
     expect(actions).toHaveLength(1);
     expect(actions[0].id).toBe("quit");
   });
@@ -75,24 +90,28 @@ describe("getAvailableActions", () => {
   });
 
   it("shows commit when uncommitted changes on feature branch", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      hasUncommittedChanges: true,
-      commits: ["feat: test"],
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        hasUncommittedChanges: true,
+        commits: ["feat: test"],
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("commit");
   });
 
   it("shows push with P shortcut when unpushed commits exist", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      hasUnpushedCommits: true,
-      commits: ["feat: test"],
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        hasUnpushedCommits: true,
+        commits: ["feat: test"],
+      })
+    );
     const push = actions.find((a) => a.id === "push");
 
     expect(push).toBeDefined();
@@ -100,13 +119,15 @@ describe("getAvailableActions", () => {
   });
 
   it("shows both commit and push when uncommitted and unpushed exist", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      hasUncommittedChanges: true,
-      hasUnpushedCommits: true,
-      commits: ["feat: test"],
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        hasUncommittedChanges: true,
+        hasUnpushedCommits: true,
+        commits: ["feat: test"],
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("push");
@@ -114,11 +135,13 @@ describe("getAvailableActions", () => {
   });
 
   it("shows create pr with C shortcut when no PR exists but commits do", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      commits: ["feat: test"],
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        commits: ["feat: test"],
+      })
+    );
     const pr = actions.find((a) => a.id === "pr");
 
     expect(pr).toBeDefined();
@@ -126,36 +149,40 @@ describe("getAvailableActions", () => {
   });
 
   it("shows implement when issue exists on feature branch", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      issue: {
-        number: 123,
-        title: "Test",
-        body: "Desc",
-        labels: ["ai-in-progress"],
-        state: "open",
-        url: "https://github.com/test/repo/issues/123",
-      },
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        issue: {
+          number: 123,
+          title: "Test",
+          body: "Desc",
+          labels: ["ai-in-progress"],
+          state: "open",
+          url: "https://github.com/test/repo/issues/123",
+        },
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("implement");
   });
 
   it("uses i shortcut for implement action", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      issue: {
-        number: 123,
-        title: "Test",
-        body: "Desc",
-        labels: ["ai-in-progress"],
-        state: "open",
-        url: "https://github.com/test/repo/issues/123",
-      },
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        issue: {
+          number: 123,
+          title: "Test",
+          body: "Desc",
+          labels: ["ai-in-progress"],
+          state: "open",
+          url: "https://github.com/test/repo/issues/123",
+        },
+      })
+    );
     const impl = actions.find((a) => a.id === "implement");
 
     expect(impl).toBeDefined();
@@ -163,20 +190,22 @@ describe("getAvailableActions", () => {
   });
 
   it("shows video when UI changes detected and Playwright available", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      pr: {
-        number: 456,
-        title: "Test PR",
-        url: "https://github.com/test/repo/pull/456",
-        state: "open",
-        reviewDecision: null,
-        isDraft: false,
-      },
-      hasUIChanges: true,
-      isPlaywrightAvailable: true,
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        pr: {
+          number: 456,
+          title: "Test PR",
+          url: "https://github.com/test/repo/pull/456",
+          state: "open",
+          reviewDecision: null,
+          isDraft: false,
+        },
+        hasUIChanges: true,
+        isPlaywrightAvailable: true,
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("video");
@@ -204,103 +233,115 @@ describe("getAvailableActions", () => {
   });
 
   it("shows back to main when PR is merged", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      pr: {
-        number: 456,
-        title: "Test PR",
-        url: "https://github.com/test/repo/pull/456",
-        state: "merged",
-        reviewDecision: null,
-        isDraft: false,
-      },
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        pr: {
+          number: 456,
+          title: "Test PR",
+          url: "https://github.com/test/repo/pull/456",
+          state: "merged",
+          reviewDecision: null,
+          isDraft: false,
+        },
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("checkout-main");
   });
 
   it("does not show implement when PR is merged", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      issue: {
-        number: 123,
-        title: "Test",
-        body: "Desc",
-        labels: ["ai-completed"],
-        state: "open",
-        url: "https://github.com/test/repo/issues/123",
-      },
-      pr: {
-        number: 456,
-        title: "Test PR",
-        url: "https://github.com/test/repo/pull/456",
-        state: "merged",
-        reviewDecision: null,
-        isDraft: false,
-      },
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        issue: {
+          number: 123,
+          title: "Test",
+          body: "Desc",
+          labels: ["ai-completed"],
+          state: "open",
+          url: "https://github.com/test/repo/issues/123",
+        },
+        pr: {
+          number: 456,
+          title: "Test PR",
+          url: "https://github.com/test/repo/pull/456",
+          state: "merged",
+          reviewDecision: null,
+          isDraft: false,
+        },
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).not.toContain("implement");
   });
 
   it("shows implement when PR is open", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      issue: {
-        number: 123,
-        title: "Test",
-        body: "Desc",
-        labels: ["ai-in-progress"],
-        state: "open",
-        url: "https://github.com/test/repo/issues/123",
-      },
-      pr: {
-        number: 456,
-        title: "Test PR",
-        url: "https://github.com/test/repo/pull/456",
-        state: "open",
-        reviewDecision: null,
-        isDraft: false,
-      },
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        issue: {
+          number: 123,
+          title: "Test",
+          body: "Desc",
+          labels: ["ai-in-progress"],
+          state: "open",
+          url: "https://github.com/test/repo/issues/123",
+        },
+        pr: {
+          number: 456,
+          title: "Test PR",
+          url: "https://github.com/test/repo/pull/456",
+          state: "open",
+          reviewDecision: null,
+          isDraft: false,
+        },
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("implement");
   });
 
   it("does not show implement without issue on feature branch", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      issue: null,
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        issue: null,
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).not.toContain("implement");
   });
 
   it("does not show push without commits even when unpushed flag is set", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-      hasUnpushedCommits: true,
-      commits: [],
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        hasUnpushedCommits: true,
+        commits: [],
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).not.toContain("push");
   });
 
   it("always includes quit on feature branch", () => {
-    const actions = getAvailableActions(createBaseState({
-      isOnMain: false,
-      branch: "ro/feature-123-test",
-    }));
+    const actions = getAvailableActions(
+      createBaseState({
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+      })
+    );
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("quit");

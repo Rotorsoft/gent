@@ -2,15 +2,32 @@ import inquirer from "inquirer";
 import { execa } from "execa";
 import { aggregateState, type TuiState } from "../tui/state.js";
 import { getAvailableActions, type TuiAction } from "../tui/actions.js";
-import { renderDashboard, renderActionPanel, clearScreen } from "../tui/display.js";
+import {
+  renderDashboard,
+  renderActionPanel,
+  clearScreen,
+} from "../tui/display.js";
 import { logger } from "../utils/logger.js";
 import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
 import { prCommand } from "./pr.js";
 import { listCommand } from "./list.js";
-import { buildVideoPrompt, buildCommitMessagePrompt, buildImplementationPrompt } from "../lib/prompts.js";
-import { invokeAI, invokeAIInteractive, getProviderDisplayName, getProviderEmail } from "../lib/ai-provider.js";
-import { loadAgentInstructions, loadConfig, setRuntimeProvider } from "../lib/config.js";
+import {
+  buildVideoPrompt,
+  buildCommitMessagePrompt,
+  buildImplementationPrompt,
+} from "../lib/prompts.js";
+import {
+  invokeAI,
+  invokeAIInteractive,
+  getProviderDisplayName,
+  getProviderEmail,
+} from "../lib/ai-provider.js";
+import {
+  loadAgentInstructions,
+  loadConfig,
+  setRuntimeProvider,
+} from "../lib/config.js";
 import { readProgress } from "../lib/progress.js";
 import type { AIProvider } from "../types/index.js";
 
@@ -58,7 +75,10 @@ async function waitForKey(validKeys: string[]): Promise<string> {
   });
 }
 
-async function executeAction(actionId: string, state: TuiState): Promise<boolean> {
+async function executeAction(
+  actionId: string,
+  state: TuiState
+): Promise<boolean> {
   switch (actionId) {
     case "quit":
       return false;
@@ -110,7 +130,7 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
 
     case "pr": {
       clearScreen();
-      if (!await confirm("Create a pull request?")) return true;
+      if (!(await confirm("Create a pull request?"))) return true;
       await prCommand({});
       await promptContinue();
       return true;
@@ -124,18 +144,19 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
       if (hasFeedback && hasCommits) {
         msg = "Start AI agent to address review feedback?";
       } else if (hasCommits) {
-        msg = "Start AI agent to continue implementation from existing commits?";
+        msg =
+          "Start AI agent to continue implementation from existing commits?";
       } else {
         msg = "Start AI agent to implement this ticket from scratch?";
       }
-      if (!await confirm(msg)) return true;
+      if (!(await confirm(msg))) return true;
       await handleImplement(state);
       return false;
     }
 
     case "video": {
       clearScreen();
-      if (!await confirm("Record video of UI changes?")) return true;
+      if (!(await confirm("Record video of UI changes?"))) return true;
       await handleVideoCapture(state);
       await promptContinue();
       return true;
@@ -148,7 +169,7 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
 
     case "checkout-main": {
       clearScreen();
-      if (!await confirm("Switch to main branch?")) return true;
+      if (!(await confirm("Switch to main branch?"))) return true;
       await handleCheckoutMain();
       return true;
     }
@@ -174,7 +195,11 @@ async function handleCommit(state: TuiState): Promise<void> {
     await execa("git", ["add", "-A"]);
 
     // Get staged diff for AI commit message generation
-    const { stdout: diffStat } = await execa("git", ["diff", "--cached", "--stat"]);
+    const { stdout: diffStat } = await execa("git", [
+      "diff",
+      "--cached",
+      "--stat",
+    ]);
     const { stdout: diffPatch } = await execa("git", ["diff", "--cached"]);
     const diffContent = (diffStat + "\n\n" + diffPatch).slice(0, 4000);
 
@@ -182,9 +207,39 @@ async function handleCommit(state: TuiState): Promise<void> {
     const issueTitle = state.issue?.title ?? null;
     const provider = state.config.ai.provider;
     const providerName = getProviderDisplayName(provider);
-    logger.info(`Generating commit message with ${providerName}...`);
 
-    const message = await generateCommitMessage(diffContent, issueNumber, issueTitle, state);
+    const { mode } = await inquirer.prompt<{ mode: "ai" | "manual" }>([
+      {
+        type: "list",
+        name: "mode",
+        message: "How would you like to provide the commit message?",
+        choices: [
+          { name: `Generate with ${providerName}`, value: "ai" },
+          { name: "Enter manually", value: "manual" },
+        ],
+      },
+    ]);
+
+    let message: string | typeof CANCEL;
+
+    if (mode === "manual") {
+      const { manualInput } = await inquirer.prompt<{ manualInput: string }>([
+        {
+          type: "input",
+          name: "manualInput",
+          message: "Commit message (empty to cancel):",
+        },
+      ]);
+      message = manualInput.trim() || CANCEL;
+    } else {
+      logger.info(`Generating commit message with ${providerName}...`);
+      message = await generateCommitMessage(
+        diffContent,
+        issueNumber,
+        issueTitle,
+        state
+      );
+    }
     if (message === CANCEL) {
       await execa("git", ["reset", "HEAD"]);
       logger.info("Cancelled");
@@ -195,7 +250,7 @@ async function handleCommit(state: TuiState): Promise<void> {
     logger.info(`Message: ${message}`);
     console.log();
 
-    if (!await confirm("Commit with this message?")) {
+    if (!(await confirm("Commit with this message?"))) {
       await execa("git", ["reset", "HEAD"]);
       logger.info("Commit cancelled");
       return;
@@ -217,10 +272,14 @@ async function generateCommitMessage(
   diffContent: string,
   issueNumber: number | null,
   issueTitle: string | null,
-  state: TuiState,
+  state: TuiState
 ): Promise<string | typeof CANCEL> {
   try {
-    const prompt = buildCommitMessagePrompt(diffContent, issueNumber, issueTitle);
+    const prompt = buildCommitMessagePrompt(
+      diffContent,
+      issueNumber,
+      issueTitle
+    );
     const result = await invokeAI({ prompt, streamOutput: true }, state.config);
     let message = result.output.trim().split("\n")[0].trim();
     // Strip wrapping quotes, backticks, or code fences
@@ -271,14 +330,15 @@ async function handleImplement(state: TuiState): Promise<void> {
     contextParts.push(`## Review Feedback\n${feedbackLines}`);
   }
 
-  const extraContext = contextParts.length > 0 ? contextParts.join("\n\n") : null;
+  const extraContext =
+    contextParts.length > 0 ? contextParts.join("\n\n") : null;
 
   const prompt = buildImplementationPrompt(
     state.issue,
     agentInstructions,
     progressContent,
     state.config,
-    extraContext,
+    extraContext
   );
 
   const providerName = getProviderDisplayName(state.config.ai.provider);
@@ -289,7 +349,9 @@ async function handleImplement(state: TuiState): Promise<void> {
     state.commits.length > 0
       ? `Continuing from ${state.commits.length} existing commit(s)`
       : "Starting fresh implementation",
-    ...(state.hasActionableFeedback ? [`Includes ${state.reviewFeedback.length} review feedback item(s)`] : []),
+    ...(state.hasActionableFeedback
+      ? [`Includes ${state.reviewFeedback.length} review feedback item(s)`]
+      : []),
   ]);
   console.log();
 
@@ -303,7 +365,7 @@ async function handleImplement(state: TuiState): Promise<void> {
 async function handlePush(): Promise<void> {
   try {
     const { stdout: branch } = await execa("git", ["branch", "--show-current"]);
-    if (!await confirm(`Push ${branch.trim()} to remote?`)) return;
+    if (!(await confirm(`Push ${branch.trim()} to remote?`))) return;
 
     const spinner = createSpinner("Pushing...");
     spinner.start();
@@ -316,9 +378,7 @@ async function handlePush(): Promise<void> {
 
 const PROVIDERS: AIProvider[] = ["claude", "gemini", "codex"];
 
-async function handleSwitchProvider(
-  state: TuiState,
-): Promise<void> {
+async function handleSwitchProvider(state: TuiState): Promise<void> {
   const current = state.config.ai.provider;
   const { provider } = await inquirer.prompt<{ provider: AIProvider }>([
     {
@@ -326,7 +386,10 @@ async function handleSwitchProvider(
       name: "provider",
       message: "Select AI provider:",
       choices: PROVIDERS.map((p) => ({
-        name: p.charAt(0).toUpperCase() + p.slice(1) + (p === current ? " (current)" : ""),
+        name:
+          p.charAt(0).toUpperCase() +
+          p.slice(1) +
+          (p === current ? " (current)" : ""),
         value: p,
       })),
       default: current,

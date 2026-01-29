@@ -103,7 +103,9 @@ export function loadConfig(cwd: string = process.cwd()): GentConfig {
   }
 }
 
-export function loadAgentInstructions(cwd: string = process.cwd()): string | null {
+export function loadAgentInstructions(
+  cwd: string = process.cwd()
+): string | null {
   const agentPath = getAgentPath(cwd);
 
   if (!agentPath) {
@@ -184,7 +186,10 @@ function mergeConfig(
   };
 }
 
-export function updateConfigProvider(provider: AIProvider, cwd: string = process.cwd()): void {
+export function updateConfigProvider(
+  provider: AIProvider,
+  cwd: string = process.cwd()
+): void {
   const configPath = getConfigPath(cwd);
   if (!existsSync(configPath)) {
     writeFileSync(configPath, generateDefaultConfig(provider), "utf-8");
@@ -193,7 +198,7 @@ export function updateConfigProvider(provider: AIProvider, cwd: string = process
   const content = readFileSync(configPath, "utf-8");
   const updated = content.replace(
     /^(\s*provider:\s*)"[^"]*"/m,
-    `$1"${provider}"`,
+    `$1"${provider}"`
   );
   writeFileSync(configPath, updated, "utf-8");
 }

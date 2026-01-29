@@ -1,5 +1,9 @@
 import { execa } from "execa";
-import type { GitHubIssue, GitHubLabel, GitHubReviewData } from "../types/index.js";
+import type {
+  GitHubIssue,
+  GitHubLabel,
+  GitHubReviewData,
+} from "../types/index.js";
 
 export async function getIssue(issueNumber: number): Promise<GitHubIssue> {
   const { stdout } = await execa("gh", [
@@ -27,7 +31,12 @@ export async function listIssues(options: {
   state?: "open" | "closed" | "all";
   limit?: number;
 }): Promise<GitHubIssue[]> {
-  const args = ["issue", "list", "--json", "number,title,body,labels,state,url"];
+  const args = [
+    "issue",
+    "list",
+    "--json",
+    "number,title,body,labels,state,url",
+  ];
 
   if (options.labels?.length) {
     args.push("--label", options.labels.join(","));
@@ -66,7 +75,14 @@ export async function createIssue(options: {
   body: string;
   labels?: string[];
 }): Promise<number> {
-  const args = ["issue", "create", "--title", options.title, "--body", options.body];
+  const args = [
+    "issue",
+    "create",
+    "--title",
+    options.title,
+    "--body",
+    options.body,
+  ];
 
   if (options.labels?.length) {
     args.push("--label", options.labels.join(","));
@@ -224,7 +240,10 @@ export async function getPrStatus(): Promise<PrStatusInfo | null> {
     ]);
     const data = JSON.parse(stdout);
     // gh pr view returns state as OPEN, CLOSED, or MERGED (uppercase)
-    const state = (data.state?.toLowerCase() ?? "open") as "open" | "closed" | "merged";
+    const state = (data.state?.toLowerCase() ?? "open") as
+      | "open"
+      | "closed"
+      | "merged";
     return {
       number: data.number,
       title: data.title ?? "",
@@ -238,7 +257,9 @@ export async function getPrStatus(): Promise<PrStatusInfo | null> {
   }
 }
 
-export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewData> {
+export async function getPrReviewData(
+  prNumber?: number
+): Promise<GitHubReviewData> {
   // Fetch reviews and comments using gh pr view (both are supported JSON fields)
   const prArgs = ["pr", "view"];
   if (prNumber) {
@@ -266,74 +287,92 @@ export async function getPrReviewData(prNumber?: number): Promise<GitHubReviewDa
   }> = [];
 
   try {
-    const { stdout: repoStdout } = await execa("gh", ["repo", "view", "--json", "owner,name"]);
+    const { stdout: repoStdout } = await execa("gh", [
+      "repo",
+      "view",
+      "--json",
+      "owner,name",
+    ]);
     const repoData = JSON.parse(repoStdout);
     const owner = repoData.owner?.login ?? repoData.owner;
     const repo = repoData.name;
 
     const graphqlQuery = `query { repository(owner: "${owner}", name: "${repo}") { pullRequest(number: ${prNumber}) { reviewThreads(first: 100) { nodes { isResolved isOutdated path line comments(first: 100) { nodes { databaseId author { login } body path line createdAt } } } } } } }`;
 
-    const { stdout: graphqlStdout } = await execa("gh", ["api", "graphql", "-f", `query=${graphqlQuery}`]);
+    const { stdout: graphqlStdout } = await execa("gh", [
+      "api",
+      "graphql",
+      "-f",
+      `query=${graphqlQuery}`,
+    ]);
     const graphqlData = JSON.parse(graphqlStdout);
     const prNode = graphqlData.data?.repository?.pullRequest;
     const threadNodes = prNode?.reviewThreads?.nodes ?? [];
 
-    reviewThreads = threadNodes.map((thread: {
-      isResolved?: boolean | null;
-      isOutdated?: boolean;
-      path?: string;
-      line?: number | null;
-      comments?: { nodes?: Array<{
-        databaseId?: number;
-        author?: { login?: string };
-        body?: string;
+    reviewThreads = threadNodes.map(
+      (thread: {
+        isResolved?: boolean | null;
+        isOutdated?: boolean;
         path?: string;
         line?: number | null;
-        createdAt?: string;
-      }> };
-    }) => ({
-      isResolved: thread.isResolved ?? null,
-      isOutdated: thread.isOutdated ?? false,
-      path: thread.path,
-      line: thread.line ?? null,
-      comments: (thread.comments?.nodes ?? []).map((comment) => ({
-        id: comment.databaseId,
-        author: comment.author?.login ?? "unknown",
-        body: comment.body ?? "",
-        path: comment.path ?? thread.path,
-        line: comment.line ?? thread.line ?? null,
-        createdAt: comment.createdAt,
-      })),
-    }));
+        comments?: {
+          nodes?: Array<{
+            databaseId?: number;
+            author?: { login?: string };
+            body?: string;
+            path?: string;
+            line?: number | null;
+            createdAt?: string;
+          }>;
+        };
+      }) => ({
+        isResolved: thread.isResolved ?? null,
+        isOutdated: thread.isOutdated ?? false,
+        path: thread.path,
+        line: thread.line ?? null,
+        comments: (thread.comments?.nodes ?? []).map((comment) => ({
+          id: comment.databaseId,
+          author: comment.author?.login ?? "unknown",
+          body: comment.body ?? "",
+          path: comment.path ?? thread.path,
+          line: comment.line ?? thread.line ?? null,
+          createdAt: comment.createdAt,
+        })),
+      })
+    );
   } catch {
     // If GraphQL fails (e.g., no permissions), continue with empty threads
     reviewThreads = [];
   }
 
   return {
-    reviews: (prData.reviews ?? []).map((review: {
-      author?: { login?: string };
-      body?: string;
-      state?: string;
-      submittedAt?: string;
-    }) => ({
-      author: review.author?.login ?? "unknown",
-      body: review.body ?? "",
-      state: review.state ?? "UNKNOWN",
-      submittedAt: review.submittedAt,
-    })),
+    reviews: (prData.reviews ?? []).map(
+      (review: {
+        author?: { login?: string };
+        body?: string;
+        state?: string;
+        submittedAt?: string;
+      }) => ({
+        author: review.author?.login ?? "unknown",
+        body: review.body ?? "",
+        state: review.state ?? "UNKNOWN",
+        submittedAt: review.submittedAt,
+      })
+    ),
     reviewThreads,
-    comments: (prData.comments ?? []).map((comment: {
-      id?: string;
-      author?: { login?: string };
-      body?: string;
-      createdAt?: string;
-    }) => ({
-      id: comment.id,
-      author: comment.author?.login ?? "unknown",
-      body: comment.body ?? "",
-      createdAt: comment.createdAt,
-    })),
+    comments: (prData.comments ?? []).map(
+      (comment: {
+        id?: string;
+        author?: { login?: string };
+        body?: string;
+        createdAt?: string;
+      }) => ({
+        id: comment.id,
+        author: comment.author?.login ?? "unknown",
+        body: comment.body ?? "",
+        createdAt: comment.createdAt,
+      })
+    ),
   };
 }
 
@@ -355,7 +394,10 @@ export async function replyToReviewComment(
   ]);
 }
 
-export async function addPrComment(prNumber: number, body: string): Promise<void> {
+export async function addPrComment(
+  prNumber: number,
+  body: string
+): Promise<void> {
   await execa("gh", ["pr", "comment", String(prNumber), "--body", body]);
 }
 
@@ -378,10 +420,17 @@ export async function listOpenPrs(limit: number = 30): Promise<OpenPr[]> {
     String(limit),
   ]);
   const data = JSON.parse(stdout);
-  return data.map((d: { number: number; title: string; headRefName: string; url: string }) => ({
-    number: d.number,
-    title: d.title,
-    headRefName: d.headRefName,
-    url: d.url,
-  }));
+  return data.map(
+    (d: {
+      number: number;
+      title: string;
+      headRefName: string;
+      url: string;
+    }) => ({
+      number: d.number,
+      title: d.title,
+      headRefName: d.headRefName,
+      url: d.url,
+    })
+  );
 }

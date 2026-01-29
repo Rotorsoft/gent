@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { buildTicketPrompt, parseTicketMeta, extractIssueBody, buildImplementationPrompt, extractTitle, generateFallbackTitle } from "./prompts.js";
+import {
+  buildTicketPrompt,
+  parseTicketMeta,
+  extractIssueBody,
+  buildImplementationPrompt,
+  extractTitle,
+  generateFallbackTitle,
+} from "./prompts.js";
 import type { GentConfig } from "../types/index.js";
 
 // Minimal config for testing
@@ -57,7 +64,11 @@ describe("buildTicketPrompt", () => {
   });
 
   it("should include additional hints when provided", () => {
-    const prompt = buildTicketPrompt("Add dark mode", null, "Focus on CSS variables");
+    const prompt = buildTicketPrompt(
+      "Add dark mode",
+      null,
+      "Focus on CSS variables"
+    );
     expect(prompt).toContain("Additional Context/Hints:");
     expect(prompt).toContain("Focus on CSS variables");
   });
@@ -131,7 +142,8 @@ describe("buildImplementationPrompt", () => {
 
 describe("parseTicketMeta", () => {
   it("should parse valid META line", () => {
-    const output = "Some content\nMETA:type=feature,priority=high,risk=low,area=ui";
+    const output =
+      "Some content\nMETA:type=feature,priority=high,risk=low,area=ui";
     const meta = parseTicketMeta(output);
     expect(meta).toEqual({
       type: "feature",
@@ -148,7 +160,8 @@ describe("parseTicketMeta", () => {
   });
 
   it("should handle META line in middle of output", () => {
-    const output = "Content before\nMETA:type=fix,priority=critical,risk=high,area=api\nContent after";
+    const output =
+      "Content before\nMETA:type=fix,priority=critical,risk=high,area=api\nContent after";
     const meta = parseTicketMeta(output);
     expect(meta).toEqual({
       type: "fix",
@@ -161,7 +174,8 @@ describe("parseTicketMeta", () => {
 
 describe("extractIssueBody", () => {
   it("should remove META line from end of output", () => {
-    const output = "Issue body content\nMETA:type=feature,priority=high,risk=low,area=ui";
+    const output =
+      "Issue body content\nMETA:type=feature,priority=high,risk=low,area=ui";
     const body = extractIssueBody(output);
     expect(body).toBe("Issue body content");
   });
@@ -173,25 +187,29 @@ describe("extractIssueBody", () => {
   });
 
   it("should preserve multi-line content before META", () => {
-    const output = "Line 1\nLine 2\nLine 3\nMETA:type=feature,priority=high,risk=low,area=ui";
+    const output =
+      "Line 1\nLine 2\nLine 3\nMETA:type=feature,priority=high,risk=low,area=ui";
     const body = extractIssueBody(output);
     expect(body).toBe("Line 1\nLine 2\nLine 3");
   });
 
   it("should strip preamble text before ## Description", () => {
-    const output = "Here's a GitHub issue for you:\n\n## Description\nActual content";
+    const output =
+      "Here's a GitHub issue for you:\n\n## Description\nActual content";
     const body = extractIssueBody(output);
     expect(body).toBe("## Description\nActual content");
   });
 
   it("should strip preamble and META line together", () => {
-    const output = "I'll create this issue:\n\n## Description\nContent here\nMETA:type=feature,priority=high,risk=low,area=ui";
+    const output =
+      "I'll create this issue:\n\n## Description\nContent here\nMETA:type=feature,priority=high,risk=low,area=ui";
     const body = extractIssueBody(output);
     expect(body).toBe("## Description\nContent here");
   });
 
   it("should handle output starting with ## Description (no preamble)", () => {
-    const output = "## Description\nContent here\nMETA:type=feature,priority=high,risk=low,area=ui";
+    const output =
+      "## Description\nContent here\nMETA:type=feature,priority=high,risk=low,area=ui";
     const body = extractIssueBody(output);
     expect(body).toBe("## Description\nContent here");
   });
@@ -321,7 +339,8 @@ describe("generateFallbackTitle", () => {
   });
 
   it("should return description as-is when under 200 chars", () => {
-    const description = "Add user authentication with OAuth2 support for Google and GitHub providers";
+    const description =
+      "Add user authentication with OAuth2 support for Google and GitHub providers";
     const title = generateFallbackTitle(description);
     expect(title).toBe(description);
   });
@@ -333,7 +352,8 @@ describe("generateFallbackTitle", () => {
   });
 
   it("should truncate at word boundary without ellipsis", () => {
-    const description = "This is a very long description that exceeds the two hundred character limit and should be truncated at a word boundary to ensure the title remains readable without any ellipsis characters at the end of it";
+    const description =
+      "This is a very long description that exceeds the two hundred character limit and should be truncated at a word boundary to ensure the title remains readable without any ellipsis characters at the end of it";
     const title = generateFallbackTitle(description);
     expect(title.length).toBeLessThanOrEqual(200);
     expect(title).not.toContain("...");

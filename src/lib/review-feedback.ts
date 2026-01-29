@@ -31,7 +31,10 @@ const ACTIONABLE_KEYWORDS = [
 
 const TRIVIAL_COMMENTS = ["lgtm", "looks good", "approved"];
 
-export function summarizeReviewFeedback(data: GitHubReviewData, options?: ReviewFeedbackOptions): {
+export function summarizeReviewFeedback(
+  data: GitHubReviewData,
+  options?: ReviewFeedbackOptions
+): {
   items: ReviewFeedbackItem[];
   summary: string;
 } {
@@ -42,14 +45,20 @@ export function summarizeReviewFeedback(data: GitHubReviewData, options?: Review
   };
 }
 
-function isAfterTimestamp(itemTimestamp: string | undefined, afterTimestamp: string | undefined): boolean {
+function isAfterTimestamp(
+  itemTimestamp: string | undefined,
+  afterTimestamp: string | undefined
+): boolean {
   if (!afterTimestamp || !itemTimestamp) {
     return true;
   }
   return new Date(itemTimestamp) > new Date(afterTimestamp);
 }
 
-export function extractReviewFeedbackItems(data: GitHubReviewData, options?: ReviewFeedbackOptions): ReviewFeedbackItem[] {
+export function extractReviewFeedbackItems(
+  data: GitHubReviewData,
+  options?: ReviewFeedbackOptions
+): ReviewFeedbackItem[] {
   const items: ReviewFeedbackItem[] = [];
   const afterTimestamp = options?.afterTimestamp;
 
@@ -84,10 +93,13 @@ export function extractReviewFeedbackItems(data: GitHubReviewData, options?: Rev
       continue;
     }
 
-    const isUnresolved = thread.isResolved === false || thread.isResolved === undefined || thread.isResolved === null;
+    const isUnresolved =
+      thread.isResolved === false ||
+      thread.isResolved === undefined ||
+      thread.isResolved === null;
 
-    const hasRecentComments = (thread.comments ?? []).some(
-      (c) => isAfterTimestamp(c.createdAt, afterTimestamp)
+    const hasRecentComments = (thread.comments ?? []).some((c) =>
+      isAfterTimestamp(c.createdAt, afterTimestamp)
     );
 
     // If resolved, must have recent comments
@@ -149,7 +161,9 @@ export function extractReviewFeedbackItems(data: GitHubReviewData, options?: Rev
   return items;
 }
 
-export function formatReviewFeedbackSummary(items: ReviewFeedbackItem[]): string {
+export function formatReviewFeedbackSummary(
+  items: ReviewFeedbackItem[]
+): string {
   return items
     .map((item) => {
       const location = formatLocation(item);
@@ -169,11 +183,20 @@ export function formatReviewFeedbackSummary(items: ReviewFeedbackItem[]): string
     .join("\n");
 }
 
-function isActionableThread(thread: { isResolved?: boolean | null; comments?: { body: string }[] }): boolean {
-  if (thread.isResolved === false || thread.isResolved === undefined || thread.isResolved === null) {
+function isActionableThread(thread: {
+  isResolved?: boolean | null;
+  comments?: { body: string }[];
+}): boolean {
+  if (
+    thread.isResolved === false ||
+    thread.isResolved === undefined ||
+    thread.isResolved === null
+  ) {
     return true;
   }
-  return (thread.comments ?? []).some((comment) => isActionableText(comment.body));
+  return (thread.comments ?? []).some((comment) =>
+    isActionableText(comment.body)
+  );
 }
 
 function isActionableText(text: string): boolean {
@@ -186,7 +209,9 @@ function isTrivialComment(text: string): boolean {
   return TRIVIAL_COMMENTS.some((entry) => normalized === entry);
 }
 
-function findLatestMeaningfulComment<T extends { body: string; id?: number | string }>(comments: T[]): T | null {
+function findLatestMeaningfulComment<
+  T extends { body: string; id?: number | string },
+>(comments: T[]): T | null {
   for (let i = comments.length - 1; i >= 0; i -= 1) {
     const body = comments[i].body?.trim() ?? "";
     if (body && !isTrivialComment(body)) {

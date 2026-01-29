@@ -35,7 +35,11 @@ describe("findBranchForIssue", () => {
 });
 
 describe("buildTicketChoices", () => {
-  const makeIssue = (number: number, title: string, labels: string[] = []): GitHubIssue => ({
+  const makeIssue = (
+    number: number,
+    title: string,
+    labels: string[] = []
+  ): GitHubIssue => ({
     number,
     title,
     body: "",
@@ -53,7 +57,12 @@ describe("buildTicketChoices", () => {
 
   it("categorizes in-progress issues", () => {
     const inProgress = [makeIssue(1, "Task A", ["ai-in-progress"])];
-    const choices = buildTicketChoices(inProgress, [], [], ["ro/feature-1-task-a"]);
+    const choices = buildTicketChoices(
+      inProgress,
+      [],
+      [],
+      ["ro/feature-1-task-a"]
+    );
 
     expect(choices).toHaveLength(1);
     expect(choices[0].category).toBe("in-progress");
@@ -64,7 +73,9 @@ describe("buildTicketChoices", () => {
   it("categorizes in-progress issues with open PR as open-pr", () => {
     const inProgress = [makeIssue(1, "Task A", ["ai-in-progress"])];
     const prs = [makePr(10, "PR for task A", "ro/feature-1-task-a")];
-    const choices = buildTicketChoices(inProgress, [], prs, ["ro/feature-1-task-a"]);
+    const choices = buildTicketChoices(inProgress, [], prs, [
+      "ro/feature-1-task-a",
+    ]);
 
     expect(choices).toHaveLength(1);
     expect(choices[0].category).toBe("open-pr");

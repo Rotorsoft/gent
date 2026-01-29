@@ -12,7 +12,9 @@ export interface AssetUploadResult {
  * Upload a file to GitHub as a release asset.
  * Creates a hidden release for storing PR assets if needed.
  */
-export async function uploadAsset(filePath: string): Promise<AssetUploadResult> {
+export async function uploadAsset(
+  filePath: string
+): Promise<AssetUploadResult> {
   if (!existsSync(filePath)) {
     return { success: false, error: "File not found" };
   }
@@ -132,7 +134,10 @@ async function getAssetUrl(
 /**
  * Format video URL for markdown embedding in PR description
  */
-export function formatVideoMarkdown(url: string, title: string = "Demo Video"): string {
+export function formatVideoMarkdown(
+  url: string,
+  title: string = "Demo Video"
+): string {
   // GitHub markdown supports video embedding with a specific format
   return `
 ## ${title}

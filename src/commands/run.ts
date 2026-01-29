@@ -4,12 +4,28 @@ import { withSpinner } from "../utils/spinner.js";
 import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import { getIssue, updateIssueLabels, addIssueComment } from "../lib/github.js";
 import { buildImplementationPrompt } from "../lib/prompts.js";
-import { invokeAIInteractive, getProviderDisplayName } from "../lib/ai-provider.js";
-import { getCurrentBranch, isOnMainBranch, createBranch, branchExists, checkoutBranch, hasUncommittedChanges, getCurrentCommitSha, hasNewCommits } from "../lib/git.js";
+import {
+  invokeAIInteractive,
+  getProviderDisplayName,
+} from "../lib/ai-provider.js";
+import {
+  getCurrentBranch,
+  isOnMainBranch,
+  createBranch,
+  branchExists,
+  checkoutBranch,
+  hasUncommittedChanges,
+  getCurrentCommitSha,
+  hasNewCommits,
+} from "../lib/git.js";
 import { generateBranchName } from "../lib/branch.js";
 import { getWorkflowLabels, extractTypeFromLabels } from "../lib/labels.js";
 import { readProgress } from "../lib/progress.js";
-import { checkGhAuth, checkAIProvider, isValidIssueNumber } from "../utils/validators.js";
+import {
+  checkGhAuth,
+  checkAIProvider,
+  isValidIssueNumber,
+} from "../utils/validators.js";
 import type { GitHubIssue, AIProvider } from "../types/index.js";
 
 export interface RunOptions {
@@ -41,7 +57,9 @@ export async function runCommand(
   }
 
   if (!aiOk) {
-    logger.error(`${providerName} CLI not found. Please install ${provider} CLI first.`);
+    logger.error(
+      `${providerName} CLI not found. Please install ${provider} CLI first.`
+    );
     return;
   }
 
@@ -75,7 +93,9 @@ export async function runCommand(
     }
     issueNumber = parseInt(issueNumberArg, 10);
   } else {
-    logger.error("Please provide an issue number. Use 'gent switch' to browse tickets.");
+    logger.error(
+      "Please provide an issue number. Use 'gent switch' to browse tickets."
+    );
     return;
   }
 
@@ -92,7 +112,9 @@ export async function runCommand(
 
   // Verify issue has ai-ready label
   if (!issue.labels.includes(workflowLabels.ready)) {
-    logger.warning(`Issue #${issueNumber} does not have the '${workflowLabels.ready}' label.`);
+    logger.warning(
+      `Issue #${issueNumber} does not have the '${workflowLabels.ready}' label.`
+    );
     const { proceed } = await inquirer.prompt([
       {
         type: "confirm",
@@ -107,13 +129,21 @@ export async function runCommand(
   }
 
   logger.newline();
-  logger.box("Issue Details", `#${issue.number}: ${issue.title}
-Labels: ${issue.labels.join(", ")}`);
+  logger.box(
+    "Issue Details",
+    `#${issue.number}: ${issue.title}
+Labels: ${issue.labels.join(", ")}`
+  );
   logger.newline();
 
   // Generate branch name
   const type = extractTypeFromLabels(issue.labels);
-  const branchName = await generateBranchName(config, issueNumber, issue.title, type);
+  const branchName = await generateBranchName(
+    config,
+    issueNumber,
+    issue.title,
+    type
+  );
 
   // Handle branch
   const currentBranch = await getCurrentBranch();
@@ -144,7 +174,9 @@ Labels: ${issue.labels.join(", ")}`);
     }
   } else {
     if (!onMain) {
-      logger.warning(`Not on main branch (currently on ${colors.branch(currentBranch)}).`);
+      logger.warning(
+        `Not on main branch (currently on ${colors.branch(currentBranch)}).`
+      );
       const { fromMain } = await inquirer.prompt([
         {
           type: "confirm",
@@ -171,7 +203,9 @@ Labels: ${issue.labels.join(", ")}`);
       add: [workflowLabels.inProgress],
       remove: [workflowLabels.ready],
     });
-    logger.success(`Updated issue labels: ${colors.label(workflowLabels.ready)} → ${colors.label(workflowLabels.inProgress)}`);
+    logger.success(
+      `Updated issue labels: ${colors.label(workflowLabels.ready)} → ${colors.label(workflowLabels.inProgress)}`
+    );
   } catch (error) {
     logger.warning(`Failed to update labels: ${error}`);
   }
@@ -179,10 +213,17 @@ Labels: ${issue.labels.join(", ")}`);
   // Build implementation prompt
   const agentInstructions = loadAgentInstructions();
   const progressContent = readProgress(config);
-  const prompt = buildImplementationPrompt(issue, agentInstructions, progressContent, config);
+  const prompt = buildImplementationPrompt(
+    issue,
+    agentInstructions,
+    progressContent,
+    config
+  );
 
   logger.newline();
-  logger.info(`Starting ${colors.provider(providerName)} implementation session...`);
+  logger.info(
+    `Starting ${colors.provider(providerName)} implementation session...`
+  );
   logger.dim(`${providerName} will implement the feature and create a commit.`);
   logger.dim("Review the changes before pushing.");
   logger.newline();
@@ -202,14 +243,20 @@ Labels: ${issue.labels.join(", ")}`);
   let aiExitCode: number | undefined;
   let usedProvider = provider;
   try {
-    const { result, provider: actualProvider } = await invokeAIInteractive(prompt, config, options.provider);
+    const { result, provider: actualProvider } = await invokeAIInteractive(
+      prompt,
+      config,
+      options.provider
+    );
     usedProvider = actualProvider;
     aiExitCode = result.exitCode ?? undefined;
   } catch (error) {
     if (error && typeof error === "object" && "exitCode" in error) {
       aiExitCode = error.exitCode as number;
     }
-    logger.error(`${getProviderDisplayName(usedProvider)} session failed: ${error}`);
+    logger.error(
+      `${getProviderDisplayName(usedProvider)} session failed: ${error}`
+    );
     // Don't exit - allow user to see what happened
   } finally {
     // Clean up signal handlers
@@ -240,7 +287,9 @@ Labels: ${issue.labels.join(", ")}`);
         add: [workflowLabels.completed],
         remove: [workflowLabels.inProgress],
       });
-      logger.success(`Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.completed)}`);
+      logger.success(
+        `Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.completed)}`
+      );
     } catch (error) {
       logger.warning(`Failed to update labels: ${error}`);
     }
@@ -262,7 +311,9 @@ Labels: ${issue.labels.join(", ")}`);
     const isRateLimited = aiExitCode === 2;
 
     if (isRateLimited) {
-      logger.warning(`${usedProviderName} session ended due to rate limits. No commits were created.`);
+      logger.warning(
+        `${usedProviderName} session ended due to rate limits. No commits were created.`
+      );
 
       // Set ai-blocked label
       try {
@@ -270,7 +321,9 @@ Labels: ${issue.labels.join(", ")}`);
           add: [workflowLabels.blocked],
           remove: [workflowLabels.inProgress],
         });
-        logger.info(`Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.blocked)}`);
+        logger.info(
+          `Updated labels: ${colors.label(workflowLabels.inProgress)} → ${colors.label(workflowLabels.blocked)}`
+        );
       } catch (error) {
         logger.warning(`Failed to update labels: ${error}`);
       }
@@ -286,7 +339,9 @@ Labels: ${issue.labels.join(", ")}`);
         logger.warning(`Failed to post comment: ${error}`);
       }
     } else {
-      logger.warning(`${usedProviderName} session completed but no commits were created. Labels unchanged.`);
+      logger.warning(
+        `${usedProviderName} session completed but no commits were created. Labels unchanged.`
+      );
       // Leave as ai-in-progress so it can be retried
     }
 
@@ -294,9 +349,11 @@ Labels: ${issue.labels.join(", ")}`);
   }
 
   logger.newline();
-  logger.box("Next Steps", `1. Review changes: ${colors.command("git diff HEAD~1")}
+  logger.box(
+    "Next Steps",
+    `1. Review changes: ${colors.command("git diff HEAD~1")}
 2. Run tests: ${colors.command("npm test")}
 3. Push branch: ${colors.command("git push -u origin " + branchName)}
-4. Create PR: ${colors.command("gent pr")}`);
+4. Create PR: ${colors.command("gent pr")}`
+  );
 }
-

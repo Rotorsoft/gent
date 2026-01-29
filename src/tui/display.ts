@@ -12,7 +12,6 @@ function termWidth(): number {
   return Math.min(process.stdout.columns || 80, 90);
 }
 
-
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
   return text.slice(0, max - 1) + "…";
@@ -27,7 +26,9 @@ function extractDescription(body: string, maxLen: number): string {
     if (trimmed.startsWith("---")) continue;
     if (trimmed.startsWith("META:")) continue;
     if (trimmed.startsWith("**Type:**")) continue;
-    const clean = trimmed.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    const clean = trimmed
+      .replace(/\*\*/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
     return truncate(clean, maxLen);
   }
   return "";
@@ -38,13 +39,21 @@ function extractDescription(body: string, maxLen: number): string {
 function topRow(title: string, w: number): string {
   const label = ` ${title} `;
   const fill = w - 2 - label.length;
-  return chalk.dim("┌") + chalk.bold.cyan(label) + chalk.dim("─".repeat(Math.max(0, fill)) + "┐");
+  return (
+    chalk.dim("┌") +
+    chalk.bold.cyan(label) +
+    chalk.dim("─".repeat(Math.max(0, fill)) + "┐")
+  );
 }
 
 function midRow(title: string, w: number): string {
   const label = ` ${title} `;
   const fill = w - 2 - label.length;
-  return chalk.dim("├") + chalk.bold.cyan(label) + chalk.dim("─".repeat(Math.max(0, fill)) + "┤");
+  return (
+    chalk.dim("├") +
+    chalk.bold.cyan(label) +
+    chalk.dim("─".repeat(Math.max(0, fill)) + "┤")
+  );
 }
 
 function divRow(w: number): string {
@@ -65,27 +74,38 @@ function row(text: string, w: number): string {
 
 function workflowBadge(status: string): string {
   switch (status) {
-    case "ready": return chalk.bgGreen.black(" READY ");
-    case "in-progress": return chalk.bgYellow.black(" IN PROGRESS ");
-    case "completed": return chalk.bgBlue.white(" COMPLETED ");
-    case "blocked": return chalk.bgRed.white(" BLOCKED ");
-    default: return "";
+    case "ready":
+      return chalk.bgGreen.black(" READY ");
+    case "in-progress":
+      return chalk.bgYellow.black(" IN PROGRESS ");
+    case "completed":
+      return chalk.bgBlue.white(" COMPLETED ");
+    case "blocked":
+      return chalk.bgRed.white(" BLOCKED ");
+    default:
+      return "";
   }
 }
 
 function prBadge(state: "open" | "closed" | "merged", draft: boolean): string {
   if (state === "merged") return chalk.bgMagenta.white(" MERGED ");
   if (state === "closed") return chalk.bgRed.white(" CLOSED ");
-  return draft ? chalk.bgYellow.black(" DRAFT ") : chalk.bgGreen.black(" OPEN ");
+  return draft
+    ? chalk.bgYellow.black(" DRAFT ")
+    : chalk.bgGreen.black(" OPEN ");
 }
 
 function reviewBadge(decision: string | null): string {
   if (!decision) return "";
   switch (decision) {
-    case "APPROVED": return "  " + chalk.green("Approved");
-    case "CHANGES_REQUESTED": return "  " + chalk.red("Changes requested");
-    case "REVIEW_REQUIRED": return "  " + chalk.yellow("Review pending");
-    default: return "";
+    case "APPROVED":
+      return "  " + chalk.green("Approved");
+    case "CHANGES_REQUESTED":
+      return "  " + chalk.red("Changes requested");
+    case "REVIEW_REQUIRED":
+      return "  " + chalk.yellow("Review pending");
+    default:
+      return "";
   }
 }
 
@@ -133,7 +153,6 @@ function formatCommandBar(actions: TuiAction[], w: number): string[] {
   return lines;
 }
 
-
 /**
  * Render a framed panel for action output.
  * Shows a titled box with multiline content, used for command results
@@ -152,9 +171,15 @@ export function renderActionPanel(title: string, content: string[]): void {
 
 function renderSettings(state: TuiState, w: number): void {
   const provider = getProviderDisplayName(state.config.ai.provider);
-  const provTag = state.isAIProviderAvailable ? chalk.green(provider) : chalk.red(provider);
-  const ghTag = state.isGhAuthenticated ? chalk.green("authenticated") : chalk.red("not authenticated");
-  const videoTag = state.config.video.enabled ? chalk.green("on") : chalk.dim("off");
+  const provTag = state.isAIProviderAvailable
+    ? chalk.green(provider)
+    : chalk.red(provider);
+  const ghTag = state.isGhAuthenticated
+    ? chalk.green("authenticated")
+    : chalk.red("not authenticated");
+  const videoTag = state.config.video.enabled
+    ? chalk.green("on")
+    : chalk.dim("off");
 
   console.log(row(chalk.dim("Provider: ") + provTag, w));
   console.log(row(chalk.dim("GitHub:   ") + ghTag, w));
@@ -163,7 +188,12 @@ function renderSettings(state: TuiState, w: number): void {
 
 // ── Main render ─────────────────────────────────────────────────
 
-export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: string, refreshing?: boolean): void {
+export function renderDashboard(
+  state: TuiState,
+  actions: TuiAction[],
+  hint?: string,
+  refreshing?: boolean
+): void {
   const w = termWidth();
   const descMax = w - 8;
   const version = getVersion();
@@ -175,7 +205,9 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
   // ── Error states ──────────────────────────────────────────────
   if (!state.isGitRepo) {
     console.log(row(chalk.red("Not a git repository"), w));
-    console.log(row(chalk.dim("Run gent init in a git repo to get started"), w));
+    console.log(
+      row(chalk.dim("Run gent init in a git repo to get started"), w)
+    );
     console.log(botRow(w));
     return;
   }
@@ -188,7 +220,12 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
 
   // ── On main – nothing active ─────────────────────────────────
   if (state.isOnMain) {
-    console.log(row(chalk.magenta(state.branch) + chalk.dim("  ·  ready to start new work"), w));
+    console.log(
+      row(
+        chalk.magenta(state.branch) + chalk.dim("  ·  ready to start new work"),
+        w
+      )
+    );
     if (state.hasUncommittedChanges) {
       console.log(row(chalk.yellow("● uncommitted changes"), w));
     }
@@ -219,14 +256,19 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
   // Ticket
   section("Ticket");
   if (state.issue) {
-    console.log(row(
-      chalk.cyan(`#${state.issue.number}`) + "  " + chalk.bold(truncate(state.issue.title, descMax - 6)),
-      w,
-    ));
+    console.log(
+      row(
+        chalk.cyan(`#${state.issue.number}`) +
+          "  " +
+          chalk.bold(truncate(state.issue.title, descMax - 6)),
+        w
+      )
+    );
     const desc = extractDescription(state.issue.body, descMax);
     if (desc) console.log(row(chalk.dim(desc), w));
     const tags: string[] = [];
-    if (state.workflowStatus !== "none") tags.push(workflowBadge(state.workflowStatus));
+    if (state.workflowStatus !== "none")
+      tags.push(workflowBadge(state.workflowStatus));
     for (const prefix of ["type:", "priority:", "risk:", "area:"]) {
       const l = state.issue.labels.find((x) => x.startsWith(prefix));
       if (l) tags.push(chalk.dim(l));
@@ -240,10 +282,15 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
   section("Branch");
   console.log(row(chalk.magenta(state.branch), w));
   const bits: string[] = [];
-  if (state.commits.length > 0) bits.push(chalk.dim(`${state.commits.length} ahead`));
+  if (state.commits.length > 0)
+    bits.push(chalk.dim(`${state.commits.length} ahead`));
   if (state.hasUncommittedChanges) bits.push(chalk.yellow("● uncommitted"));
   if (state.hasUnpushedCommits) bits.push(chalk.yellow("● unpushed"));
-  if (!state.hasUncommittedChanges && !state.hasUnpushedCommits && state.commits.length > 0) {
+  if (
+    !state.hasUncommittedChanges &&
+    !state.hasUnpushedCommits &&
+    state.commits.length > 0
+  ) {
     bits.push(chalk.green("● synced"));
   }
   if (bits.length) console.log(row(bits.join(chalk.dim("  ·  ")), w));
@@ -254,20 +301,36 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
     const titleText = state.pr.title
       ? "  " + truncate(state.pr.title, descMax - 12)
       : "";
-    console.log(row(
-      chalk.cyan(`#${state.pr.number}`) + titleText,
-      w,
-    ));
-    console.log(row(
-      prBadge(state.pr.state, state.pr.isDraft) + reviewBadge(state.pr.reviewDecision),
-      w,
-    ));
+    console.log(row(chalk.cyan(`#${state.pr.number}`) + titleText, w));
+    console.log(
+      row(
+        prBadge(state.pr.state, state.pr.isDraft) +
+          reviewBadge(state.pr.reviewDecision),
+        w
+      )
+    );
     if (state.hasActionableFeedback) {
       const n = state.reviewFeedback.length;
-      console.log(row(chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`), w));
+      console.log(
+        row(
+          chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`),
+          w
+        )
+      );
     }
-    if (state.hasUIChanges && state.isPlaywrightAvailable && state.config.video.enabled && state.pr.state === "open") {
-      console.log(row(chalk.cyan("UI changes detected") + chalk.dim(" · video capture available"), w));
+    if (
+      state.hasUIChanges &&
+      state.isPlaywrightAvailable &&
+      state.config.video.enabled &&
+      state.pr.state === "open"
+    ) {
+      console.log(
+        row(
+          chalk.cyan("UI changes detected") +
+            chalk.dim(" · video capture available"),
+          w
+        )
+      );
     }
     console.log(row(chalk.dim(state.pr.url), w));
   } else {
@@ -282,7 +345,9 @@ export function renderDashboard(state: TuiState, actions: TuiAction[], hint?: st
       console.log(row(c.substring(0, w - 5), w));
     }
     if (state.commits.length > max) {
-      console.log(row(chalk.dim(`… and ${state.commits.length - max} more`), w));
+      console.log(
+        row(chalk.dim(`… and ${state.commits.length - max} more`), w)
+      );
     }
   } else {
     console.log(row(chalk.dim("No commits"), w));
