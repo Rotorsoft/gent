@@ -93,7 +93,7 @@ export async function listCommand(options: ListOptions): Promise<void> {
 
   logger.newline();
   logger.dim(`Run ${colors.command("gent run <issue-number>")} to implement an issue`);
-  logger.dim(`Run ${colors.command("gent run --auto")} to auto-select highest priority`);
+  logger.dim(`Run ${colors.command("gent switch")} to browse and switch to a ticket`);
 }
 
 function getIssueStatus(

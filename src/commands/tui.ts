@@ -6,9 +6,9 @@ import { renderDashboard, renderModal, renderActionPanel, clearScreen } from "..
 import { logger } from "../utils/logger.js";
 import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
-import { runCommand } from "./run.js";
 import { prCommand } from "./pr.js";
 import { listCommand } from "./list.js";
+import { switchCommand } from "./switch.js";
 import { buildVideoPrompt, buildCommitMessagePrompt, buildImplementationPrompt } from "../lib/prompts.js";
 import { invokeAI, invokeAIInteractive, getProviderDisplayName, getProviderEmail } from "../lib/ai-provider.js";
 import { loadAgentInstructions } from "../lib/config.js";
@@ -77,16 +77,15 @@ async function executeAction(actionId: string, state: TuiState, providerSetter: 
       await promptContinue();
       return true;
 
-    case "run-auto": {
+    case "switch": {
       clearScreen();
-      if (!await confirm("Start AI agent to implement next ticket?")) return true;
       try {
-        await runCommand(undefined, { auto: true });
+        await switchCommand();
       } catch (error) {
-        logger.error(`Run failed: ${error}`);
-        await promptContinue();
+        logger.error(`Switch failed: ${error}`);
       }
-      return false;
+      await promptContinue();
+      return true;
     }
 
     case "create": {

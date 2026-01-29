@@ -4,6 +4,7 @@ import { setupLabelsCommand } from "./commands/setup-labels.js";
 import { createCommand } from "./commands/create.js";
 import { listCommand } from "./commands/list.js";
 import { runCommand } from "./commands/run.js";
+import { switchCommand } from "./commands/switch.js";
 import { prCommand } from "./commands/pr.js";
 import { fixCommand } from "./commands/fix.js";
 import { statusCommand } from "./commands/status.js";
@@ -85,10 +86,16 @@ program
 program
   .command("run [issue-number]")
   .description("Run AI to implement a GitHub issue")
-  .option("-a, --auto", "Auto-select highest priority ai-ready issue")
   .option("-p, --provider <provider>", "AI provider to use (claude, gemini, or codex)")
   .action(async (issueNumber, options) => {
-    await runCommand(issueNumber, { auto: options.auto, provider: options.provider });
+    await runCommand(issueNumber, { provider: options.provider });
+  });
+
+program
+  .command("switch")
+  .description("Interactive ticket selector to switch branches")
+  .action(async () => {
+    await switchCommand();
   });
 
 program
