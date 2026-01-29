@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/rotorsoft/gent/compare/v1.13.0...v1.13.1) (2026-01-29)
+
+
+### Bug Fixes
+
+* hide implement action for merged PRs and replace refresh modal with inline indicator ([a2c77e0](https://github.com/rotorsoft/gent/commit/a2c77e073856c25eeb65a2c0b060d9b418ccae92)), closes [#53](https://github.com/rotorsoft/gent/issues/53)
+
 # [1.13.0](https://github.com/rotorsoft/gent/compare/v1.12.1...v1.13.0) (2026-01-29)
 
 
