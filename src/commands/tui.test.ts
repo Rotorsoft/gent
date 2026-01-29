@@ -16,8 +16,7 @@ vi.mock("../lib/config.js", () => ({
 }));
 vi.mock("../lib/prompts.js", () => ({
   buildImplementationPrompt: () => "mock prompt",
-  buildVideoPrompt: () => "mock video prompt",
-  buildCommitMessagePrompt: () => "mock commit prompt",
+buildCommitMessagePrompt: () => "mock commit prompt",
 }));
 vi.mock("../lib/progress.js", () => ({
   readProgress: () => "mock progress",

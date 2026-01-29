@@ -41,16 +41,6 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     actions.push({ id: "run", label: "run", shortcut: "u" });
   }
 
-  if (state.pr && state.pr.state === "open") {
-    if (
-      state.hasUIChanges &&
-      state.isPlaywrightAvailable &&
-      state.config.video.enabled
-    ) {
-      actions.push({ id: "video", label: "video", shortcut: "v" });
-    }
-  }
-
   if (
     state.pr &&
     (state.pr.state === "merged" || state.pr.state === "closed")

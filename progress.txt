@@ -135,3 +135,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/actions.ts, src/commands/tui.ts, src/tui/actions.test.ts
 - Changes: Renamed the 'implement' TUI action to 'run' and updated its keyboard shortcut to 'u'. Updated command handlers and unit tests accordingly.
 - Decisions: Used 'u' for run as 'r' was taken by PR and 'c' by commit.
+
+[2026-01-29] #62 feat: remove video command from TUI, add post-PR video suggestion
+- Files: src/tui/actions.ts, src/commands/tui.ts, src/commands/pr.ts, src/tui/actions.test.ts, src/commands/tui.test.ts
+- Changes: Removed video action from TUI actions and command handler. Added post-PR suggestion to run Playwright MCP for video capture and upload to GitHub Assets. Fixed AI interactive mode to properly await the subprocess result before returning to dashboard.
+- Decisions: Video suggestion only shown when UI changes detected and Playwright available. AI interactive fix was awaiting the wrapper function but not the execa ResultPromise.
