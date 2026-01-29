@@ -39,7 +39,7 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   }
 
   if (state.issue) {
-    actions.push({ id: "fix", label: "fix", shortcut: "f" });
+    actions.push({ id: "implement", label: "implement", shortcut: "i" });
   }
 
   if (state.pr && state.pr.state === "open") {

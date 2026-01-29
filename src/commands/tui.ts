@@ -2,7 +2,7 @@ import inquirer from "inquirer";
 import { execa } from "execa";
 import { aggregateState, type TuiState } from "../tui/state.js";
 import { getAvailableActions } from "../tui/actions.js";
-import { renderDashboard, renderModal, clearScreen } from "../tui/display.js";
+import { renderDashboard, renderModal, renderActionPanel, clearScreen } from "../tui/display.js";
 import { logger } from "../utils/logger.js";
 import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
@@ -80,7 +80,12 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
     case "run-auto": {
       clearScreen();
       if (!await confirm("Start AI agent to implement next ticket?")) return true;
-      await runCommand(undefined, { auto: true });
+      try {
+        await runCommand(undefined, { auto: true });
+      } catch (error) {
+        logger.error(`Run failed: ${error}`);
+        await promptContinue();
+      }
       return false;
     }
 
@@ -97,7 +102,11 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
         logger.info("Cancelled");
         return true;
       }
-      await createCommand(description, {});
+      try {
+        await createCommand(description, {});
+      } catch (error) {
+        logger.error(`Create failed: ${error}`);
+      }
       await promptContinue();
       return true;
     }
@@ -122,14 +131,14 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
       return true;
     }
 
-    case "fix": {
+    case "implement": {
       clearScreen();
       const hasCommits = state.commits.length > 0;
       const msg = hasCommits
         ? "Start AI agent to continue implementation from existing commits?"
         : "Start AI agent to implement this ticket from scratch?";
       if (!await confirm(msg)) return true;
-      await handleFix(state);
+      await handleImplement(state);
       return false;
     }
 
@@ -246,7 +255,7 @@ async function generateCommitMessage(
   }
 }
 
-async function handleFix(state: TuiState): Promise<void> {
+async function handleImplement(state: TuiState): Promise<void> {
   if (!state.issue) {
     logger.error("No linked issue found");
     return;
@@ -255,11 +264,23 @@ async function handleFix(state: TuiState): Promise<void> {
   const agentInstructions = loadAgentInstructions();
   const progressContent = readProgress(state.config);
 
-  // Build context based on whether there are existing commits
-  let extraContext: string | null = null;
+  // Build context based on current state
+  const contextParts: string[] = [];
+
   if (state.commits.length > 0) {
-    extraContext = `## Current Progress\nThere are ${state.commits.length} existing commit(s) on this branch:\n${state.commits.map((c) => `- ${c}`).join("\n")}\n\nContinue the implementation from where it left off. Review the existing work and complete any remaining tasks.`;
+    contextParts.push(
+      `## Current Progress\nThere are ${state.commits.length} existing commit(s) on this branch:\n${state.commits.map((c) => `- ${c}`).join("\n")}\n\nContinue the implementation from where it left off. Review the existing work and complete any remaining tasks.`
+    );
   }
+
+  if (state.hasActionableFeedback && state.reviewFeedback.length > 0) {
+    const feedbackLines = state.reviewFeedback
+      .map((f) => `- [${f.source}] ${f.body.slice(0, 200)}`)
+      .join("\n");
+    contextParts.push(`## Review Feedback\n${feedbackLines}`);
+  }
+
+  const extraContext = contextParts.length > 0 ? contextParts.join("\n\n") : null;
 
   const prompt = buildImplementationPrompt(
     state.issue,
@@ -270,8 +291,16 @@ async function handleFix(state: TuiState): Promise<void> {
   );
 
   const providerName = getProviderDisplayName(state.config.ai.provider);
-  logger.info(`Starting ${providerName} implementation session...`);
-  logger.newline();
+
+  clearScreen();
+  renderActionPanel(`${providerName} Session`, [
+    `Implementing: #${state.issue.number} ${state.issue.title}`,
+    state.commits.length > 0
+      ? `Continuing from ${state.commits.length} existing commit(s)`
+      : "Starting fresh implementation",
+    ...(state.hasActionableFeedback ? [`Includes ${state.reviewFeedback.length} review feedback item(s)`] : []),
+  ]);
+  console.log();
 
   try {
     await invokeAIInteractive(prompt, state.config);
@@ -338,6 +367,15 @@ async function handleVideoCapture(state: TuiState): Promise<void> {
     logger.error("No linked issue found");
     return;
   }
+
+  const providerName = getProviderDisplayName(state.config.ai.provider);
+
+  clearScreen();
+  renderActionPanel("Video Capture", [
+    `Recording: #${state.issue.number} ${state.issue.title}`,
+    `Provider: ${providerName}`,
+  ]);
+  console.log();
 
   try {
     const agentInstructions = loadAgentInstructions();

@@ -110,3 +110,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/state.ts, src/tui/actions.ts, src/tui/display.ts, src/tui/state.test.ts, src/tui/actions.test.ts, src/commands/tui.ts, src/index.ts, src/lib/prompts.ts, README.md, AGENT.md, progress.txt
 - Changes: Added dashboard launched via `gent` (no args) or `gent ui`. Panels for Ticket/Branch/PR/Commits with keyboard shortcuts at bottom. State aggregation from git, GitHub issues/PRs, labels, and Playwright. Video capture prompt builder for UI changes. Dashboard auto-refreshes after actions.
 - Decisions: Used existing inquirer+chalk+ora instead of adding TUI library. Raw stdin for single-key input. htop-inspired panel layout with badges. No action menu - bottom command bar with shortcuts instead.
+
+[2026-01-28] #49 fix: fix TUI command execution and standardize modal dialogs
+- Files: src/commands/tui.ts, src/tui/actions.ts, src/tui/display.ts, src/tui/actions.test.ts, src/commands/create.ts, src/commands/run.ts
+- Changes: Replaced process.exit calls with return in create/run commands to prevent TUI termination. Renamed fix action to implement (shortcut i) for context-aware implementation. Added renderActionPanel for framed output. Included review feedback context in implementation prompts. Added error handling around TUI command calls.
+- Decisions: Kept command functions reusable by replacing process.exit with return. Action panel shows session context before handing off to AI provider.
