@@ -1,3 +1,17 @@
+## [1.13.2](https://github.com/rotorsoft/gent/compare/v1.13.1...v1.13.2) (2026-01-29)
+
+
+### Bug Fixes
+
+* ask for commit with ai or manually, and format all code with repository rules ([4091de7](https://github.com/rotorsoft/gent/commit/4091de79fc86bb736c15237492a905f58ada3162))
+* command labels and shorcuts ([5ae32ff](https://github.com/rotorsoft/gent/commit/5ae32ffe18f0e4f422fbae10d04803958ea3e4a2))
+* move refresh label to commands section ([1b5e8a7](https://github.com/rotorsoft/gent/commit/1b5e8a77d772aa248a57e25b7ae108cd9f14fa0a))
+* move settings to top ([5e2c54c](https://github.com/rotorsoft/gent/commit/5e2c54c8b737c618afcf1bede2ea478abecce8b6))
+* simplify command labels and shortcuts, but making this commit message larger than usual to test trimming in the commit section ([94a712a](https://github.com/rotorsoft/gent/commit/94a712a781d8bf34fa4468d9726cbf9ba6308b63))
+* trim commit msgs ([c229eae](https://github.com/rotorsoft/gent/commit/c229eae1949a721d67d7398b47ee18425ffee595))
+* unit test with new shortcuts ([916d6da](https://github.com/rotorsoft/gent/commit/916d6daf67e7e651071d981b64e0827b52651656))
+* use TUI state before config ([d60048f](https://github.com/rotorsoft/gent/commit/d60048f17a14d764d2a2adb999ba5f7d1012fd30))
+
 ## [1.13.1](https://github.com/rotorsoft/gent/compare/v1.13.0...v1.13.1) (2026-01-29)
 
 
