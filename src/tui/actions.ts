@@ -16,13 +16,9 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
 
   // On main branch
   if (state.isOnMain) {
-    actions.push({ id: "create", label: "new ticket", shortcut: "n" });
-    actions.push({ id: "list", label: "list tickets", shortcut: "l" });
-    actions.push({
-      id: "switch-provider",
-      label: "switch session provider",
-      shortcut: "s",
-    });
+    actions.push({ id: "create", label: "new", shortcut: "n" });
+    actions.push({ id: "list", label: "list", shortcut: "l" });
+    actions.push({ id: "switch-provider", label: "ai", shortcut: "a" });
     actions.push({ id: "quit", label: "quit", shortcut: "q" });
     return actions;
   }
@@ -38,11 +34,11 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   }
 
   if (!state.pr && state.commits.length > 0) {
-    actions.push({ id: "pr", label: "create PR", shortcut: "c" });
+    actions.push({ id: "pr", label: "pr", shortcut: "r" });
   }
 
   if (state.issue && state.pr?.state !== "merged") {
-    actions.push({ id: "implement", label: "implement ticket", shortcut: "i" });
+    actions.push({ id: "implement", label: "implement", shortcut: "i" });
   }
 
   if (state.pr && state.pr.state === "open") {
@@ -51,7 +47,7 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
       state.isPlaywrightAvailable &&
       state.config.video.enabled
     ) {
-      actions.push({ id: "video", label: "video playwright", shortcut: "v" });
+      actions.push({ id: "video", label: "video", shortcut: "v" });
     }
   }
 
@@ -59,15 +55,11 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     state.pr &&
     (state.pr.state === "merged" || state.pr.state === "closed")
   ) {
-    actions.push({ id: "checkout-main", label: "main branch", shortcut: "m" });
+    actions.push({ id: "checkout-main", label: "main", shortcut: "m" });
   }
 
-  actions.push({ id: "list", label: "list tickets", shortcut: "l" });
-  actions.push({
-    id: "switch-provider",
-    label: "switch session provider",
-    shortcut: "s",
-  });
+  actions.push({ id: "list", label: "list", shortcut: "l" });
+  actions.push({ id: "switch-provider", label: "ai", shortcut: "a" });
   actions.push({ id: "quit", label: "quit", shortcut: "q" });
 
   return actions;
