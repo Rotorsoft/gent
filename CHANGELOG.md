@@ -1,3 +1,13 @@
+## [1.12.1](https://github.com/rotorsoft/gent/compare/v1.12.0...v1.12.1) (2026-01-29)
+
+
+### Bug Fixes
+
+* differentiate three implementation scenarios in TUI ([9048669](https://github.com/rotorsoft/gent/commit/9048669959fdafa0d239b40cc6c3d8cef96fac84))
+* keep provider switch in-memory to avoid dirtying the repo ([486e136](https://github.com/rotorsoft/gent/commit/486e136fd74ebeb8518beccc08126dadef73f753))
+* replace fix-feedback command with context-aware implementation agent ([112b5bd](https://github.com/rotorsoft/gent/commit/112b5bdc52b64b56a066d3fb909e0625f5537b69))
+* standardize TUI command execution and modal dialogs ([9a2ceb9](https://github.com/rotorsoft/gent/commit/9a2ceb97b9bee1f529bd6d676bca29ca911e90d5)), closes [#49](https://github.com/rotorsoft/gent/issues/49)
+
 # [1.12.0](https://github.com/rotorsoft/gent/compare/v1.11.0...v1.12.0) (2026-01-28)
 
 

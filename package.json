@@ -1,6 +1,6 @@
 {
   "name": "@rotorsoft/gent",
-  "version": "1.12.0",
+  "version": "1.12.1",
   "description": "AI-powered GitHub workflow CLI - leverage AI (Claude, Gemini, or Codex) to create tickets, implement features, and manage PRs",
   "keywords": [
     "cli",
