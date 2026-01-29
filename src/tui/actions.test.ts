@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { getAvailableActions } from "./actions.js";
 import type { TuiState } from "./state.js";
 
@@ -115,7 +115,7 @@ describe("getAvailableActions", () => {
     const push = actions.find((a) => a.id === "push");
 
     expect(push).toBeDefined();
-    expect(push!.shortcut).toBe("P");
+    expect(push!.shortcut).toBe("p");
   });
 
   it("shows both commit and push when uncommitted and unpushed exist", () => {
@@ -145,7 +145,7 @@ describe("getAvailableActions", () => {
     const pr = actions.find((a) => a.id === "pr");
 
     expect(pr).toBeDefined();
-    expect(pr!.shortcut).toBe("C");
+    expect(pr!.shortcut).toBe("r");
   });
 
   it("shows implement when issue exists on feature branch", () => {
