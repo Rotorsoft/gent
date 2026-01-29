@@ -79,8 +79,10 @@ describe("getAvailableActions", () => {
     const actions = getAvailableActions(createBaseState());
     const ids = actions.map((a) => a.id);
 
+    expect(ids).toHaveLength(4);
     expect(ids).toContain("create");
     expect(ids).toContain("list");
+    expect(ids).toContain("switch-provider");
     expect(ids).toContain("quit");
 
     // Each action has a shortcut
