@@ -8,11 +8,11 @@ import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
 import { runCommand } from "./run.js";
 import { prCommand } from "./pr.js";
-import { fixCommand } from "./fix.js";
 import { listCommand } from "./list.js";
-import { buildVideoPrompt, buildCommitMessagePrompt } from "../lib/prompts.js";
+import { buildVideoPrompt, buildCommitMessagePrompt, buildImplementationPrompt } from "../lib/prompts.js";
 import { invokeAI, invokeAIInteractive, getProviderDisplayName, getProviderEmail } from "../lib/ai-provider.js";
 import { loadAgentInstructions, updateConfigProvider } from "../lib/config.js";
+import { readProgress } from "../lib/progress.js";
 import type { AIProvider } from "../types/index.js";
 
 const CANCEL = Symbol("cancel");
@@ -124,8 +124,12 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
 
     case "fix": {
       clearScreen();
-      if (!await confirm("Start AI agent to fix review feedback?")) return true;
-      await fixCommand({});
+      const hasCommits = state.commits.length > 0;
+      const msg = hasCommits
+        ? "Start AI agent to continue implementation from existing commits?"
+        : "Start AI agent to implement this ticket from scratch?";
+      if (!await confirm(msg)) return true;
+      await handleFix(state);
       return false;
     }
 
@@ -239,6 +243,40 @@ async function generateCommitMessage(
       },
     ]);
     return message.trim() || CANCEL;
+  }
+}
+
+async function handleFix(state: TuiState): Promise<void> {
+  if (!state.issue) {
+    logger.error("No linked issue found");
+    return;
+  }
+
+  const agentInstructions = loadAgentInstructions();
+  const progressContent = readProgress(state.config);
+
+  // Build context based on whether there are existing commits
+  let extraContext: string | null = null;
+  if (state.commits.length > 0) {
+    extraContext = `## Current Progress\nThere are ${state.commits.length} existing commit(s) on this branch:\n${state.commits.map((c) => `- ${c}`).join("\n")}\n\nContinue the implementation from where it left off. Review the existing work and complete any remaining tasks.`;
+  }
+
+  const prompt = buildImplementationPrompt(
+    state.issue,
+    agentInstructions,
+    progressContent,
+    state.config,
+    extraContext,
+  );
+
+  const providerName = getProviderDisplayName(state.config.ai.provider);
+  logger.info(`Starting ${providerName} implementation session...`);
+  logger.newline();
+
+  try {
+    await invokeAIInteractive(prompt, state.config);
+  } catch (error) {
+    logger.error(`${providerName} session failed: ${error}`);
   }
 }
 
