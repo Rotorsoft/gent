@@ -11,7 +11,7 @@ import { prCommand } from "./pr.js";
 import { listCommand } from "./list.js";
 import { buildVideoPrompt, buildCommitMessagePrompt, buildImplementationPrompt } from "../lib/prompts.js";
 import { invokeAI, invokeAIInteractive, getProviderDisplayName, getProviderEmail } from "../lib/ai-provider.js";
-import { loadAgentInstructions, updateConfigProvider } from "../lib/config.js";
+import { loadAgentInstructions } from "../lib/config.js";
 import { readProgress } from "../lib/progress.js";
 import type { AIProvider } from "../types/index.js";
 
@@ -66,7 +66,7 @@ async function waitForKey(validKeys: string[]): Promise<string> {
   });
 }
 
-async function executeAction(actionId: string, state: TuiState): Promise<boolean> {
+async function executeAction(actionId: string, state: TuiState, providerSetter: (p: AIProvider) => void): Promise<boolean> {
   switch (actionId) {
     case "quit":
       return false;
@@ -158,7 +158,7 @@ async function executeAction(actionId: string, state: TuiState): Promise<boolean
 
     case "switch-provider":
       clearScreen();
-      await handleSwitchProvider(state);
+      await handleSwitchProvider(state, providerSetter);
       return true;
 
     case "checkout-main": {
@@ -331,7 +331,10 @@ async function handlePush(): Promise<void> {
 
 const PROVIDERS: AIProvider[] = ["claude", "gemini", "codex"];
 
-async function handleSwitchProvider(state: TuiState): Promise<void> {
+async function handleSwitchProvider(
+  state: TuiState,
+  setProvider: (p: AIProvider) => void,
+): Promise<void> {
   const current = state.config.ai.provider;
   const { provider } = await inquirer.prompt<{ provider: AIProvider }>([
     {
@@ -348,12 +351,8 @@ async function handleSwitchProvider(state: TuiState): Promise<void> {
 
   if (provider === current) return;
 
-  try {
-    updateConfigProvider(provider);
-    logger.success(`Provider switched to ${provider}`);
-  } catch (error) {
-    logger.error(`Failed to switch provider: ${error}`);
-  }
+  setProvider(provider);
+  logger.success(`Provider switched to ${provider} (session only)`);
 }
 
 async function handleCheckoutMain(): Promise<void> {
@@ -411,9 +410,20 @@ async function promptContinue(): Promise<void> {
 
 export async function tuiCommand(): Promise<void> {
   let running = true;
+  let providerOverride: AIProvider | null = null;
+
+  const setProvider = (p: AIProvider) => {
+    providerOverride = p;
+  };
 
   while (running) {
     const state = await loadState();
+
+    // Apply in-memory provider override (avoids writing to .gent.yml)
+    if (providerOverride) {
+      state.config.ai.provider = providerOverride;
+    }
+
     clearScreen();
 
     const actions = getAvailableActions(state);
@@ -437,7 +447,7 @@ export async function tuiCommand(): Promise<void> {
     // Find the matching action
     const action = actions.find((a) => a.shortcut === key);
     if (action) {
-      running = await executeAction(action.id, state);
+      running = await executeAction(action.id, state, setProvider);
     }
   }
 }
