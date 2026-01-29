@@ -120,3 +120,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/list.ts, src/commands/list.test.ts, src/commands/run.ts, src/commands/tui.ts, src/tui/actions.ts, src/tui/actions.test.ts, src/index.ts, src/lib/git.ts, src/lib/github.ts
 - Changes: Consolidated `switch` and `list` commands into a single interactive `gent list` command. Displays tickets grouped by status (in progress, open PRs, ready) with branch switching on selection. Removed `--auto` flag and `autoSelectIssue` from run command. Removed separate `switch` command. TUI uses unified list action (shortcut l).
 - Decisions: Single command handles both listing and switching. Branch resolution scans local branches via parseBranchName, falls back to remote, offers creation if none found. Dirty working tree warning deferred until after selection.
+
+[2026-01-28] #53 fix: hide implement action for merged PRs and inline refresh indicator
+- Files: src/tui/actions.ts, src/tui/actions.test.ts, src/tui/display.ts, src/commands/tui.ts
+- Changes: Added PR merged state check to hide implement action. Replaced clear-screen modal refresh with inline "Refreshing…" label in dashboard title bar, re-rendering last state while loading new data.
+- Decisions: First load still uses modal since no previous state exists. Refreshing indicator shown in title row to avoid layout changes.

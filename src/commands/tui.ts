@@ -1,8 +1,8 @@
 import inquirer from "inquirer";
 import { execa } from "execa";
 import { aggregateState, type TuiState } from "../tui/state.js";
-import { getAvailableActions } from "../tui/actions.js";
-import { renderDashboard, renderModal, renderActionPanel, clearScreen } from "../tui/display.js";
+import { getAvailableActions, type TuiAction } from "../tui/actions.js";
+import { renderDashboard, renderActionPanel, clearScreen } from "../tui/display.js";
 import { logger } from "../utils/logger.js";
 import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
@@ -10,7 +10,7 @@ import { prCommand } from "./pr.js";
 import { listCommand } from "./list.js";
 import { buildVideoPrompt, buildCommitMessagePrompt, buildImplementationPrompt } from "../lib/prompts.js";
 import { invokeAI, invokeAIInteractive, getProviderDisplayName, getProviderEmail } from "../lib/ai-provider.js";
-import { loadAgentInstructions } from "../lib/config.js";
+import { loadAgentInstructions, loadConfig } from "../lib/config.js";
 import { readProgress } from "../lib/progress.js";
 import type { AIProvider } from "../types/index.js";
 
@@ -26,13 +26,6 @@ async function confirm(message: string): Promise<boolean> {
     },
   ]);
   return ok;
-}
-
-async function loadState(): Promise<TuiState> {
-  clearScreen();
-  renderModal("Loading workflow state...");
-  const state = await aggregateState();
-  return state;
 }
 
 async function waitForKey(validKeys: string[]): Promise<string> {
@@ -403,22 +396,56 @@ async function promptContinue(): Promise<void> {
 export async function tuiCommand(): Promise<void> {
   let running = true;
   let providerOverride: AIProvider | null = null;
+  let lastActions: TuiAction[] = [];
 
   const setProvider = (p: AIProvider) => {
     providerOverride = p;
   };
 
+  // Initial placeholder state for the first "Loading..." render
+  const config = loadConfig();
+  let lastState: TuiState = {
+    isGitRepo: true,
+    isGhAuthenticated: true,
+    isAIProviderAvailable: true,
+    config,
+    hasConfig: true,
+    hasProgress: false,
+    branch: "",
+    branchInfo: null,
+    isOnMain: true,
+    hasUncommittedChanges: false,
+    hasUnpushedCommits: false,
+    commits: [],
+    baseBranch: "main",
+    issue: null,
+    workflowStatus: "none",
+    pr: null,
+    reviewFeedback: [],
+    hasActionableFeedback: false,
+    hasUIChanges: false,
+    isPlaywrightAvailable: false,
+  };
+
   while (running) {
-    const state = await loadState();
+    // Show dashboard with refreshing indicator while loading new state
+    clearScreen();
+    renderDashboard(lastState, lastActions, undefined, true);
+
+    const state = await aggregateState();
 
     // Apply in-memory provider override (avoids writing to .gent.yml)
     if (providerOverride) {
       state.config.ai.provider = providerOverride;
     }
 
-    clearScreen();
-
     const actions = getAvailableActions(state);
+
+    // Save for next refresh cycle
+    lastState = state;
+    lastActions = actions;
+
+    clearScreen();
 
     // Contextual hint
     let hint: string | undefined;
