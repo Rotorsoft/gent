@@ -136,7 +136,7 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("commit");
   });
 
-  it("shows create pr with C shortcut when no PR exists but commits do", () => {
+  it("shows create pr with 'r' shortcut when no PR exists but commits do", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -150,7 +150,7 @@ describe("getAvailableActions", () => {
     expect(pr!.shortcut).toBe("r");
   });
 
-  it("shows implement when issue exists on feature branch", () => {
+  it("shows run when issue exists on feature branch", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -167,10 +167,10 @@ describe("getAvailableActions", () => {
     );
     const ids = actions.map((a) => a.id);
 
-    expect(ids).toContain("implement");
+    expect(ids).toContain("run");
   });
 
-  it("uses i shortcut for implement action", () => {
+  it("uses u shortcut for run action", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -185,10 +185,10 @@ describe("getAvailableActions", () => {
         },
       })
     );
-    const impl = actions.find((a) => a.id === "implement");
+    const impl = actions.find((a) => a.id === "run");
 
     expect(impl).toBeDefined();
-    expect(impl!.shortcut).toBe("i");
+    expect(impl!.shortcut).toBe("u");
   });
 
   it("shows video when UI changes detected and Playwright available", () => {
@@ -254,7 +254,7 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("checkout-main");
   });
 
-  it("does not show implement when PR is merged", () => {
+  it("does not show run when PR is merged", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -279,10 +279,10 @@ describe("getAvailableActions", () => {
     );
     const ids = actions.map((a) => a.id);
 
-    expect(ids).not.toContain("implement");
+    expect(ids).not.toContain("run");
   });
 
-  it("shows implement when PR is open", () => {
+  it("shows run when PR is open", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -307,10 +307,10 @@ describe("getAvailableActions", () => {
     );
     const ids = actions.map((a) => a.id);
 
-    expect(ids).toContain("implement");
+    expect(ids).toContain("run");
   });
 
-  it("does not show implement without issue on feature branch", () => {
+  it("does not show run without issue on feature branch", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -320,7 +320,7 @@ describe("getAvailableActions", () => {
     );
     const ids = actions.map((a) => a.id);
 
-    expect(ids).not.toContain("implement");
+    expect(ids).not.toContain("run");
   });
 
   it("does not show push without commits even when unpushed flag is set", () => {
