@@ -1,3 +1,11 @@
+# [1.15.0](https://github.com/rotorsoft/gent/compare/v1.14.2...v1.15.0) (2026-01-30)
+
+
+### Features
+
+* add manual refresh and improve branch switching UX ([f65f55b](https://github.com/rotorsoft/gent/commit/f65f55b9e01636a6a14945b60c9e4c448826fde1)), closes [#68](https://github.com/rotorsoft/gent/issues/68)
+* add manual refresh and improve branch switching UX ([#68](https://github.com/rotorsoft/gent/issues/68)) ([eb81cc4](https://github.com/rotorsoft/gent/commit/eb81cc4a86071e789a1c5340bb66723220c50a23))
+
 ## [1.14.2](https://github.com/rotorsoft/gent/compare/v1.14.1...v1.14.2) (2026-01-30)
 
 
