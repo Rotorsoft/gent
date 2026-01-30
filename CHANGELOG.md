@@ -1,3 +1,15 @@
+# [1.16.0](https://github.com/rotorsoft/gent/compare/v1.15.3...v1.16.0) (2026-01-30)
+
+
+### Features
+
+* add periodic version check to TUI dashboard ([b543a26](https://github.com/rotorsoft/gent/commit/b543a268870af2810043e9ff32fd9a9cea194851)), closes [#75](https://github.com/rotorsoft/gent/issues/75)
+
+
+### Performance Improvements
+
+* cache environment checks across TUI refresh cycles ([feaeacc](https://github.com/rotorsoft/gent/commit/feaeacc01a1e570af6faa86a89e3109187886028))
+
 ## [1.15.3](https://github.com/rotorsoft/gent/compare/v1.15.2...v1.15.3) (2026-01-30)
 
 
