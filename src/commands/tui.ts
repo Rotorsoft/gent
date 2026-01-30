@@ -1,17 +1,23 @@
-import inquirer from "inquirer";
 import { execa } from "execa";
 import { aggregateState, type TuiState } from "../tui/state.js";
 import { getAvailableActions, type TuiAction } from "../tui/actions.js";
 import {
   renderDashboard,
+  buildDashboardLines,
   renderActionPanel,
   clearScreen,
 } from "../tui/display.js";
+import {
+  showConfirm,
+  showSelect,
+  showInput,
+  showStatus,
+  type SelectEntry,
+} from "../tui/modal.js";
 import { logger } from "../utils/logger.js";
-import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
 import { prCommand } from "./pr.js";
-import { listCommand } from "./list.js";
+import { buildTicketChoices } from "./list.js";
 import {
   buildCommitMessagePrompt,
   buildImplementationPrompt,
@@ -28,21 +34,23 @@ import {
   setRuntimeProvider,
 } from "../lib/config.js";
 import { readProgress } from "../lib/progress.js";
+import { listIssues, listOpenPrs } from "../lib/github.js";
+import {
+  getCurrentBranch,
+  getDefaultBranch,
+  hasUncommittedChanges,
+  branchExists,
+  checkoutBranch,
+  createBranch,
+  listLocalBranches,
+  remoteBranchExists,
+  fetchAndCheckout,
+} from "../lib/git.js";
+import { getWorkflowLabels, sortByPriority } from "../lib/labels.js";
+import { generateBranchName } from "../lib/branch.js";
 import type { AIProvider } from "../types/index.js";
 
 const CANCEL = Symbol("cancel");
-
-async function confirm(message: string): Promise<boolean> {
-  const { ok } = await inquirer.prompt<{ ok: boolean }>([
-    {
-      type: "confirm",
-      name: "ok",
-      message,
-      default: true,
-    },
-  ]);
-  return ok;
-}
 
 async function waitForKey(validKeys: string[]): Promise<string> {
   return new Promise((resolve) => {
@@ -74,116 +82,93 @@ async function waitForKey(validKeys: string[]): Promise<string> {
   });
 }
 
+export interface ActionResult {
+  running: boolean;
+  refresh: boolean;
+}
+
+const CONTINUE: ActionResult = { running: true, refresh: true };
+const SKIP_REFRESH: ActionResult = { running: true, refresh: false };
+const QUIT: ActionResult = { running: false, refresh: false };
+
 export async function executeAction(
   actionId: string,
-  state: TuiState
-): Promise<boolean> {
+  state: TuiState,
+  dashboardLines: string[]
+): Promise<ActionResult> {
   switch (actionId) {
     case "quit":
-      return false;
+      return QUIT;
 
     case "list": {
-      clearScreen();
-      try {
-        await listCommand({});
-      } catch (error) {
-        logger.error(`List failed: ${error}`);
-      }
-      await promptContinue();
-      return true;
+      const switched = await handleList(dashboardLines);
+      return switched ? CONTINUE : SKIP_REFRESH;
     }
 
     case "create": {
+      const description = await showInput({
+        title: "New Ticket",
+        label: "Describe the ticket:",
+        dashboardLines,
+      });
+      if (!description) return SKIP_REFRESH;
+
       clearScreen();
-      const { description } = await inquirer.prompt<{ description: string }>([
-        {
-          type: "input",
-          name: "description",
-          message: "Describe the ticket (empty to cancel):",
-        },
-      ]);
-      if (!description.trim()) {
-        logger.info("Cancelled");
-        return true;
-      }
       try {
         await createCommand(description, {});
       } catch (error) {
         logger.error(`Create failed: ${error}`);
       }
-      await promptContinue();
-      return true;
+      return CONTINUE;
     }
 
-    case "commit":
-      clearScreen();
-      await handleCommit(state);
-      await promptContinue();
-      return true;
+    case "commit": {
+      const committed = await handleCommit(state, dashboardLines);
+      return committed ? CONTINUE : SKIP_REFRESH;
+    }
 
     case "push":
-      clearScreen();
-      await handlePush();
-      await promptContinue();
-      return true;
+      await handlePush(dashboardLines);
+      return CONTINUE;
 
     case "pr": {
       clearScreen();
-      if (!(await confirm("Create a pull request?"))) return true;
       await prCommand({});
-      await promptContinue();
-      return true;
+      return CONTINUE;
     }
 
     case "run": {
-      clearScreen();
-      const hasCommits = state.commits.length > 0;
-      const hasFeedback = state.hasActionableFeedback;
-      let msg: string;
-      if (hasFeedback && hasCommits) {
-        msg = "Start AI agent to address review feedback?";
-      } else if (hasCommits) {
-        msg =
-          "Start AI agent to continue implementation from existing commits?";
-      } else {
-        msg = "Start AI agent to implement this ticket from scratch?";
-      }
-      if (!(await confirm(msg))) return true;
       await handleRun(state);
-      await promptContinue();
-      return true;
+      return CONTINUE;
     }
 
     case "switch-provider":
-      clearScreen();
-      await handleSwitchProvider(state);
-      return true;
+      await handleSwitchProvider(state, dashboardLines);
+      return SKIP_REFRESH;
 
-    case "checkout-main": {
-      clearScreen();
-      if (!(await confirm("Switch to main branch?"))) return true;
-      await handleCheckoutMain();
-      return true;
-    }
+    case "checkout-main":
+      await handleCheckoutMain(dashboardLines);
+      return CONTINUE;
 
     default:
-      return true;
+      return SKIP_REFRESH;
   }
 }
 
-async function handleCommit(state: TuiState): Promise<void> {
+/** Returns true if a commit was made. */
+async function handleCommit(
+  state: TuiState,
+  dashboardLines: string[]
+): Promise<boolean> {
   try {
     const { stdout: status } = await execa("git", ["status", "--short"]);
     if (!status.trim()) {
-      logger.info("No changes to commit");
-      return;
+      showStatus("Commit", "No changes to commit", dashboardLines);
+      await new Promise((r) => setTimeout(r, 1500));
+      return false;
     }
 
-    logger.info("Changes:");
-    console.log(status);
-    console.log();
-
-    // Stage all changes first so we can get a clean cached diff
+    // Stage all changes
     await execa("git", ["add", "-A"]);
 
     // Get staged diff for AI commit message generation
@@ -200,63 +185,67 @@ async function handleCommit(state: TuiState): Promise<void> {
     const provider = state.config.ai.provider;
     const providerName = getProviderDisplayName(provider);
 
-    const { mode } = await inquirer.prompt<{ mode: "ai" | "manual" }>([
-      {
-        type: "list",
-        name: "mode",
-        message: "How would you like to provide the commit message?",
-        choices: [
-          { name: `Generate with ${providerName}`, value: "ai" },
-          { name: "Enter manually", value: "manual" },
-        ],
-      },
-    ]);
+    // Modal select: AI or Manual
+    const mode = await showSelect({
+      title: "Commit",
+      items: [
+        { name: `Generate with ${providerName}`, value: "ai" },
+        { name: "Enter manually", value: "manual" },
+      ],
+      dashboardLines,
+    });
+
+    if (!mode) {
+      await execa("git", ["reset", "HEAD"]);
+      return false;
+    }
 
     let message: string | typeof CANCEL;
 
     if (mode === "manual") {
-      const { manualInput } = await inquirer.prompt<{ manualInput: string }>([
-        {
-          type: "input",
-          name: "manualInput",
-          message: "Commit message (empty to cancel):",
-        },
-      ]);
-      message = manualInput.trim() || CANCEL;
+      const input = await showInput({
+        title: "Commit Message",
+        label: "Enter commit message:",
+        dashboardLines,
+      });
+      message = input || CANCEL;
     } else {
-      logger.info(`Generating commit message with ${providerName}...`);
+      showStatus("Generating", `Generating commit message with ${providerName}...`, dashboardLines);
       message = await generateCommitMessage(
         diffContent,
         issueNumber,
         issueTitle,
-        state
+        state,
+        dashboardLines
       );
     }
+
     if (message === CANCEL) {
       await execa("git", ["reset", "HEAD"]);
-      logger.info("Cancelled");
-      return;
+      return false;
     }
 
-    console.log();
-    logger.info(`Message: ${message}`);
-    console.log();
+    // Confirm commit with generated message
+    const confirmed = await showConfirm({
+      title: "Commit",
+      message: `Message: ${message.length > 50 ? message.slice(0, 50) + "…" : message}`,
+      dashboardLines,
+    });
 
-    if (!(await confirm("Commit with this message?"))) {
+    if (!confirmed) {
       await execa("git", ["reset", "HEAD"]);
-      logger.info("Commit cancelled");
-      return;
+      return false;
     }
 
     const providerEmail = getProviderEmail(provider);
     const fullMessage = `${message}\n\nCo-Authored-By: ${providerName} <${providerEmail}>`;
 
-    const spinner = createSpinner("Committing...");
-    spinner.start();
+    showStatus("Committing", "Committing changes...", dashboardLines);
     await execa("git", ["commit", "-m", fullMessage]);
-    spinner.succeed("Changes committed");
+    return true;
   } catch (error) {
     logger.error(`Commit failed: ${error}`);
+    return false;
   }
 }
 
@@ -264,7 +253,8 @@ async function generateCommitMessage(
   diffContent: string,
   issueNumber: number | null,
   issueTitle: string | null,
-  state: TuiState
+  state: TuiState,
+  dashboardLines: string[]
 ): Promise<string | typeof CANCEL> {
   try {
     const prompt = buildCommitMessagePrompt(
@@ -272,7 +262,7 @@ async function generateCommitMessage(
       issueNumber,
       issueTitle
     );
-    const result = await invokeAI({ prompt, streamOutput: true }, state.config);
+    const result = await invokeAI({ prompt, streamOutput: false }, state.config);
     let message = result.output.trim().split("\n")[0].trim();
     // Strip wrapping quotes, backticks, or code fences
     for (const q of ['"', "'", "`"]) {
@@ -284,16 +274,13 @@ async function generateCommitMessage(
     message = message.replace(/^```\w*\s*/, "").replace(/\s*```$/, "");
     return message;
   } catch {
-    logger.warning("AI commit message generation failed");
-    console.log();
-    const { message } = await inquirer.prompt<{ message: string }>([
-      {
-        type: "input",
-        name: "message",
-        message: "Commit message (empty to cancel):",
-      },
-    ]);
-    return message.trim() || CANCEL;
+    // AI failed — fall back to manual input
+    const input = await showInput({
+      title: "Commit Message",
+      label: "AI generation failed. Enter commit message:",
+      dashboardLines,
+    });
+    return input || CANCEL;
   }
 }
 
@@ -355,15 +342,13 @@ async function handleRun(state: TuiState): Promise<void> {
   }
 }
 
-async function handlePush(): Promise<void> {
+async function handlePush(dashboardLines: string[]): Promise<void> {
   try {
     const { stdout: branch } = await execa("git", ["branch", "--show-current"]);
-    if (!(await confirm(`Push ${branch.trim()} to remote?`))) return;
+    const branchName = branch.trim();
 
-    const spinner = createSpinner("Pushing...");
-    spinner.start();
-    await execa("git", ["push", "-u", "origin", branch.trim()]);
-    spinner.succeed("Pushed to remote");
+    showStatus("Pushing", `Pushing ${branchName} to remote...`, dashboardLines);
+    await execa("git", ["push", "-u", "origin", branchName]);
   } catch (error) {
     logger.error(`Push failed: ${error}`);
   }
@@ -371,56 +356,226 @@ async function handlePush(): Promise<void> {
 
 const PROVIDERS: AIProvider[] = ["claude", "gemini", "codex"];
 
-async function handleSwitchProvider(state: TuiState): Promise<void> {
+async function handleSwitchProvider(
+  state: TuiState,
+  dashboardLines: string[]
+): Promise<void> {
   const current = state.config.ai.provider;
-  const { provider } = await inquirer.prompt<{ provider: AIProvider }>([
-    {
-      type: "list",
-      name: "provider",
-      message: "Select AI provider:",
-      choices: PROVIDERS.map((p) => ({
-        name:
-          p.charAt(0).toUpperCase() +
-          p.slice(1) +
-          (p === current ? " (current)" : ""),
-        value: p,
-      })),
-      default: current,
-    },
-  ]);
+  const items = PROVIDERS.map((p) => ({
+    name:
+      p.charAt(0).toUpperCase() +
+      p.slice(1) +
+      (p === current ? " (current)" : ""),
+    value: p,
+  }));
 
-  if (provider === current) return;
+  const provider = await showSelect({
+    title: "AI Provider",
+    items,
+    dashboardLines,
+  });
 
-  setRuntimeProvider(provider);
-  logger.success(`Provider switched to ${provider} (session only)`);
+  if (!provider || provider === current) return;
+
+  setRuntimeProvider(provider as AIProvider);
+  // Update in-memory state so dashboard re-renders with new provider
+  state.config.ai.provider = provider as AIProvider;
 }
 
-async function handleCheckoutMain(): Promise<void> {
+async function handleCheckoutMain(dashboardLines: string[]): Promise<void> {
   try {
-    const spinner = createSpinner("Switching to main...");
-    spinner.start();
+    showStatus("Switching", "Switching to main...", dashboardLines);
     await execa("git", ["checkout", "main"]);
     await execa("git", ["pull"]);
-    spinner.succeed("Switched to main");
   } catch (error) {
     logger.error(`Checkout failed: ${error}`);
   }
 }
 
-async function promptContinue(): Promise<void> {
-  console.log();
-  await inquirer.prompt([
-    {
-      type: "input",
-      name: "continue",
-      message: "Press Enter to continue...",
-    },
-  ]);
+/** Returns true if a branch switch occurred. */
+async function handleList(
+  dashboardLines: string[]
+): Promise<boolean> {
+  try {
+    showStatus("Loading", "Fetching tickets...", dashboardLines);
+
+    const config = loadConfig();
+    const workflowLabels = getWorkflowLabels(config);
+
+    const [inProgress, ready, prs, localBranches] = await Promise.all([
+      listIssues({
+        labels: [workflowLabels.inProgress],
+        state: "open",
+        limit: 20,
+      }),
+      listIssues({
+        labels: [workflowLabels.ready],
+        state: "open",
+        limit: 20,
+      }),
+      listOpenPrs(30),
+      listLocalBranches(),
+    ]);
+
+    sortByPriority(inProgress);
+    sortByPriority(ready);
+
+    const choices = buildTicketChoices(inProgress, ready, prs, localBranches);
+    const currentBranch = await getCurrentBranch();
+    const defaultBranch = await getDefaultBranch();
+
+    // Build modal select entries with category separators
+    const items: SelectEntry[] = [];
+
+    // Main branch option
+    const mainLabel =
+      defaultBranch +
+      (currentBranch === defaultBranch ? " (current)" : "");
+    items.push({ name: mainLabel, value: "__main__" });
+
+    const inProgressChoices = choices.filter(
+      (c) => c.category === "in-progress"
+    );
+    const openPrChoices = choices.filter((c) => c.category === "open-pr");
+    const readyChoices = choices.filter((c) => c.category === "ready");
+
+    if (inProgressChoices.length > 0) {
+      items.push({ separator: "── In Progress ──" });
+      for (const c of inProgressChoices) {
+        items.push({
+          name: `#${c.issueNumber} ${c.title}`,
+          value: String(c.issueNumber),
+        });
+      }
+    }
+    if (openPrChoices.length > 0) {
+      items.push({ separator: "── Open PRs ──" });
+      for (const c of openPrChoices) {
+        items.push({
+          name: `#${c.issueNumber} ${c.title}`,
+          value: String(c.issueNumber),
+        });
+      }
+    }
+    if (readyChoices.length > 0) {
+      items.push({ separator: "── Ready ──" });
+      for (const c of readyChoices) {
+        items.push({
+          name: `#${c.issueNumber} ${c.title}`,
+          value: String(c.issueNumber),
+        });
+      }
+    }
+
+    if (choices.length === 0) {
+      showStatus("List", "No tickets found", dashboardLines);
+      await new Promise((r) => setTimeout(r, 1500));
+      return false;
+    }
+
+    const selected = await showSelect({
+      title: "Switch Ticket",
+      items,
+      dashboardLines,
+    });
+
+    if (!selected) return false;
+
+    // Handle main branch selection
+    if (selected === "__main__") {
+      if (currentBranch === defaultBranch) return false;
+      const dirty = await hasUncommittedChanges();
+      if (dirty) {
+        const ok = await showConfirm({
+          title: "Uncommitted Changes",
+          message: "You have uncommitted changes. Continue?",
+          dashboardLines,
+        });
+        if (!ok) return false;
+      }
+      showStatus("Switching", `Switching to ${defaultBranch}...`, dashboardLines);
+      await checkoutBranch(defaultBranch);
+      return true;
+    }
+
+    // Find selected ticket
+    const issueNumber = parseInt(selected, 10);
+    const ticket = choices.find((c) => c.issueNumber === issueNumber);
+    if (!ticket) return false;
+
+    const dirty = await hasUncommittedChanges();
+    if (dirty) {
+      const ok = await showConfirm({
+        title: "Uncommitted Changes",
+        message: "You have uncommitted changes. Continue?",
+        dashboardLines,
+      });
+      if (!ok) return false;
+    }
+
+    const targetBranch = ticket.branch;
+
+    if (targetBranch) {
+      if (await branchExists(targetBranch)) {
+        showStatus("Switching", `Switching to ${targetBranch}...`, dashboardLines);
+        await checkoutBranch(targetBranch);
+        return true;
+      } else if (await remoteBranchExists(targetBranch)) {
+        showStatus("Fetching", `Fetching ${targetBranch}...`, dashboardLines);
+        await fetchAndCheckout(targetBranch);
+        return true;
+      } else {
+        return await offerCreateBranch(
+          issueNumber,
+          ticket.title,
+          dashboardLines
+        );
+      }
+    } else {
+      return await offerCreateBranch(
+        issueNumber,
+        ticket.title,
+        dashboardLines
+      );
+    }
+  } catch (error) {
+    logger.error(`List failed: ${error}`);
+    return false;
+  }
+}
+
+/** Returns true if a branch was created. */
+async function offerCreateBranch(
+  issueNumber: number,
+  title: string,
+  dashboardLines: string[]
+): Promise<boolean> {
+  const config = loadConfig();
+  const branchName = await generateBranchName(
+    config,
+    issueNumber,
+    title,
+    "feature"
+  );
+
+  const create = await showConfirm({
+    title: "Create Branch",
+    message: `No branch found. Create ${branchName}?`,
+    dashboardLines,
+  });
+
+  if (!create) return false;
+
+  const defaultBranch = await getDefaultBranch();
+  showStatus("Creating", `Creating ${branchName}...`, dashboardLines);
+  await createBranch(branchName, defaultBranch);
+  return true;
 }
 
 export async function tuiCommand(): Promise<void> {
   let running = true;
   let lastActions: TuiAction[] = [];
+  let lastDashboardLines: string[] = [];
 
   // Initial placeholder state for the first "Loading..." render
   const config = loadConfig();
@@ -447,41 +602,49 @@ export async function tuiCommand(): Promise<void> {
     isPlaywrightAvailable: false,
   };
 
+  let needsRefresh = true;
+
   while (running) {
-    // Show dashboard with refreshing indicator while loading new state
-    clearScreen();
-    renderDashboard(lastState, lastActions, undefined, true);
+    if (needsRefresh) {
+      // Show dashboard with refreshing indicator while loading new state
+      clearScreen();
+      renderDashboard(lastState, lastActions, undefined, true);
 
-    const state = await aggregateState();
+      const state = await aggregateState();
+      const actions = getAvailableActions(state);
 
-    const actions = getAvailableActions(state);
-
-    // Save for next refresh cycle
-    lastState = state;
-    lastActions = actions;
-
-    clearScreen();
+      // Save for next refresh cycle
+      lastState = state;
+      lastActions = actions;
+    }
 
     // Contextual hint
     let hint: string | undefined;
-    if (state.isOnMain) {
+    if (lastState.isOnMain) {
       hint = "Select an action to get started";
-    } else if (state.hasUncommittedChanges && !state.pr) {
+    } else if (lastState.hasUncommittedChanges && !lastState.pr) {
       hint = "Commit your changes before creating a PR";
-    } else if (state.hasActionableFeedback) {
+    } else if (lastState.hasActionableFeedback) {
       hint = "Review feedback needs attention";
     }
 
-    renderDashboard(state, actions, hint);
+    // Build and render dashboard, capturing lines for modal overlays
+    lastDashboardLines = buildDashboardLines(lastState, lastActions, hint);
+    clearScreen();
+    for (const line of lastDashboardLines) {
+      console.log(line);
+    }
 
     // Wait for a valid keypress
-    const validKeys = actions.map((a) => a.shortcut);
+    const validKeys = lastActions.map((a) => a.shortcut);
     const key = await waitForKey(validKeys);
 
     // Find the matching action
-    const action = actions.find((a) => a.shortcut === key);
+    const action = lastActions.find((a) => a.shortcut === key);
     if (action) {
-      running = await executeAction(action.id, state);
+      const result = await executeAction(action.id, lastState, lastDashboardLines);
+      running = result.running;
+      needsRefresh = result.refresh;
     }
   }
 }
