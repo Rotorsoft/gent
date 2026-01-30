@@ -1,3 +1,10 @@
+## [1.14.2](https://github.com/rotorsoft/gent/compare/v1.14.1...v1.14.2) (2026-01-30)
+
+
+### Bug Fixes
+
+* support multiline input in new ticket dialog ([d4c6174](https://github.com/rotorsoft/gent/commit/d4c6174869a3e6669166888a264493a0661eb941)), closes [#66](https://github.com/rotorsoft/gent/issues/66)
+
 ## [1.14.1](https://github.com/rotorsoft/gent/compare/v1.14.0...v1.14.1) (2026-01-30)
 
 
