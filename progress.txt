@@ -178,3 +178,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/display.ts, src/tui/modal.ts, src/tui/display.test.ts, src/tui/modal.test.ts
 - Changes: Added consistent `· ` bullet prefix to list items (commits, tickets, PRs) in dashboard and modal selectors. Implemented `truncateAnsi` in `display.ts` and updated `row()` to automatically truncate overflowing text with an ellipsis.
 - Decisions: Used `· ` for a clean TUI look. Centralized `truncateAnsi` in `display.ts` for reuse in modals.
+
+[2026-01-30] #75 feat: add periodic version check to TUI dashboard
+- Files: src/tui/display.ts, src/tui/display.test.ts, src/commands/tui.ts
+- Changes: Added update notification below GitHub status in TUI settings section. Version check runs in parallel with state aggregation using existing `checkForUpdates` with 30-minute throttle. Shows "Update available: X → Y" with upgrade command when newer version exists.
+- Decisions: Reused existing `checkForUpdates` disk cache (no new in-memory cache needed). Non-blocking via `Promise.all` alongside `aggregateState`. No notification when up-to-date.

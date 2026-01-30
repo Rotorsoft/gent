@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { getProviderDisplayName } from "../lib/ai-provider.js";
-import { getVersion } from "../lib/version.js";
+import { getVersion, type VersionCheckResult } from "../lib/version.js";
 import type { TuiAction } from "./actions.js";
 import type { TuiState } from "./state.js";
 
@@ -193,7 +193,12 @@ export function renderActionPanel(title: string, content: string[]): void {
 
 type Out = (line: string) => void;
 
-function renderSettingsTo(state: TuiState, w: number, out: Out): void {
+function renderSettingsTo(
+  state: TuiState,
+  w: number,
+  out: Out,
+  versionCheck?: VersionCheckResult | null
+): void {
   const provider = getProviderDisplayName(state.config.ai.provider);
   const provTag = state.isAIProviderAvailable
     ? chalk.green(provider)
@@ -204,6 +209,18 @@ function renderSettingsTo(state: TuiState, w: number, out: Out): void {
 
   out(row(chalk.dim("Provider: ") + provTag, w));
   out(row(chalk.dim("GitHub:   ") + ghTag, w));
+
+  if (versionCheck?.updateAvailable && versionCheck.latestVersion) {
+    out(
+      row(
+        chalk.yellow(
+          `Update available: ${versionCheck.currentVersion} → ${versionCheck.latestVersion}`
+        ) +
+          chalk.dim(' — run "npm install -g @rotorsoft/gent" to upgrade'),
+        w
+      )
+    );
+  }
 }
 
 /**
@@ -214,7 +231,8 @@ export function buildDashboardLines(
   state: TuiState,
   actions: TuiAction[],
   hint?: string,
-  refreshing?: boolean
+  refreshing?: boolean,
+  versionCheck?: VersionCheckResult | null
 ): string[] {
   const lines: string[] = [];
   const out: Out = (line: string) => lines.push(line);
@@ -224,7 +242,7 @@ export function buildDashboardLines(
 
   const titleLabel = `gent v${version}`;
   out(topRow(titleLabel, w));
-  renderSettingsTo(state, w, out);
+  renderSettingsTo(state, w, out, versionCheck);
 
   // ── Error states ──────────────────────────────────────────────
   if (!state.isGitRepo) {
@@ -386,9 +404,10 @@ export function renderDashboard(
   state: TuiState,
   actions: TuiAction[],
   hint?: string,
-  refreshing?: boolean
+  refreshing?: boolean,
+  versionCheck?: VersionCheckResult | null
 ): void {
-  const lines = buildDashboardLines(state, actions, hint, refreshing);
+  const lines = buildDashboardLines(state, actions, hint, refreshing, versionCheck);
   for (const line of lines) {
     console.log(line);
   }

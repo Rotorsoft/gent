@@ -148,6 +148,60 @@ describe("display", () => {
       expect(output).not.toContain("ready to start new work");
     });
 
+    it("renders update notification when newer version available", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "main",
+        isOnMain: true,
+      };
+
+      const versionCheck = {
+        currentVersion: "1.0.0",
+        latestVersion: "1.1.0",
+        updateAvailable: true,
+        lastChecked: Date.now(),
+      };
+
+      const lines = buildDashboardLines(state, mockActions, undefined, false, versionCheck).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).toContain("Update available: 1.0.0 → 1.1.0");
+      expect(output).toContain("npm install -g @rotorsoft/gent");
+    });
+
+    it("does not render update notification when up-to-date", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "main",
+        isOnMain: true,
+      };
+
+      const versionCheck = {
+        currentVersion: "1.0.0",
+        latestVersion: "1.0.0",
+        updateAvailable: false,
+        lastChecked: Date.now(),
+      };
+
+      const lines = buildDashboardLines(state, mockActions, undefined, false, versionCheck).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).not.toContain("Update available");
+    });
+
+    it("does not render update notification when no version check result", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "main",
+        isOnMain: true,
+      };
+
+      const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).not.toContain("Update available");
+    });
+
     it("renders bullets for list items", () => {
       const state: TuiState = {
         ...mockBaseState,
