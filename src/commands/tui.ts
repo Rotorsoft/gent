@@ -603,6 +603,7 @@ export async function tuiCommand(): Promise<void> {
   };
 
   let needsRefresh = true;
+  let isFirstLoad = true;
 
   while (running) {
     if (needsRefresh) {
@@ -611,9 +612,12 @@ export async function tuiCommand(): Promise<void> {
       renderDashboard(lastState, lastActions, undefined, true, versionCheck);
 
       // Fire version check in parallel with state aggregation (non-blocking)
+      // Force a fresh check on first load (interval=0), then throttle subsequent checks
+      const checkInterval = isFirstLoad ? 0 : VERSION_CHECK_INTERVAL_MS;
+      isFirstLoad = false;
       const [state, versionResult] = await Promise.all([
         aggregateState(),
-        checkForUpdates(VERSION_CHECK_INTERVAL_MS).catch(() => null),
+        checkForUpdates(checkInterval).catch(() => null),
       ]);
       const actions = getAvailableActions(state);
 
