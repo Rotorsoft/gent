@@ -1,3 +1,10 @@
+## [1.15.1](https://github.com/rotorsoft/gent/compare/v1.15.0...v1.15.1) (2026-01-30)
+
+
+### Bug Fixes
+
+* show master/main branch in branch section with consistent UX ([feff294](https://github.com/rotorsoft/gent/commit/feff29497499e995ae9649d2abcffde6f3444fbb)), closes [#70](https://github.com/rotorsoft/gent/issues/70)
+
 # [1.15.0](https://github.com/rotorsoft/gent/compare/v1.14.2...v1.15.0) (2026-01-30)
 
 
