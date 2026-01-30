@@ -82,18 +82,27 @@ async function waitForKey(validKeys: string[]): Promise<string> {
   });
 }
 
+export interface ActionResult {
+  running: boolean;
+  refresh: boolean;
+}
+
+const CONTINUE: ActionResult = { running: true, refresh: true };
+const SKIP_REFRESH: ActionResult = { running: true, refresh: false };
+const QUIT: ActionResult = { running: false, refresh: false };
+
 export async function executeAction(
   actionId: string,
   state: TuiState,
   dashboardLines: string[]
-): Promise<boolean> {
+): Promise<ActionResult> {
   switch (actionId) {
     case "quit":
-      return false;
+      return QUIT;
 
     case "list":
       await handleList(dashboardLines);
-      return true;
+      return CONTINUE;
 
     case "create": {
       const description = await showInput({
@@ -101,7 +110,7 @@ export async function executeAction(
         label: "Describe the ticket:",
         dashboardLines,
       });
-      if (!description) return true;
+      if (!description) return SKIP_REFRESH;
 
       clearScreen();
       try {
@@ -109,38 +118,38 @@ export async function executeAction(
       } catch (error) {
         logger.error(`Create failed: ${error}`);
       }
-      return true;
+      return CONTINUE;
     }
 
     case "commit":
       await handleCommit(state, dashboardLines);
-      return true;
+      return CONTINUE;
 
     case "push":
       await handlePush(dashboardLines);
-      return true;
+      return CONTINUE;
 
     case "pr": {
       clearScreen();
       await prCommand({});
-      return true;
+      return CONTINUE;
     }
 
     case "run": {
       await handleRun(state);
-      return true;
+      return CONTINUE;
     }
 
     case "switch-provider":
       await handleSwitchProvider(state, dashboardLines);
-      return true;
+      return SKIP_REFRESH;
 
     case "checkout-main":
       await handleCheckoutMain(dashboardLines);
-      return true;
+      return CONTINUE;
 
     default:
-      return true;
+      return SKIP_REFRESH;
   }
 }
 
@@ -364,6 +373,8 @@ async function handleSwitchProvider(
   if (!provider || provider === current) return;
 
   setRuntimeProvider(provider as AIProvider);
+  // Update in-memory state so dashboard re-renders with new provider
+  state.config.ai.provider = provider as AIProvider;
 }
 
 async function handleCheckoutMain(dashboardLines: string[]): Promise<void> {
@@ -580,46 +591,49 @@ export async function tuiCommand(): Promise<void> {
     isPlaywrightAvailable: false,
   };
 
+  let needsRefresh = true;
+
   while (running) {
-    // Show dashboard with refreshing indicator while loading new state
-    clearScreen();
-    renderDashboard(lastState, lastActions, undefined, true);
+    if (needsRefresh) {
+      // Show dashboard with refreshing indicator while loading new state
+      clearScreen();
+      renderDashboard(lastState, lastActions, undefined, true);
 
-    const state = await aggregateState();
+      const state = await aggregateState();
+      const actions = getAvailableActions(state);
 
-    const actions = getAvailableActions(state);
-
-    // Save for next refresh cycle
-    lastState = state;
-    lastActions = actions;
-
-    clearScreen();
+      // Save for next refresh cycle
+      lastState = state;
+      lastActions = actions;
+    }
 
     // Contextual hint
     let hint: string | undefined;
-    if (state.isOnMain) {
+    if (lastState.isOnMain) {
       hint = "Select an action to get started";
-    } else if (state.hasUncommittedChanges && !state.pr) {
+    } else if (lastState.hasUncommittedChanges && !lastState.pr) {
       hint = "Commit your changes before creating a PR";
-    } else if (state.hasActionableFeedback) {
+    } else if (lastState.hasActionableFeedback) {
       hint = "Review feedback needs attention";
     }
 
     // Build and render dashboard, capturing lines for modal overlays
-    lastDashboardLines = buildDashboardLines(state, actions, hint);
+    lastDashboardLines = buildDashboardLines(lastState, lastActions, hint);
     clearScreen();
     for (const line of lastDashboardLines) {
       console.log(line);
     }
 
     // Wait for a valid keypress
-    const validKeys = actions.map((a) => a.shortcut);
+    const validKeys = lastActions.map((a) => a.shortcut);
     const key = await waitForKey(validKeys);
 
     // Find the matching action
-    const action = actions.find((a) => a.shortcut === key);
+    const action = lastActions.find((a) => a.shortcut === key);
     if (action) {
-      running = await executeAction(action.id, state, lastDashboardLines);
+      const result = await executeAction(action.id, lastState, lastDashboardLines);
+      running = result.running;
+      needsRefresh = result.refresh;
     }
   }
 }

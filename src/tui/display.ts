@@ -179,13 +179,9 @@ function renderSettingsTo(state: TuiState, w: number, out: Out): void {
   const ghTag = state.isGhAuthenticated
     ? chalk.green("authenticated")
     : chalk.red("not authenticated");
-  const videoTag = state.config.video.enabled
-    ? chalk.green("on")
-    : chalk.dim("off");
 
   out(row(chalk.dim("Provider: ") + provTag, w));
   out(row(chalk.dim("GitHub:   ") + ghTag, w));
-  out(row(chalk.dim("Video:    ") + videoTag, w));
 }
 
 /**

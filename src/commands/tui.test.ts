@@ -100,12 +100,12 @@ describe("executeAction", () => {
     };
   });
 
-  it("returns false for quit action", async () => {
+  it("returns quit for quit action", async () => {
     const result = await executeAction("quit", mockState, mockDashboardLines);
-    expect(result).toBe(false);
+    expect(result.running).toBe(false);
   });
 
-  it("returns true for 'run' action after completion (no confirm needed)", async () => {
+  it("returns continue for 'run' action after completion (no confirm needed)", async () => {
     // Mock AI invocation — no confirm dialog needed anymore
     vi.mocked(aiProvider.invokeAIInteractive).mockResolvedValue({
       // @ts-expect-error - minimal AI response for test
@@ -115,28 +115,31 @@ describe("executeAction", () => {
 
     const result = await executeAction("run", mockState, mockDashboardLines);
 
-    expect(result).toBe(true);
+    expect(result.running).toBe(true);
+    expect(result.refresh).toBe(true);
     expect(aiProvider.invokeAIInteractive).toHaveBeenCalled();
     expect(display.clearScreen).toHaveBeenCalled();
   });
 
-  it("returns true for 'pr' action (no confirm needed)", async () => {
+  it("returns continue for 'pr' action (no confirm needed)", async () => {
     // prCommand is imported directly, mock it via the module
     const pr = await import("./pr.js");
     vi.spyOn(pr, "prCommand").mockResolvedValue();
 
     const result = await executeAction("pr", mockState, mockDashboardLines);
 
-    expect(result).toBe(true);
+    expect(result.running).toBe(true);
+    expect(result.refresh).toBe(true);
     expect(display.clearScreen).toHaveBeenCalled();
   });
 
-  it("returns true for 'create' action when cancelled via modal", async () => {
+  it("skips refresh for 'create' action when cancelled via modal", async () => {
     vi.mocked(modal.showInput).mockResolvedValue(null);
 
     const result = await executeAction("create", mockState, mockDashboardLines);
 
-    expect(result).toBe(true);
+    expect(result.running).toBe(true);
+    expect(result.refresh).toBe(false);
     expect(modal.showInput).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "New Ticket",
@@ -145,22 +148,24 @@ describe("executeAction", () => {
     );
   });
 
-  it("returns true for 'switch-provider' using modal select", async () => {
+  it("skips refresh for 'switch-provider' using modal select", async () => {
     vi.mocked(modal.showSelect).mockResolvedValue("gemini");
 
     const result = await executeAction("switch-provider", mockState, mockDashboardLines);
 
-    expect(result).toBe(true);
+    expect(result.running).toBe(true);
+    expect(result.refresh).toBe(false);
     expect(modal.showSelect).toHaveBeenCalledWith(
       expect.objectContaining({ title: "AI Provider" })
     );
   });
 
-  it("returns true for 'checkout-main' without confirm dialog", async () => {
+  it("returns continue for 'checkout-main' without confirm dialog", async () => {
     // Mock execa via the module
     const result = await executeAction("checkout-main", mockState, mockDashboardLines);
 
-    expect(result).toBe(true);
+    expect(result.running).toBe(true);
+    expect(result.refresh).toBe(true);
     // showStatus should be called for the switching indicator
     expect(modal.showStatus).toHaveBeenCalledWith(
       "Switching",
@@ -189,7 +194,7 @@ describe("executeAction", () => {
 
     const result = await executeAction("list", mockState, mockDashboardLines);
 
-    expect(result).toBe(true);
+    expect(result.running).toBe(true);
     // Should show loading status first
     expect(modal.showStatus).toHaveBeenCalledWith(
       "Loading",
@@ -210,7 +215,7 @@ describe("executeAction", () => {
 
     const result = await executeAction("list", mockState, mockDashboardLines);
 
-    expect(result).toBe(true);
+    expect(result.running).toBe(true);
     expect(modal.showStatus).toHaveBeenCalledWith(
       "List",
       "No tickets found",
@@ -250,7 +255,7 @@ describe("executeAction", () => {
 
     const result = await executeAction("list", mockState, mockDashboardLines);
 
-    expect(result).toBe(true);
+    expect(result.running).toBe(true);
     expect(modal.showSelect).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Switch Ticket" })
     );
