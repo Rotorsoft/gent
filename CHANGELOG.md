@@ -1,3 +1,11 @@
+## [1.15.2](https://github.com/rotorsoft/gent/compare/v1.15.1...v1.15.2) (2026-01-30)
+
+
+### Bug Fixes
+
+* common actions refactor ([d5ea5f1](https://github.com/rotorsoft/gent/commit/d5ea5f1539cef931326e3d341cdbaf28f142c80a))
+* suggest change provider when rate limits hit ([995eec6](https://github.com/rotorsoft/gent/commit/995eec67d5c76d8b050937a10c6e3a6010ec79c2))
+
 ## [1.15.1](https://github.com/rotorsoft/gent/compare/v1.15.0...v1.15.1) (2026-01-30)
 
 
