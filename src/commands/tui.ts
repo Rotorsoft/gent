@@ -15,6 +15,7 @@ import {
   showStatus,
   type SelectEntry,
 } from "../tui/modal.js";
+import { checkForUpdates, type VersionCheckResult } from "../lib/version.js";
 import { logger } from "../utils/logger.js";
 import { createCommand } from "./create.js";
 import { prCommand } from "./pr.js";
@@ -565,10 +566,13 @@ async function offerCreateBranch(
   return true;
 }
 
+const VERSION_CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+
 export async function tuiCommand(): Promise<void> {
   let running = true;
   let lastActions: TuiAction[] = [];
   let lastDashboardLines: string[] = [];
+  let versionCheck: VersionCheckResult | null = null;
 
   // Initial placeholder state for the first "Loading..." render
   const config = loadConfig();
@@ -601,14 +605,19 @@ export async function tuiCommand(): Promise<void> {
     if (needsRefresh) {
       // Show dashboard with refreshing indicator while loading new state
       clearScreen();
-      renderDashboard(lastState, lastActions, undefined, true);
+      renderDashboard(lastState, lastActions, undefined, true, versionCheck);
 
-      const state = await aggregateState();
+      // Fire version check in parallel with state aggregation (non-blocking)
+      const [state, versionResult] = await Promise.all([
+        aggregateState(),
+        checkForUpdates(VERSION_CHECK_INTERVAL_MS).catch(() => null),
+      ]);
       const actions = getAvailableActions(state);
 
       // Save for next refresh cycle
       lastState = state;
       lastActions = actions;
+      if (versionResult) versionCheck = versionResult;
     }
 
     // Contextual hint
@@ -622,7 +631,7 @@ export async function tuiCommand(): Promise<void> {
     }
 
     // Build and render dashboard, capturing lines for modal overlays
-    lastDashboardLines = buildDashboardLines(lastState, lastActions, hint);
+    lastDashboardLines = buildDashboardLines(lastState, lastActions, hint, false, versionCheck);
     clearScreen();
     for (const line of lastDashboardLines) {
       console.log(line);

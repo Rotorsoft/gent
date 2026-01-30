@@ -88,7 +88,7 @@ vi.mock("../lib/playwright.js", () => ({
   isPlaywrightAvailable: vi.fn(),
 }));
 
-import { aggregateState } from "./state.js";
+import { aggregateState, resetEnvCache } from "./state.js";
 import * as git from "../lib/git.js";
 import * as github from "../lib/github.js";
 import * as branch from "../lib/branch.js";
@@ -98,6 +98,7 @@ import * as playwright from "../lib/playwright.js";
 describe("aggregateState", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetEnvCache();
   });
 
   it("returns minimal state when not a git repo", async () => {
@@ -241,5 +242,30 @@ describe("aggregateState", () => {
     expect(state.pr?.state).toBe("open");
     expect(state.hasActionableFeedback).toBe(true);
     expect(state.reviewFeedback).toHaveLength(1);
+  });
+
+  it("caches environment checks across multiple calls", async () => {
+    vi.mocked(validators.checkGitRepo).mockResolvedValue(true);
+    vi.mocked(validators.checkGhAuth).mockResolvedValue(true);
+    vi.mocked(validators.checkAIProvider).mockResolvedValue(true);
+    vi.mocked(git.getCurrentBranch).mockResolvedValue("main");
+    vi.mocked(git.isOnMainBranch).mockResolvedValue(true);
+    vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
+    vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.getCommitsSinceBase).mockResolvedValue([]);
+    vi.mocked(git.getUnpushedCommits).mockResolvedValue(false);
+    vi.mocked(branch.parseBranchName).mockReturnValue(null);
+
+    await aggregateState();
+    await aggregateState();
+    await aggregateState();
+
+    // Environment checks should only be called once (cached after first call)
+    expect(validators.checkGhAuth).toHaveBeenCalledTimes(1);
+    expect(validators.checkAIProvider).toHaveBeenCalledTimes(1);
+
+    // Git state checks should be called every time
+    expect(git.getCurrentBranch).toHaveBeenCalledTimes(3);
+    expect(git.hasUncommittedChanges).toHaveBeenCalledTimes(3);
   });
 });
