@@ -69,7 +69,10 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/version.ts, src/lib/version.test.ts, src/index.ts, src/commands/status.ts, eslint.config.js
 - Changes: Added npm registry fetch with caching (~/.gent/version-check.json), non-blocking startup check via Commander preAction hook, --skip-update-check flag, and update display in status command.
 - Decisions: 24h cache interval, 3s fetch timeout, native fetch API (Node 20+). GENT_SKIP_UPDATE_CHECK=1 env var also disables checks.
-\n[2026-01-14] #31 feat: add support for OpenAI Codex as an AI provider\n- Files: src/types/index.ts, src/utils/validators.ts, src/utils/validators.test.ts, src/lib/ai-provider.ts, src/lib/ai-provider.test.ts, src/commands/init.ts, src/lib/config.ts, README.md, AGENT.md\n- Changes: Added support for 'codex' as an AI provider, using the 'openai' CLI. Updated types, validators, and AI provider logic. Added 'codex' to the init command and documentation.\n- Decisions: Assumed the 'openai' CLI follows a similar invocation pattern to 'gemini' and 'claude' for simplicity, as suggested by the issue. Used 'noreply@openai.com' for the co-author email.
+[2026-01-14] #31 feat: add support for OpenAI Codex as an AI provider
+- Files: src/types/index.ts, src/utils/validators.ts, src/utils/validators.test.ts, src/lib/ai-provider.ts, src/lib/ai-provider.test.ts, src/commands/init.ts, src/lib/config.ts, README.md, AGENT.md
+- Changes: Added support for 'codex' as an AI provider, using the 'openai' CLI. Updated types, validators, and AI provider logic. Added 'codex' to the init command and documentation.
+- Decisions: Assumed the 'openai' CLI follows a similar invocation pattern to 'gemini' and 'claude' for simplicity, as suggested by the issue. Used 'noreply@openai.com' for the co-author email.
 
 [2026-01-14] #33 feat: add gent fix command for review feedback
 - Files: src/commands/fix.ts, src/index.ts, src/lib/github.ts, src/lib/prompts.ts, src/lib/review-feedback.ts, src/lib/review-feedback.test.ts, src/lib/prompts.test.ts, src/lib/ai-provider.test.ts, src/types/index.ts
@@ -155,3 +158,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/modal.ts, src/tui/modal.test.ts, src/commands/tui.ts, src/commands/tui.test.ts
 - Changes: Added buildMultilineInputContent and showMultilineInput to modal system with word wrapping, newline support (Enter), and Ctrl+S submit. Replaced showInput with showMultilineInput in the create action.
 - Decisions: Used Ctrl+S for submit since Ctrl+Enter is unreliable across terminal emulators. Added word-wrap at content width boundaries.
+
+[2026-01-30] #68 feat: add manual refresh and improve branch switching UX
+- Files: src/tui/actions.ts, src/commands/tui.ts, src/tui/actions.test.ts, src/commands/tui.test.ts
+- Changes: Added manual refresh action (shortcut 'f'). Removed 'main' shortcut from feature branches. Updated list command to include main branch option and disable it when uncommitted changes exist with a descriptive warning.
+- Decisions: Centralized main branch switching in list command to reduce UI clutter. Used upfront dirty check in list command for better UX.
