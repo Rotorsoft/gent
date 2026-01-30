@@ -11,6 +11,7 @@ import {
   showConfirm,
   showSelect,
   showInput,
+  showMultilineInput,
   showStatus,
   type SelectEntry,
 } from "../tui/modal.js";
@@ -106,7 +107,7 @@ export async function executeAction(
     }
 
     case "create": {
-      const description = await showInput({
+      const description = await showMultilineInput({
         title: "New Ticket",
         label: "Describe the ticket:",
         dashboardLines,

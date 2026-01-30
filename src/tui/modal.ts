@@ -141,6 +141,60 @@ export function buildInputContent(
   return [label, "", chalk.cyan("> ") + value + cursor];
 }
 
+/**
+ * Build multiline input content with word wrapping.
+ * Each line of text is wrapped to fit within maxWidth, prefixed with "> " on line 1.
+ */
+export function buildMultilineInputContent(
+  label: string,
+  value: string,
+  cursorVisible: boolean,
+  maxWidth: number
+): string[] {
+  const cursor = cursorVisible ? chalk.cyan("_") : " ";
+  const lines: string[] = [label, ""];
+
+  if (value === "") {
+    // Empty input: show just the cursor
+    lines.push(chalk.cyan("  ") + cursor);
+  } else {
+    // Split value by newlines, then wrap each logical line
+    const inputLines = value.split("\n");
+    const contentWidth = maxWidth - 2; // account for prefix space
+
+    for (let i = 0; i < inputLines.length; i++) {
+      const raw = inputLines[i];
+      const wrapped = wrapLine(raw, contentWidth);
+      for (let j = 0; j < wrapped.length; j++) {
+        const isLastLine = i === inputLines.length - 1 && j === wrapped.length - 1;
+        const text = wrapped[j] + (isLastLine ? cursor : "");
+        lines.push(chalk.cyan("  ") + text);
+      }
+    }
+  }
+
+  return lines;
+}
+
+function wrapLine(text: string, width: number): string[] {
+  if (width <= 0) return [text];
+  if (text.length <= width) return [text];
+
+  const result: string[] = [];
+  let remaining = text;
+  while (remaining.length > width) {
+    // Find last space within width
+    let breakAt = remaining.lastIndexOf(" ", width);
+    if (breakAt <= 0) breakAt = width; // force break if no space
+    result.push(remaining.slice(0, breakAt));
+    remaining = remaining.slice(breakAt).replace(/^ /, ""); // trim leading space
+  }
+  if (remaining.length > 0 || result.length === 0) {
+    result.push(remaining);
+  }
+  return result;
+}
+
 // ── Terminal helpers ──────────────────────────────────────────────
 
 function termSize(): { cols: number; rows: number } {
@@ -241,6 +295,8 @@ export function readKey(): Promise<KeyPress> {
         resolve({ name: "backspace", raw: data });
       } else if (data === "\t") {
         resolve({ name: "tab", raw: data });
+      } else if (data === "\x13") {
+        resolve({ name: "ctrl-s", raw: data }); // Ctrl+S
       } else if (data.length === 1 && data.charCodeAt(0) >= 32) {
         resolve({ name: data, raw: data });
       } else {
@@ -426,6 +482,69 @@ export async function showInput(opts: InputOptions): Promise<string | null> {
 
       default:
         // Single printable character
+        if (key.raw.length === 1 && key.raw.charCodeAt(0) >= 32) {
+          value += key.raw;
+          cursorBlink = true;
+          render();
+        }
+        break;
+    }
+  }
+}
+
+/**
+ * Show a multiline text input dialog overlaying the dashboard.
+ * Enter inserts a newline; Ctrl+S submits.
+ * Returns the entered text or null if cancelled.
+ */
+export async function showMultilineInput(
+  opts: InputOptions
+): Promise<string | null> {
+  const w = modalWidth();
+  let value = "";
+  let cursorBlink = true;
+  const contentWidth = w - 6; // inner width minus borders and padding
+
+  const render = () => {
+    const content = buildMultilineInputContent(
+      opts.label,
+      value,
+      cursorBlink,
+      contentWidth
+    );
+    const footer = "Enter Newline  Ctrl+S Submit  Esc Cancel";
+    const lines = buildModalFrame(opts.title, content, footer, w);
+    renderOverlay(opts.dashboardLines, lines, w);
+  };
+
+  render();
+
+  while (true) {
+    const key = await readKey();
+
+    switch (key.name) {
+      case "ctrl-s":
+        process.stdout.write(showCursor());
+        return value.trim() || null;
+
+      case "enter":
+        value += "\n";
+        cursorBlink = true;
+        render();
+        break;
+
+      case "escape":
+        process.stdout.write(showCursor());
+        return null;
+
+      case "backspace":
+        if (value.length > 0) {
+          value = value.slice(0, -1);
+        }
+        render();
+        break;
+
+      default:
         if (key.raw.length === 1 && key.raw.charCodeAt(0) >= 32) {
           value += key.raw;
           cursorBlink = true;

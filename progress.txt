@@ -150,3 +150,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/tui.ts, src/commands/tui.test.ts, src/commands/pr.ts
 - Changes: Converted list command from clearScreen+inquirer to modal select overlay with category separators. Added modal-based branch switching with dirty-state confirmation and branch creation dialogs. Removed inquirer push confirmation from PR command (auto-push). Fixed process.exit calls in pr.ts to use return for TUI compatibility.
 - Decisions: List modal fetches tickets inline and builds SelectEntry items with separators. Full-screen kept only for AI streaming (create, pr, run).
+
+[2026-01-30] #66 fix: multiline input for new ticket dialog
+- Files: src/tui/modal.ts, src/tui/modal.test.ts, src/commands/tui.ts, src/commands/tui.test.ts
+- Changes: Added buildMultilineInputContent and showMultilineInput to modal system with word wrapping, newline support (Enter), and Ctrl+S submit. Replaced showInput with showMultilineInput in the create action.
+- Decisions: Used Ctrl+S for submit since Ctrl+Enter is unreliable across terminal emulators. Added word-wrap at content width boundaries.
