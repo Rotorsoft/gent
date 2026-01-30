@@ -18,6 +18,7 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   if (state.isOnMain) {
     actions.push({ id: "create", label: "new", shortcut: "n" });
     actions.push({ id: "list", label: "list", shortcut: "l" });
+    actions.push({ id: "refresh", label: "refresh", shortcut: "f" });
     actions.push({ id: "switch-provider", label: "ai", shortcut: "a" });
     actions.push({ id: "quit", label: "quit", shortcut: "q" });
     return actions;
@@ -41,14 +42,8 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     actions.push({ id: "run", label: "run", shortcut: "u" });
   }
 
-  if (
-    state.pr &&
-    (state.pr.state === "merged" || state.pr.state === "closed")
-  ) {
-    actions.push({ id: "checkout-main", label: "main", shortcut: "m" });
-  }
-
   actions.push({ id: "list", label: "list", shortcut: "l" });
+  actions.push({ id: "refresh", label: "refresh", shortcut: "f" });
   actions.push({ id: "switch-provider", label: "ai", shortcut: "a" });
   actions.push({ id: "quit", label: "quit", shortcut: "q" });
 
