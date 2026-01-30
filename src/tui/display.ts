@@ -8,6 +8,27 @@ import type { TuiState } from "./state.js";
 export const stripAnsi = (str: string) => str.replace(/\x1b\[[0-9;]*m/g, "");
 export const visibleLen = (str: string) => stripAnsi(str).length;
 
+export function truncateAnsi(text: string, max: number): string {
+  if (visibleLen(text) <= max) return text;
+  // Walk through the string, tracking visible characters
+  let visible = 0;
+  let i = 0;
+  while (i < text.length && visible < max - 1) {
+    if (text[i] === "\x1b") {
+      // Skip ANSI escape sequence
+      const end = text.indexOf("m", i);
+      if (end !== -1) {
+        i = end + 1;
+        continue;
+      }
+    }
+    visible++;
+    i++;
+  }
+  // Include any trailing ANSI reset sequences
+  return text.slice(0, i) + "\x1b[0m…";
+}
+
 export function termWidth(): number {
   return Math.min(process.stdout.columns || 80, 90);
 }
@@ -66,8 +87,9 @@ function botRow(w: number): string {
 
 function row(text: string, w: number): string {
   const inner = w - 4;
-  const pad = Math.max(0, inner - visibleLen(text));
-  return chalk.dim("│") + " " + text + " ".repeat(pad) + " " + chalk.dim("│");
+  const fitted = truncateAnsi(text, inner);
+  const pad = Math.max(0, inner - visibleLen(fitted));
+  return chalk.dim("│") + " " + fitted + " ".repeat(pad) + " " + chalk.dim("│");
 }
 
 // ── Formatters ──────────────────────────────────────────────────
@@ -228,14 +250,15 @@ export function buildDashboardLines(
     if (state.issue) {
       out(
         row(
-          chalk.cyan(`#${state.issue.number}`) +
-            "  " +
-            chalk.bold(truncate(state.issue.title, descMax - 6)),
+          chalk.dim("· ") +
+            chalk.cyan(`#${state.issue.number}`) +
+            " " +
+            chalk.bold(state.issue.title),
           w
         )
       );
       const desc = extractDescription(state.issue.body, descMax);
-      if (desc) out(row(chalk.dim(desc), w));
+      if (desc) out(row("  " + chalk.dim(desc), w));
       const tags: string[] = [];
       if (state.workflowStatus !== "none")
         tags.push(workflowBadge(state.workflowStatus));
@@ -243,15 +266,15 @@ export function buildDashboardLines(
         const l = state.issue.labels.find((x) => x.startsWith(prefix));
         if (l) tags.push(chalk.dim(l));
       }
-      if (tags.length) out(row(tags.join("  "), w));
+      if (tags.length) out(row("  " + tags.join("  "), w));
     } else {
-      out(row(chalk.dim("No linked issue"), w));
+      out(row(chalk.dim("  No linked issue"), w));
     }
   }
 
   // Branch
   section("Branch");
-  let branchLine = chalk.magenta(state.branch);
+  let branchLine = chalk.dim("· ") + chalk.magenta(state.branch);
   if (state.isOnMain && !state.hasUncommittedChanges) {
     branchLine += chalk.dim("  ·  ready to start new work");
   }
@@ -269,19 +292,23 @@ export function buildDashboardLines(
   ) {
     bits.push(chalk.green("● synced"));
   }
-  if (bits.length) out(row(bits.join(chalk.dim("  ·  ")), w));
+  if (bits.length) out(row("  " + bits.join(chalk.dim("  ·  ")), w));
 
   // Pull Request
   if (state.pr || !state.isOnMain) {
     section("Pull Request");
     if (state.pr) {
-      const titleText = state.pr.title
-        ? "  " + truncate(state.pr.title, descMax - 12)
-        : "";
-      out(row(chalk.cyan(`#${state.pr.number}`) + titleText, w));
+      const titleText = state.pr.title ? " " + state.pr.title : "";
       out(
         row(
-          prBadge(state.pr.state, state.pr.isDraft) +
+          chalk.dim("· ") + chalk.cyan(`#${state.pr.number}`) + titleText,
+          w
+        )
+      );
+      out(
+        row(
+          "  " +
+            prBadge(state.pr.state, state.pr.isDraft) +
             reviewBadge(state.pr.reviewDecision),
           w
         )
@@ -290,7 +317,8 @@ export function buildDashboardLines(
         const n = state.reviewFeedback.length;
         out(
           row(
-            chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`),
+            "  " +
+              chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`),
             w
           )
         );
@@ -303,15 +331,16 @@ export function buildDashboardLines(
       ) {
         out(
           row(
-            chalk.cyan("UI changes detected") +
+            "  " +
+              chalk.cyan("UI changes detected") +
               chalk.dim(" · video capture available"),
             w
           )
         );
       }
-      out(row(chalk.dim(state.pr.url), w));
+      out(row("  " + chalk.dim(state.pr.url), w));
     } else {
-      out(row(chalk.dim("No PR created"), w));
+      out(row(chalk.dim("  No PR created"), w));
     }
   }
 
@@ -321,13 +350,13 @@ export function buildDashboardLines(
     if (state.commits.length > 0) {
       const max = 6;
       for (const c of state.commits.slice(0, max)) {
-        out(row(c.substring(0, w - 5), w));
+        out(row(chalk.dim("· ") + c, w));
       }
       if (state.commits.length > max) {
-        out(row(chalk.dim(`… and ${state.commits.length - max} more`), w));
+        out(row(chalk.dim(`  … and ${state.commits.length - max} more`), w));
       }
     } else {
-      out(row(chalk.dim("No commits"), w));
+      out(row(chalk.dim("  No commits"), w));
     }
   }
 
