@@ -4,6 +4,7 @@ import {
   buildSelectContent,
   buildConfirmContent,
   buildInputContent,
+  buildMultilineInputContent,
   modalWidth,
   type SelectEntry,
 } from "./modal.js";
@@ -159,6 +160,50 @@ describe("buildInputContent", () => {
   it("handles empty input", () => {
     const lines = buildInputContent("Label:", "", true);
     expect(lines.length).toBe(3);
+  });
+});
+
+describe("buildMultilineInputContent", () => {
+  it("shows label and single-line input with cursor", () => {
+    const lines = buildMultilineInputContent("Describe:", "hello", true, 40);
+
+    expect(stripAnsi(lines[0])).toBe("Describe:");
+    expect(stripAnsi(lines[1])).toBe(""); // blank separator
+    expect(stripAnsi(lines[2])).toContain("hello");
+  });
+
+  it("renders multiple lines for newline-separated input", () => {
+    const lines = buildMultilineInputContent("Describe:", "line1\nline2\nline3", true, 40);
+
+    // label + blank + 3 input lines = 5
+    expect(lines.length).toBe(5);
+    expect(stripAnsi(lines[2])).toContain("line1");
+    expect(stripAnsi(lines[3])).toContain("line2");
+    expect(stripAnsi(lines[4])).toContain("line3");
+  });
+
+  it("wraps long lines within maxWidth", () => {
+    const longText = "This is a very long line that should be wrapped at word boundaries";
+    const lines = buildMultilineInputContent("Label:", longText, true, 20);
+
+    // Should produce multiple wrapped lines
+    expect(lines.length).toBeGreaterThan(3); // label + blank + multiple wrapped lines
+  });
+
+  it("handles empty input showing just cursor", () => {
+    const lines = buildMultilineInputContent("Label:", "", true, 40);
+
+    expect(lines.length).toBe(3); // label + blank + cursor line
+  });
+
+  it("places cursor at end of last line only", () => {
+    const withCursor = buildMultilineInputContent("Label:", "a\nb", true, 40);
+    const lastLine = stripAnsi(withCursor[withCursor.length - 1]);
+    const firstInputLine = stripAnsi(withCursor[2]);
+
+    // Cursor (_) should only appear on the last line
+    expect(lastLine).toContain("_");
+    expect(firstInputLine).not.toContain("_");
   });
 });
 

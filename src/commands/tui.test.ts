@@ -134,13 +134,13 @@ describe("executeAction", () => {
   });
 
   it("skips refresh for 'create' action when cancelled via modal", async () => {
-    vi.mocked(modal.showInput).mockResolvedValue(null);
+    vi.mocked(modal.showMultilineInput).mockResolvedValue(null);
 
     const result = await executeAction("create", mockState, mockDashboardLines);
 
     expect(result.running).toBe(true);
     expect(result.refresh).toBe(false);
-    expect(modal.showInput).toHaveBeenCalledWith(
+    expect(modal.showMultilineInput).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "New Ticket",
         label: "Describe the ticket:",
