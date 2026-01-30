@@ -1,3 +1,16 @@
+# [1.17.0](https://github.com/rotorsoft/gent/compare/v1.16.0...v1.17.0) (2026-01-30)
+
+
+### Bug Fixes
+
+* force fresh version check on TUI startup ([3410e20](https://github.com/rotorsoft/gent/commit/3410e20f801a67a1b2f9fa75a105e847dcfd5f50))
+
+
+### Features
+
+* highlight current ticket in TUI switch list ([932fbc7](https://github.com/rotorsoft/gent/commit/932fbc771bf8b3645350fff6d8a65e5d03ccf712)), closes [#77](https://github.com/rotorsoft/gent/issues/77)
+* highlight selected ticket with inverse colors in TUI modal ([bebe43a](https://github.com/rotorsoft/gent/commit/bebe43a0b7e0a8214c6dc868de57958807cc21e0)), closes [hi#contrast](https://github.com/hi/issues/contrast) [#77](https://github.com/rotorsoft/gent/issues/77)
+
 # [1.16.0](https://github.com/rotorsoft/gent/compare/v1.15.3...v1.16.0) (2026-01-30)
 
 
