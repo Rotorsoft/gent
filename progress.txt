@@ -160,6 +160,19 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Decisions: Used Ctrl+S for submit since Ctrl+Enter is unreliable across terminal emulators. Added word-wrap at content width boundaries.
 
 [2026-01-30] #68 feat: add manual refresh and improve branch switching UX
+
 - Files: src/tui/actions.ts, src/commands/tui.ts, src/tui/actions.test.ts, src/commands/tui.test.ts
+
 - Changes: Added manual refresh action (shortcut 'f'). Removed 'main' shortcut from feature branches. Updated list command to include main branch option and disable it when uncommitted changes exist with a descriptive warning.
+
 - Decisions: Centralized main branch switching in list command to reduce UI clutter. Used upfront dirty check in list command for better UX.
+
+
+
+[2026-01-30] #70 fix: show master/main branch in branch section with consistent UX
+
+- Files: src/tui/display.ts, src/tui/display.test.ts
+
+- Changes: Refactored dashboard rendering to always show the current branch in the branch section, including master/main. Hidden irrelevant sections (Ticket, PR, Commits) on main branch for a cleaner look.
+
+- Decisions: Integrated main branch into standard section-based layout while maintaining "ready to start new work" hint.

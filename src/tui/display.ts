@@ -218,67 +218,45 @@ export function buildDashboardLines(
     return lines;
   }
 
-  // ── On main – nothing active ─────────────────────────────────
-  if (state.isOnMain) {
-    out(
-      row(
-        chalk.magenta(state.branch) + chalk.dim("  ·  ready to start new work"),
-        w
-      )
-    );
-    if (state.hasUncommittedChanges) {
-      out(row(chalk.yellow("● uncommitted changes"), w));
-    }
-    if (hint) {
-      out(midRow("Hint", w));
-      out(row(chalk.yellow(hint), w));
-    }
-    out(divRow(w));
-    if (refreshing) {
-      out(row(chalk.yellow("Refreshing…"), w));
-    } else {
-      for (const line of formatCommandBar(actions, w)) {
-        out(row(line, w));
-      }
-    }
-    out(botRow(w));
-    out("");
-    return lines;
-  }
-
-  // ── Feature branch dashboard ──────────────────────────────────
   const section = (title: string) => {
     out(midRow(title, w));
   };
 
   // Ticket
-  section("Ticket");
-  if (state.issue) {
-    out(
-      row(
-        chalk.cyan(`#${state.issue.number}`) +
-          "  " +
-          chalk.bold(truncate(state.issue.title, descMax - 6)),
-        w
-      )
-    );
-    const desc = extractDescription(state.issue.body, descMax);
-    if (desc) out(row(chalk.dim(desc), w));
-    const tags: string[] = [];
-    if (state.workflowStatus !== "none")
-      tags.push(workflowBadge(state.workflowStatus));
-    for (const prefix of ["type:", "priority:", "risk:", "area:"]) {
-      const l = state.issue.labels.find((x) => x.startsWith(prefix));
-      if (l) tags.push(chalk.dim(l));
+  if (state.issue || !state.isOnMain) {
+    section("Ticket");
+    if (state.issue) {
+      out(
+        row(
+          chalk.cyan(`#${state.issue.number}`) +
+            "  " +
+            chalk.bold(truncate(state.issue.title, descMax - 6)),
+          w
+        )
+      );
+      const desc = extractDescription(state.issue.body, descMax);
+      if (desc) out(row(chalk.dim(desc), w));
+      const tags: string[] = [];
+      if (state.workflowStatus !== "none")
+        tags.push(workflowBadge(state.workflowStatus));
+      for (const prefix of ["type:", "priority:", "risk:", "area:"]) {
+        const l = state.issue.labels.find((x) => x.startsWith(prefix));
+        if (l) tags.push(chalk.dim(l));
+      }
+      if (tags.length) out(row(tags.join("  "), w));
+    } else {
+      out(row(chalk.dim("No linked issue"), w));
     }
-    if (tags.length) out(row(tags.join("  "), w));
-  } else {
-    out(row(chalk.dim("No linked issue"), w));
   }
 
   // Branch
   section("Branch");
-  out(row(chalk.magenta(state.branch), w));
+  let branchLine = chalk.magenta(state.branch);
+  if (state.isOnMain && !state.hasUncommittedChanges) {
+    branchLine += chalk.dim("  ·  ready to start new work");
+  }
+  out(row(branchLine, w));
+
   const bits: string[] = [];
   if (state.commits.length > 0)
     bits.push(chalk.dim(`${state.commits.length} ahead`));
@@ -294,59 +272,63 @@ export function buildDashboardLines(
   if (bits.length) out(row(bits.join(chalk.dim("  ·  ")), w));
 
   // Pull Request
-  section("Pull Request");
-  if (state.pr) {
-    const titleText = state.pr.title
-      ? "  " + truncate(state.pr.title, descMax - 12)
-      : "";
-    out(row(chalk.cyan(`#${state.pr.number}`) + titleText, w));
-    out(
-      row(
-        prBadge(state.pr.state, state.pr.isDraft) +
-          reviewBadge(state.pr.reviewDecision),
-        w
-      )
-    );
-    if (state.hasActionableFeedback) {
-      const n = state.reviewFeedback.length;
+  if (state.pr || !state.isOnMain) {
+    section("Pull Request");
+    if (state.pr) {
+      const titleText = state.pr.title
+        ? "  " + truncate(state.pr.title, descMax - 12)
+        : "";
+      out(row(chalk.cyan(`#${state.pr.number}`) + titleText, w));
       out(
         row(
-          chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`),
+          prBadge(state.pr.state, state.pr.isDraft) +
+            reviewBadge(state.pr.reviewDecision),
           w
         )
       );
+      if (state.hasActionableFeedback) {
+        const n = state.reviewFeedback.length;
+        out(
+          row(
+            chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`),
+            w
+          )
+        );
+      }
+      if (
+        state.hasUIChanges &&
+        state.isPlaywrightAvailable &&
+        state.config.video.enabled &&
+        state.pr.state === "open"
+      ) {
+        out(
+          row(
+            chalk.cyan("UI changes detected") +
+              chalk.dim(" · video capture available"),
+            w
+          )
+        );
+      }
+      out(row(chalk.dim(state.pr.url), w));
+    } else {
+      out(row(chalk.dim("No PR created"), w));
     }
-    if (
-      state.hasUIChanges &&
-      state.isPlaywrightAvailable &&
-      state.config.video.enabled &&
-      state.pr.state === "open"
-    ) {
-      out(
-        row(
-          chalk.cyan("UI changes detected") +
-            chalk.dim(" · video capture available"),
-          w
-        )
-      );
-    }
-    out(row(chalk.dim(state.pr.url), w));
-  } else {
-    out(row(chalk.dim("No PR created"), w));
   }
 
   // Commits
-  section("Commits");
-  if (state.commits.length > 0) {
-    const max = 6;
-    for (const c of state.commits.slice(0, max)) {
-      out(row(c.substring(0, w - 5), w));
+  if (state.commits.length > 0 || !state.isOnMain) {
+    section("Commits");
+    if (state.commits.length > 0) {
+      const max = 6;
+      for (const c of state.commits.slice(0, max)) {
+        out(row(c.substring(0, w - 5), w));
+      }
+      if (state.commits.length > max) {
+        out(row(chalk.dim(`… and ${state.commits.length - max} more`), w));
+      }
+    } else {
+      out(row(chalk.dim("No commits"), w));
     }
-    if (state.commits.length > max) {
-      out(row(chalk.dim(`… and ${state.commits.length - max} more`), w));
-    }
-  } else {
-    out(row(chalk.dim("No commits"), w));
   }
 
   // Hint
