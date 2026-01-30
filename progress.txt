@@ -183,3 +183,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/display.ts, src/tui/display.test.ts, src/commands/tui.ts
 - Changes: Added update notification below GitHub status in TUI settings section. Version check runs in parallel with state aggregation using existing `checkForUpdates` with 30-minute throttle. Shows "Update available: X → Y" with upgrade command when newer version exists.
 - Decisions: Reused existing `checkForUpdates` disk cache (no new in-memory cache needed). Non-blocking via `Promise.all` alongside `aggregateState`. No notification when up-to-date.
+
+[2026-01-30] #75 perf: cache environment checks in TUI session
+- Files: src/tui/state.ts, src/tui/state.test.ts
+- Changes: Cached `checkGhAuth`, `checkAIProvider`, and `isPlaywrightAvailable` results after first call. These environment checks don't change mid-session, so subsequent refreshes skip the subprocess calls.
+- Decisions: Session-level in-memory cache with `resetEnvCache()` exposed for testing. Playwright check deferred until first feature branch visit.

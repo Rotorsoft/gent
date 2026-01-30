@@ -74,6 +74,18 @@ export interface TuiState {
   isPlaywrightAvailable: boolean;
 }
 
+// Session-level cache for environment checks that don't change mid-session
+let envCache: {
+  isGhAuthenticated: boolean;
+  isAIProviderAvailable: boolean;
+  isPlaywrightAvailable: boolean;
+} | null = null;
+
+/** Reset the environment cache (for testing). */
+export function resetEnvCache(): void {
+  envCache = null;
+}
+
 export async function aggregateState(): Promise<TuiState> {
   // Check prerequisites first
   const isGitRepo = await checkGitRepo();
@@ -107,17 +119,22 @@ export async function aggregateState(): Promise<TuiState> {
   const config = loadConfig();
   const workflowLabels = getWorkflowLabels(config);
 
-  // Gather prerequisites and git state in parallel
-  const [
-    isGhAuthenticated,
-    isAIProviderAvailable,
-    branch,
-    isOnMain,
-    uncommitted,
-    baseBranch,
-  ] = await Promise.all([
-    checkGhAuth(),
-    checkAIProvider(config.ai.provider),
+  // Check environment once per session (these don't change mid-session)
+  if (!envCache) {
+    const [ghAuth, aiAvail] = await Promise.all([
+      checkGhAuth(),
+      checkAIProvider(config.ai.provider),
+    ]);
+    envCache = {
+      isGhAuthenticated: ghAuth,
+      isAIProviderAvailable: aiAvail,
+      isPlaywrightAvailable: false, // resolved below on first feature branch visit
+    };
+  }
+  const { isGhAuthenticated, isAIProviderAvailable } = envCache;
+
+  // Gather git state in parallel
+  const [branch, isOnMain, uncommitted, baseBranch] = await Promise.all([
     getCurrentBranch(),
     isOnMainBranch(),
     hasUncommittedChanges(),
@@ -148,6 +165,8 @@ export async function aggregateState(): Promise<TuiState> {
     const issueNumber = extractIssueNumber(branch);
 
     // Fetch issue, PR status, and UI change detection in parallel
+    // Playwright availability is cached per session
+    const needsPlaywrightCheck = !envCache!.isPlaywrightAvailable;
     const [issueResult, prResult, changedFiles, playwrightResult] =
       await Promise.all([
         issueNumber
@@ -155,13 +174,18 @@ export async function aggregateState(): Promise<TuiState> {
           : Promise.resolve(null),
         getPrStatus().catch(() => null),
         getChangedFiles(baseBranch),
-        isPlaywrightAvailable(),
+        needsPlaywrightCheck
+          ? isPlaywrightAvailable()
+          : Promise.resolve(envCache!.isPlaywrightAvailable),
       ]);
 
     issue = issueResult;
     pr = prResult;
     uiChanges = hasUIChanges(changedFiles);
     playwrightAvailable = playwrightResult;
+    if (needsPlaywrightCheck) {
+      envCache!.isPlaywrightAvailable = playwrightResult;
+    }
 
     // Determine workflow status from labels
     if (issue) {
