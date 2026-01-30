@@ -21,10 +21,32 @@ function modalBotRow(w: number): string {
   return chalk.bold("└" + "─".repeat(w - 2) + "┘");
 }
 
+function truncateAnsi(text: string, max: number): string {
+  if (visibleLen(text) <= max) return text;
+  // Walk through the string, tracking visible characters
+  let visible = 0;
+  let i = 0;
+  while (i < text.length && visible < max - 1) {
+    if (text[i] === "\x1b") {
+      // Skip ANSI escape sequence
+      const end = text.indexOf("m", i);
+      if (end !== -1) {
+        i = end + 1;
+        continue;
+      }
+    }
+    visible++;
+    i++;
+  }
+  // Include any trailing ANSI reset sequences
+  return text.slice(0, i) + "\x1b[0m…";
+}
+
 function modalRow(text: string, w: number): string {
   const inner = w - 4;
-  const pad = Math.max(0, inner - visibleLen(text));
-  return chalk.bold("│") + " " + text + " ".repeat(pad) + " " + chalk.bold("│");
+  const fitted = truncateAnsi(text, inner);
+  const pad = Math.max(0, inner - visibleLen(fitted));
+  return chalk.bold("│") + " " + fitted + " ".repeat(pad) + " " + chalk.bold("│");
 }
 
 function modalEmptyRow(w: number): string {

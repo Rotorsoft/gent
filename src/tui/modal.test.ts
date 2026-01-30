@@ -52,6 +52,18 @@ describe("buildModalFrame", () => {
     // top + empty + empty + div + footer + bottom = 6
     expect(lines.length).toBe(6);
   });
+
+  it("truncates content that exceeds modal width", () => {
+    const longText = "Pushing ro/feature-64-refactor-command-tuis-to-use-floating-modal-dialogs to remote...";
+    const lines = buildModalFrame("Push", [longText], "", 40);
+
+    // Every line should fit within the modal width
+    for (const line of lines) {
+      expect(stripAnsi(line).length).toBeLessThanOrEqual(40);
+    }
+    // Content row should end with ellipsis
+    expect(stripAnsi(lines[2])).toContain("…");
+  });
 });
 
 describe("buildSelectContent", () => {
