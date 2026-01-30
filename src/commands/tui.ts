@@ -418,6 +418,8 @@ async function handleList(
 
     // Build modal select entries with category separators
     const items: SelectEntry[] = [];
+    let initialIndex = 0;
+    let selectableIdx = 0;
 
     // Main branch option
     const isMain = currentBranch === defaultBranch;
@@ -431,6 +433,8 @@ async function handleList(
     } else {
       items.push({ name: mainLabel, value: "__main__" });
     }
+    if (isMain) initialIndex = selectableIdx;
+    selectableIdx++;
 
     const inProgressChoices = choices.filter(
       (c) => c.category === "in-progress"
@@ -438,38 +442,37 @@ async function handleList(
     const openPrChoices = choices.filter((c) => c.category === "open-pr");
     const readyChoices = choices.filter((c) => c.category === "ready");
 
-    if (inProgressChoices.length > 0) {
-      items.push({ separator: "── In Progress ──" });
-      for (const c of inProgressChoices) {
+    const addChoices = (list: typeof choices) => {
+      for (const c of list) {
+        const isCurrent = c.branch === currentBranch;
         items.push({
           name: `#${c.issueNumber} ${c.title}`,
           value: String(c.issueNumber),
         });
+        if (isCurrent) initialIndex = selectableIdx;
+        selectableIdx++;
       }
+    };
+
+    if (inProgressChoices.length > 0) {
+      items.push({ separator: "── In Progress ──" });
+      addChoices(inProgressChoices);
     }
     if (openPrChoices.length > 0) {
       items.push({ separator: "── Open PRs ──" });
-      for (const c of openPrChoices) {
-        items.push({
-          name: `#${c.issueNumber} ${c.title}`,
-          value: String(c.issueNumber),
-        });
-      }
+      addChoices(openPrChoices);
     }
     if (readyChoices.length > 0) {
       items.push({ separator: "── Ready ──" });
-      for (const c of readyChoices) {
-        items.push({
-          name: `#${c.issueNumber} ${c.title}`,
-          value: String(c.issueNumber),
-        });
-      }
+      addChoices(readyChoices);
     }
 
     const selected = await showSelect({
       title: "Switch Ticket",
       items,
       dashboardLines,
+      initialIndex,
+      currentIndex: initialIndex,
     });
 
     if (!selected) return false;

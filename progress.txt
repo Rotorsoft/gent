@@ -189,7 +189,7 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Changes: Cached `checkGhAuth`, `checkAIProvider`, and `isPlaywrightAvailable` results after first call. These environment checks don't change mid-session, so subsequent refreshes skip the subprocess calls.
 - Decisions: Session-level in-memory cache with `resetEnvCache()` exposed for testing. Playwright check deferred until first feature branch visit.
 
-[2026-01-30] #77 feat: highlight selected ticket when switching in TUI dashboard
-- Files: src/tui/modal.ts
-- Changes: Applied `chalk.cyan.inverse` styling to the selected item label in modal select dialogs, making the active ticket visually distinct with inverse colors instead of just bold text.
-- Decisions: Used inverse colors (standard TUI selection pattern) on the label. Kept `>` prefix and changed bullet to cyan for selected items.
+[2026-01-30] #77 feat: highlight current ticket in TUI switch list
+- Files: src/commands/tui.ts, src/commands/tui.test.ts, src/tui/modal.ts, src/tui/modal.test.ts
+- Changes: Added `currentIndex` to `buildSelectContent` and `showSelect` to style the active ticket with `chalk.cyan`. Added `initialIndex` so cursor starts on the current ticket. Reverted cursor-selection inverse styling (kept bold).
+- Decisions: Used color-only highlighting (no added text) to avoid truncation in narrow modals. Pre-selecting current ticket reduces navigation effort.

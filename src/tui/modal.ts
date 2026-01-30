@@ -74,7 +74,8 @@ function isSeparator(entry: SelectEntry): entry is SelectSeparator {
 export function buildSelectContent(
   items: SelectEntry[],
   selectedIndex: number,
-  maxWidth: number
+  maxWidth: number,
+  currentIndex?: number
 ): string[] {
   const lines: string[] = [];
   let selectableIdx = 0;
@@ -84,12 +85,16 @@ export function buildSelectContent(
       lines.push(chalk.dim(item.separator));
     } else {
       const isSelected = selectableIdx === selectedIndex;
+      const isCurrent = currentIndex != null && selectableIdx === currentIndex;
       const prefix = isSelected ? chalk.cyan.bold("> ") : "  ";
-      const bullet = isSelected ? chalk.cyan("· ") : chalk.dim("· ");
+      const bullet = chalk.dim("· ");
       const label = truncateAnsi(item.name, maxWidth - 4);
-      lines.push(
-        prefix + bullet + (isSelected ? chalk.cyan.inverse(label) : label)
-      );
+      const styledLabel = isSelected
+        ? chalk.bold(label)
+        : isCurrent
+          ? chalk.cyan(label)
+          : label;
+      lines.push(prefix + bullet + styledLabel);
       selectableIdx++;
     }
   }
@@ -348,6 +353,8 @@ export interface SelectOptions {
   title: string;
   items: SelectEntry[];
   dashboardLines: string[];
+  initialIndex?: number;
+  currentIndex?: number;
 }
 
 /**
@@ -366,10 +373,10 @@ export async function showSelect(opts: SelectOptions): Promise<string | null> {
   const maxItems = selectableCount(opts.items);
   if (maxItems === 0) return null;
 
-  let selectedIndex = 0;
+  let selectedIndex = opts.initialIndex ?? 0;
 
   const render = () => {
-    const content = buildSelectContent(opts.items, selectedIndex, w - 6);
+    const content = buildSelectContent(opts.items, selectedIndex, w - 6, opts.currentIndex);
     const footer = "↑↓ Navigate  Enter Select  Esc Cancel";
     const lines = buildModalFrame(opts.title, content, footer, w);
     renderOverlay(opts.dashboardLines, lines, w);
