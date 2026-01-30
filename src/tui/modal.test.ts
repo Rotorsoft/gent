@@ -106,6 +106,28 @@ describe("buildSelectContent", () => {
     expect(stripAnsi(lines[3])).toMatch(/^\s+·\s*Option B/);
   });
 
+  it("accepts currentIndex parameter without affecting layout", () => {
+    const items: SelectEntry[] = [
+      { name: "Option A", value: "a" },
+      { name: "Option B", value: "b" },
+      { name: "Option C", value: "c" },
+    ];
+
+    // Cursor on index 0, current item is index 1
+    const lines = buildSelectContent(items, 0, 50, 1);
+    expect(lines.length).toBe(3);
+
+    // Current item (index 1) should still show its text without ">"
+    expect(stripAnsi(lines[1])).toMatch(/^\s+·\s*Option B/);
+    // Selected item (index 0) should still have ">"
+    expect(stripAnsi(lines[0])).toMatch(/^>\s*·\s*Option A/);
+
+    // Without currentIndex, layout should be the same
+    const linesNoHighlight = buildSelectContent(items, 0, 50);
+    expect(stripAnsi(lines[0])).toBe(stripAnsi(linesNoHighlight[0]));
+    expect(stripAnsi(lines[1])).toBe(stripAnsi(linesNoHighlight[1]));
+  });
+
   it("truncates long option names", () => {
     const items: SelectEntry[] = [
       { name: "A very long option name that exceeds the maximum width", value: "a" },

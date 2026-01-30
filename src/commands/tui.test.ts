@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as aiProvider from "../lib/ai-provider.js";
 import * as display from "../tui/display.js";
 import * as modal from "../tui/modal.js";
+
 import * as github from "../lib/github.js";
 import * as git from "../lib/git.js";
 import * as branch from "../lib/branch.js";
@@ -237,6 +238,71 @@ describe("executeAction", () => {
       expect.objectContaining({ title: "Switch Ticket" })
     );
     expect(git.checkoutBranch).toHaveBeenCalledWith("ro/feature-5-some-feature");
+  });
+
+  it("'list' action highlights the current ticket with (current) marker and sets initialIndex", async () => {
+    vi.mocked(github.listIssues)
+      .mockResolvedValueOnce([
+        {
+          number: 3,
+          title: "First ticket",
+          body: "",
+          labels: ["ai-in-progress"],
+          state: "open",
+          url: "url",
+        },
+        {
+          number: 5,
+          title: "Current ticket",
+          body: "",
+          labels: ["ai-in-progress"],
+          state: "open",
+          url: "url",
+        },
+      ]) // in-progress
+      .mockResolvedValueOnce([]); // ready
+    vi.mocked(github.listOpenPrs).mockResolvedValue([]);
+    vi.mocked(git.listLocalBranches).mockResolvedValue([
+      "ro/feature-3-first-ticket",
+      "ro/feature-5-current-ticket",
+    ]);
+    vi.mocked(git.getCurrentBranch).mockResolvedValue("ro/feature-5-current-ticket");
+    vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
+
+    vi.mocked(branch.parseBranchName).mockImplementation((name: string) => {
+      const m = name.match(/(\w+)-(\d+)-/);
+      if (m) return { name, issueNumber: parseInt(m[2], 10), type: m[1], slug: "test", author: "ro" };
+      return null;
+    });
+
+    // User cancels the select modal
+    vi.mocked(modal.showSelect).mockResolvedValue(null);
+
+    await executeAction("list", mockState, mockDashboardLines);
+
+    const call = vi.mocked(modal.showSelect).mock.calls[0][0];
+    // Should have initialIndex pointing to ticket #5 (index 2: main=0, #3=1, #5=2)
+    expect(call.initialIndex).toBe(2);
+    // currentIndex should match initialIndex for styling
+    expect(call.currentIndex).toBe(2);
+  });
+
+  it("'list' action sets initialIndex to main when on main branch", async () => {
+    vi.mocked(github.listIssues).mockResolvedValue([]);
+    vi.mocked(github.listOpenPrs).mockResolvedValue([]);
+    vi.mocked(git.listLocalBranches).mockResolvedValue([]);
+    vi.mocked(git.getCurrentBranch).mockResolvedValue("main");
+    vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
+
+    vi.mocked(modal.showSelect).mockResolvedValue(null);
+
+    await executeAction("list", mockState, mockDashboardLines);
+
+    const call = vi.mocked(modal.showSelect).mock.calls[0][0];
+    expect(call.initialIndex).toBe(0);
+    expect(call.currentIndex).toBe(0);
   });
 
   it("'list' action shows warning for disabled main branch when dirty", async () => {
