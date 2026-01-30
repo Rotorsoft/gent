@@ -85,10 +85,10 @@ export function buildSelectContent(
     } else {
       const isSelected = selectableIdx === selectedIndex;
       const prefix = isSelected ? chalk.cyan.bold("> ") : "  ";
-      const bullet = chalk.dim("· ");
+      const bullet = isSelected ? chalk.cyan("· ") : chalk.dim("· ");
       const label = truncateAnsi(item.name, maxWidth - 4);
       lines.push(
-        prefix + bullet + (isSelected ? chalk.bold(label) : label)
+        prefix + bullet + (isSelected ? chalk.cyan.inverse(label) : label)
       );
       selectableIdx++;
     }
