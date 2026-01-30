@@ -14,7 +14,11 @@ import {
   extractTitle,
   generateFallbackTitle,
 } from "../lib/prompts.js";
-import { invokeAI, getProviderDisplayName } from "../lib/ai-provider.js";
+import {
+  invokeAI,
+  getProviderDisplayName,
+  getOtherAvailableProviders,
+} from "../lib/ai-provider.js";
 import { createIssue } from "../lib/github.js";
 import { buildIssueLabels } from "../lib/labels.js";
 import { checkGhAuth, checkAIProvider } from "../utils/validators.js";
@@ -43,13 +47,12 @@ export async function createCommand(
   const config = loadConfig();
 
   // Determine which provider to use
-  const provider = resolveProvider(options, config);
-  const providerName = getProviderDisplayName(provider);
+  let currentProvider = resolveProvider(options, config);
 
   // Validate prerequisites
   const [ghAuth, aiOk] = await Promise.all([
     checkGhAuth(),
-    checkAIProvider(provider),
+    checkAIProvider(currentProvider),
   ]);
 
   if (!ghAuth) {
@@ -59,7 +62,7 @@ export async function createCommand(
 
   if (!aiOk) {
     logger.error(
-      `${providerName} CLI not found. Please install ${provider} CLI first.`
+      `${getProviderDisplayName(currentProvider)} CLI not found. Please install ${currentProvider} CLI first.`
     );
     return;
   }
@@ -71,6 +74,7 @@ export async function createCommand(
   let additionalHints: string | null = null;
 
   while (true) {
+    const providerName = getProviderDisplayName(currentProvider);
     // Build prompt and invoke AI
     const prompt = buildTicketPrompt(
       description,
@@ -89,7 +93,7 @@ export async function createCommand(
       const result = await invokeAI(
         { prompt, streamOutput: true },
         config,
-        options.provider
+        currentProvider
       );
       aiOutput = result.output;
       logger.newline();
@@ -100,6 +104,36 @@ export async function createCommand(
       );
       logger.newline();
     } catch (error) {
+      if (error && typeof error === "object" && "rateLimited" in error) {
+        logger.warning(`${providerName} is rate limited.`);
+
+        const others = await getOtherAvailableProviders(currentProvider);
+        if (others.length > 0) {
+          const { nextProvider } = await inquirer.prompt([
+            {
+              type: "list",
+              name: "nextProvider",
+              message: "Would you like to try another provider?",
+              choices: [
+                ...others.map((p) => ({
+                  name: `Switch to ${getProviderDisplayName(p)}`,
+                  value: p,
+                })),
+                { name: "Cancel", value: "cancel" },
+              ],
+            },
+          ]);
+
+          if (nextProvider !== "cancel") {
+            currentProvider = nextProvider as AIProvider;
+            logger.info(
+              `Switching to ${getProviderDisplayName(currentProvider)}...`
+            );
+            continue;
+          }
+        }
+      }
+
       logger.error(`${providerName} invocation failed: ${error}`);
       return;
     }

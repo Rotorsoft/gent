@@ -3,6 +3,8 @@ import { execa, type ResultPromise } from "execa";
 import type { GentConfig, AIProvider } from "../types/index.js";
 import { logger, colors } from "../utils/logger.js";
 
+import { checkAIProvider } from "../utils/validators.js";
+
 export interface AIProviderOptions {
   prompt: string;
   permissionMode?: string;
@@ -14,6 +16,25 @@ export interface AIProviderResult {
   output: string;
   provider: AIProvider;
   rateLimited?: boolean;
+}
+
+/**
+ * Get list of available AI providers except the current one
+ */
+export async function getOtherAvailableProviders(
+  currentProvider: AIProvider
+): Promise<AIProvider[]> {
+  const allProviders: AIProvider[] = ["claude", "gemini", "codex"];
+  const others = allProviders.filter((p) => p !== currentProvider);
+  const available: AIProvider[] = [];
+
+  for (const p of others) {
+    if (await checkAIProvider(p)) {
+      available.push(p);
+    }
+  }
+
+  return available;
 }
 
 async function invokeInternal(

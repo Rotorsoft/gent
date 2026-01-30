@@ -14,34 +14,29 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     return actions;
   }
 
-  // On main branch
-  if (state.isOnMain) {
-    actions.push({ id: "create", label: "new", shortcut: "n" });
-    actions.push({ id: "list", label: "list", shortcut: "l" });
-    actions.push({ id: "refresh", label: "refresh", shortcut: "f" });
-    actions.push({ id: "switch-provider", label: "ai", shortcut: "a" });
-    actions.push({ id: "quit", label: "quit", shortcut: "q" });
-    return actions;
+  // Common actions available everywhere
+  actions.push({ id: "create", label: "new", shortcut: "n" });
+
+  // On feature branch - add context-aware actions BEFORE other common actions
+  if (!state.isOnMain) {
+    if (state.hasUncommittedChanges) {
+      actions.push({ id: "commit", label: "commit", shortcut: "c" });
+    }
+
+    if (state.hasUnpushedCommits && state.commits.length > 0) {
+      actions.push({ id: "push", label: "push", shortcut: "p" });
+    }
+
+    if (!state.pr && state.commits.length > 0) {
+      actions.push({ id: "pr", label: "pr", shortcut: "r" });
+    }
+
+    if (state.issue && state.pr?.state !== "merged") {
+      actions.push({ id: "run", label: "run", shortcut: "u" });
+    }
   }
 
-  // On feature branch - context-aware
-
-  if (state.hasUncommittedChanges) {
-    actions.push({ id: "commit", label: "commit", shortcut: "c" });
-  }
-
-  if (state.hasUnpushedCommits && state.commits.length > 0) {
-    actions.push({ id: "push", label: "push", shortcut: "p" });
-  }
-
-  if (!state.pr && state.commits.length > 0) {
-    actions.push({ id: "pr", label: "pr", shortcut: "r" });
-  }
-
-  if (state.issue && state.pr?.state !== "merged") {
-    actions.push({ id: "run", label: "run", shortcut: "u" });
-  }
-
+  // Common navigation/config actions
   actions.push({ id: "list", label: "list", shortcut: "l" });
   actions.push({ id: "refresh", label: "refresh", shortcut: "f" });
   actions.push({ id: "switch-provider", label: "ai", shortcut: "a" });

@@ -10,7 +10,11 @@ import {
   updateIssueLabels,
 } from "../lib/github.js";
 import { buildPrPrompt } from "../lib/prompts.js";
-import { invokeAI, getProviderDisplayName } from "../lib/ai-provider.js";
+import {
+  invokeAI,
+  getProviderDisplayName,
+  getOtherAvailableProviders,
+} from "../lib/ai-provider.js";
 import {
   getCurrentBranch,
   isOnMainBranch,
@@ -29,6 +33,7 @@ import {
   getChangedFiles,
 } from "../lib/playwright.js";
 import type { GitHubIssue, AIProvider } from "../types/index.js";
+import inquirer from "inquirer";
 
 export interface PrOptions {
   draft?: boolean;
@@ -43,13 +48,12 @@ export async function prCommand(options: PrOptions): Promise<void> {
   const config = loadConfig();
 
   // Determine which provider to use
-  const provider = options.provider ?? config.ai.provider;
-  const providerName = getProviderDisplayName(provider);
+  let currentProvider = options.provider ?? config.ai.provider;
 
   // Validate prerequisites
   const [ghAuth, aiOk] = await Promise.all([
     checkGhAuth(),
-    checkAIProvider(provider),
+    checkAIProvider(currentProvider),
   ]);
 
   if (!ghAuth) {
@@ -59,7 +63,7 @@ export async function prCommand(options: PrOptions): Promise<void> {
 
   if (!aiOk) {
     logger.error(
-      `${providerName} CLI not found. Please install ${provider} CLI first.`
+      `${getProviderDisplayName(currentProvider)} CLI not found. Please install ${currentProvider} CLI first.`
     );
     return;
   }
@@ -160,26 +164,63 @@ IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
     buildPrPrompt(issue, commits, diffSummary) + captureVideoInstructions;
 
   let prBody: string;
-  try {
-    logger.info(
-      `Generating PR description with ${colors.provider(providerName)}...`
-    );
-    logger.newline();
-    const result = await invokeAI(
-      { prompt, streamOutput: true },
-      config,
-      options.provider
-    );
-    prBody = result.output;
-    logger.newline();
-  } catch (error) {
-    logger.warning(`${providerName} invocation failed: ${error}`);
-    // Fall back to basic description
-    prBody = generateFallbackBody(issue, commits);
+  let usedProvider = currentProvider;
+
+  while (true) {
+    const providerName = getProviderDisplayName(usedProvider);
+    try {
+      logger.info(
+        `Generating PR description with ${colors.provider(providerName)}...`
+      );
+      logger.newline();
+      const result = await invokeAI(
+        { prompt, streamOutput: true },
+        config,
+        usedProvider
+      );
+      prBody = result.output;
+      logger.newline();
+      break;
+    } catch (error) {
+      if (error && typeof error === "object" && "rateLimited" in error) {
+        logger.warning(`${providerName} is rate limited.`);
+
+        const others = await getOtherAvailableProviders(usedProvider);
+        if (others.length > 0) {
+          const { nextProvider } = await inquirer.prompt([
+            {
+              type: "list",
+              name: "nextProvider",
+              message: "Would you like to try another provider?",
+              choices: [
+                ...others.map((p) => ({
+                  name: `Switch to ${getProviderDisplayName(p)}`,
+                  value: p,
+                })),
+                { name: "Fall back to basic description", value: "fallback" },
+              ],
+            },
+          ]);
+
+          if (nextProvider !== "fallback") {
+            usedProvider = nextProvider as AIProvider;
+            logger.info(
+              `Switching to ${getProviderDisplayName(usedProvider)}...`
+            );
+            continue;
+          }
+        }
+      }
+
+      logger.warning(`${providerName} invocation failed: ${error}`);
+      // Fall back to basic description
+      prBody = generateFallbackBody(issue, commits);
+      break;
+    }
   }
 
   // Append signature footer
-  prBody += `\n\n---\n*Created with ${providerName} by [gent](https://github.com/Rotorsoft/gent)*`;
+  prBody += `\n\n---\n*Created with ${getProviderDisplayName(usedProvider)} by [gent](https://github.com/Rotorsoft/gent)*`;
 
   // Generate title
   const prTitle = issue?.title || commits[0] || currentBranch;
