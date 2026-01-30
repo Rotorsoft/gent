@@ -1,3 +1,13 @@
+## [1.14.1](https://github.com/rotorsoft/gent/compare/v1.14.0...v1.14.1) (2026-01-30)
+
+
+### Bug Fixes
+
+* refactor modals ([120c1dc](https://github.com/rotorsoft/gent/commit/120c1dc1fbe4d38247bf05e85b45b62f63f8a2da))
+* skip dashboard refresh when modal is cancelled ([3671321](https://github.com/rotorsoft/gent/commit/367132163c042e50956e1895d435df2299f486be))
+* skip full refresh for lightweight actions, remove Video setting ([26839d9](https://github.com/rotorsoft/gent/commit/26839d9d2dde428063c07ea847937e1f548d9448))
+* truncate modal content that overflows frame width ([642abd6](https://github.com/rotorsoft/gent/commit/642abd6c7732fc14f9edb1e6a07204cd029ce129))
+
 # [1.14.0](https://github.com/rotorsoft/gent/compare/v1.13.4...v1.14.0) (2026-01-29)
 
 
