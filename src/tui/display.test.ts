@@ -1,7 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
-import { buildDashboardLines, stripAnsi } from "./display.js";
+import { describe, it, expect, vi, beforeAll } from "vitest";
+import chalk from "chalk";
+import { buildDashboardLines, stripAnsi, truncateAnsi } from "./display.js";
 import type { TuiState } from "./state.js";
 import type { TuiAction } from "./actions.js";
+
+beforeAll(() => {
+  process.env.FORCE_COLOR = "1";
+});
 
 // Mock version to avoid package.json read
 vi.mock("../lib/version.js", () => ({
@@ -53,6 +58,24 @@ const mockActions: TuiAction[] = [
 ];
 
 describe("display", () => {
+  describe("truncateAnsi", () => {
+    it("does not truncate short strings", () => {
+      expect(truncateAnsi("hello", 10)).toBe("hello");
+    });
+
+    it("truncates long strings", () => {
+      expect(stripAnsi(truncateAnsi("hello world", 5))).toBe("hell…");
+    });
+
+    it("respects ANSI codes when truncating", () => {
+      const input = chalk.red("hello") + " " + chalk.blue("world");
+      const truncated = truncateAnsi(input, 7);
+      expect(stripAnsi(truncated)).toBe("hello …");
+      expect(truncated).toContain("hello");
+      expect(truncated).toContain("\x1b[0m…");
+    });
+  });
+
   describe("buildDashboardLines", () => {
     it("renders feature branch with all sections", () => {
       const state: TuiState = {
@@ -68,9 +91,9 @@ describe("display", () => {
       expect(output).toContain("Branch");
       expect(output).toContain("Pull Request");
       expect(output).toContain("Commits");
-      expect(output).toContain("ro/feat-1-test");
-      expect(output).toContain("No linked issue");
-      expect(output).toContain("No PR created");
+      expect(output).toContain("· ro/feat-1-test");
+      expect(output).toContain("  No linked issue");
+      expect(output).toContain("  No PR created");
     });
 
     it("renders main branch without Ticket, PR, and Commits sections if empty", () => {
@@ -87,14 +110,11 @@ describe("display", () => {
       expect(output).toContain("Branch");
       expect(output).not.toContain("Pull Request");
       expect(output).not.toContain("Commits");
-      expect(output).toContain("main");
+      expect(output).toContain("· main");
       expect(output).toContain("ready to start new work");
     });
 
     it("renders main branch with Commits if there are unpushed commits", () => {
-      // Note: on main, state.commits will be empty (commits since baseBranch), 
-      // but let's assume some scenario where we want to show them if they exist.
-      // Actually, my logic was: if (state.commits.length > 0 || !state.isOnMain)
       const state: TuiState = {
         ...mockBaseState,
         branch: "main",
@@ -106,9 +126,9 @@ describe("display", () => {
       const output = lines.join("\n");
 
       expect(output).toContain("Branch");
-      expect(output).toContain("main");
+      expect(output).toContain("· main");
       expect(output).toContain("Commits");
-      expect(output).toContain("feat: something");
+      expect(output).toContain("· feat: something");
     });
 
     it("renders main branch with uncommitted changes", () => {
@@ -123,9 +143,31 @@ describe("display", () => {
       const output = lines.join("\n");
 
       expect(output).toContain("Branch");
-      expect(output).toContain("main");
+      expect(output).toContain("· main");
       expect(output).toContain("uncommitted");
       expect(output).not.toContain("ready to start new work");
+    });
+
+    it("renders bullets for list items", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "ro/feat-1-test",
+        isOnMain: false,
+        issue: {
+          number: 1,
+          title: "Test Issue",
+          body: "Desc",
+          labels: ["type:feat"],
+        } as any,
+        commits: ["feat: commit 1"],
+      };
+
+      const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).toContain("· #1 Test Issue");
+      expect(output).toContain("· feat: commit 1");
+      expect(output).toContain("· ro/feat-1-test");
     });
   });
 });

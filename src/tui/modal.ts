@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { stripAnsi, visibleLen } from "./display.js";
+import { stripAnsi, visibleLen, truncateAnsi } from "./display.js";
 
 // ── Modal frame builders (pure, testable) ────────────────────────
 
@@ -19,27 +19,6 @@ function modalDivRow(w: number): string {
 
 function modalBotRow(w: number): string {
   return chalk.bold("└" + "─".repeat(w - 2) + "┘");
-}
-
-function truncateAnsi(text: string, max: number): string {
-  if (visibleLen(text) <= max) return text;
-  // Walk through the string, tracking visible characters
-  let visible = 0;
-  let i = 0;
-  while (i < text.length && visible < max - 1) {
-    if (text[i] === "\x1b") {
-      // Skip ANSI escape sequence
-      const end = text.indexOf("m", i);
-      if (end !== -1) {
-        i = end + 1;
-        continue;
-      }
-    }
-    visible++;
-    i++;
-  }
-  // Include any trailing ANSI reset sequences
-  return text.slice(0, i) + "\x1b[0m…";
 }
 
 function modalRow(text: string, w: number): string {
@@ -106,11 +85,10 @@ export function buildSelectContent(
     } else {
       const isSelected = selectableIdx === selectedIndex;
       const prefix = isSelected ? chalk.cyan.bold("> ") : "  ";
-      const label = item.name.length > maxWidth - 2
-        ? item.name.slice(0, maxWidth - 3) + "…"
-        : item.name;
+      const bullet = chalk.dim("· ");
+      const label = truncateAnsi(item.name, maxWidth - 4);
       lines.push(
-        prefix + (isSelected ? chalk.bold(label) : label)
+        prefix + bullet + (isSelected ? chalk.bold(label) : label)
       );
       selectableIdx++;
     }

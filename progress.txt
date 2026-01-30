@@ -170,9 +170,11 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 
 
 [2026-01-30] #70 fix: show master/main branch in branch section with consistent UX
-
 - Files: src/tui/display.ts, src/tui/display.test.ts
-
 - Changes: Refactored dashboard rendering to always show the current branch in the branch section, including master/main. Hidden irrelevant sections (Ticket, PR, Commits) on main branch for a cleaner look.
-
 - Decisions: Integrated main branch into standard section-based layout while maintaining "ready to start new work" hint.
+
+[2026-01-30] #72 fix: prefix dashboard list items with bullet markers and prevent text overflow
+- Files: src/tui/display.ts, src/tui/modal.ts, src/tui/display.test.ts, src/tui/modal.test.ts
+- Changes: Added consistent `· ` bullet prefix to list items (commits, tickets, PRs) in dashboard and modal selectors. Implemented `truncateAnsi` in `display.ts` and updated `row()` to automatically truncate overflowing text with an ellipsis.
+- Decisions: Used `· ` for a clean TUI look. Centralized `truncateAnsi` in `display.ts` for reuse in modals.

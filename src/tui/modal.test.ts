@@ -78,11 +78,11 @@ describe("buildSelectContent", () => {
     const lines = buildSelectContent(items, 1, 50);
     expect(lines.length).toBe(3);
 
-    // Selected item (index 1) should have ">" indicator
-    expect(stripAnsi(lines[1])).toMatch(/^>\s*Option B/);
-    // Non-selected items should not have ">"
-    expect(stripAnsi(lines[0])).toMatch(/^\s+Option A/);
-    expect(stripAnsi(lines[2])).toMatch(/^\s+Option C/);
+    // Selected item (index 1) should have ">" indicator and bullet
+    expect(stripAnsi(lines[1])).toMatch(/^>\s*·\s*Option B/);
+    // Non-selected items should not have ">" but should have bullet
+    expect(stripAnsi(lines[0])).toMatch(/^\s+·\s*Option A/);
+    expect(stripAnsi(lines[2])).toMatch(/^\s+·\s*Option C/);
   });
 
   it("handles separators without counting them as selectable", () => {
@@ -99,11 +99,11 @@ describe("buildSelectContent", () => {
     // First separator
     expect(stripAnsi(lines[0])).toContain("Group 1");
     // First selectable item (index 0) should be selected
-    expect(stripAnsi(lines[1])).toMatch(/^>\s*Option A/);
+    expect(stripAnsi(lines[1])).toMatch(/^>\s*·\s*Option A/);
     // Second separator
     expect(stripAnsi(lines[2])).toContain("Group 2");
     // Second selectable item (index 1) should not be selected
-    expect(stripAnsi(lines[3])).toMatch(/^\s+Option B/);
+    expect(stripAnsi(lines[3])).toMatch(/^\s+·\s*Option B/);
   });
 
   it("truncates long option names", () => {
@@ -112,7 +112,7 @@ describe("buildSelectContent", () => {
     ];
 
     const lines = buildSelectContent(items, 0, 20);
-    expect(stripAnsi(lines[0]).length).toBeLessThanOrEqual(22); // 20 + 2 for prefix
+    expect(stripAnsi(lines[0]).length).toBeLessThanOrEqual(24); // 20 + 4 for prefix (> · )
   });
 });
 
