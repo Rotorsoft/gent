@@ -79,9 +79,10 @@ describe("getAvailableActions", () => {
     const actions = getAvailableActions(createBaseState());
     const ids = actions.map((a) => a.id);
 
-    expect(ids).toHaveLength(4);
+    expect(ids).toHaveLength(5);
     expect(ids).toContain("create");
     expect(ids).toContain("list");
+    expect(ids).toContain("refresh");
     expect(ids).toContain("switch-provider");
     expect(ids).toContain("quit");
 
@@ -89,6 +90,13 @@ describe("getAvailableActions", () => {
     for (const action of actions) {
       expect(action.shortcut).toBeTruthy();
     }
+  });
+
+  it("includes refresh with 'f' shortcut", () => {
+    const actions = getAvailableActions(createBaseState());
+    const refresh = actions.find((a) => a.id === "refresh");
+    expect(refresh).toBeDefined();
+    expect(refresh!.shortcut).toBe("f");
   });
 
   it("shows commit when uncommitted changes on feature branch", () => {
@@ -211,26 +219,6 @@ describe("getAvailableActions", () => {
     const ids = actions.map((a) => a.id);
 
     expect(ids).not.toContain("video");
-  });
-
-  it("shows back to main when PR is merged", () => {
-    const actions = getAvailableActions(
-      createBaseState({
-        isOnMain: false,
-        branch: "ro/feature-123-test",
-        pr: {
-          number: 456,
-          title: "Test PR",
-          url: "https://github.com/test/repo/pull/456",
-          state: "merged",
-          reviewDecision: null,
-          isDraft: false,
-        },
-      })
-    );
-    const ids = actions.map((a) => a.id);
-
-    expect(ids).toContain("checkout-main");
   });
 
   it("does not show run when PR is merged", () => {

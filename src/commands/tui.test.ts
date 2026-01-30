@@ -160,18 +160,11 @@ describe("executeAction", () => {
     );
   });
 
-  it("returns continue for 'checkout-main' without confirm dialog", async () => {
-    // Mock execa via the module
-    const result = await executeAction("checkout-main", mockState, mockDashboardLines);
+  it("returns continue for 'refresh' action", async () => {
+    const result = await executeAction("refresh", mockState, mockDashboardLines);
 
     expect(result.running).toBe(true);
     expect(result.refresh).toBe(true);
-    // showStatus should be called for the switching indicator
-    expect(modal.showStatus).toHaveBeenCalledWith(
-      "Switching",
-      "Switching to main...",
-      mockDashboardLines
-    );
   });
 
   it("returns true for 'list' action and shows modal select with tickets", async () => {
@@ -204,22 +197,6 @@ describe("executeAction", () => {
     // Should show the select modal
     expect(modal.showSelect).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Switch Ticket" })
-    );
-  });
-
-  it("'list' action shows empty message when no tickets found", async () => {
-    vi.mocked(github.listIssues).mockResolvedValue([]);
-    vi.mocked(github.listOpenPrs).mockResolvedValue([]);
-    vi.mocked(git.listLocalBranches).mockResolvedValue([]);
-    vi.mocked(modal.showSelect).mockResolvedValue(null);
-
-    const result = await executeAction("list", mockState, mockDashboardLines);
-
-    expect(result.running).toBe(true);
-    expect(modal.showStatus).toHaveBeenCalledWith(
-      "List",
-      "No tickets found",
-      mockDashboardLines
     );
   });
 
@@ -260,5 +237,27 @@ describe("executeAction", () => {
       expect.objectContaining({ title: "Switch Ticket" })
     );
     expect(git.checkoutBranch).toHaveBeenCalledWith("ro/feature-5-some-feature");
+  });
+
+  it("'list' action shows warning for disabled main branch when dirty", async () => {
+    vi.mocked(github.listIssues).mockResolvedValue([]);
+    vi.mocked(github.listOpenPrs).mockResolvedValue([]);
+    vi.mocked(git.listLocalBranches).mockResolvedValue([]);
+    vi.mocked(git.getCurrentBranch).mockResolvedValue("ro/feature-1-test");
+    vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.hasUncommittedChanges).mockResolvedValue(true);
+
+    // User selects the disabled main branch option
+    vi.mocked(modal.showSelect).mockResolvedValue("__main_disabled__");
+
+    const result = await executeAction("list", mockState, mockDashboardLines);
+
+    expect(result.running).toBe(true);
+    expect(result.refresh).toBe(false);
+    expect(modal.showStatus).toHaveBeenCalledWith(
+      "Uncommitted Changes",
+      "Commit or stash changes before switching to main",
+      mockDashboardLines
+    );
   });
 });

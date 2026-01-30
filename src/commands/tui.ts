@@ -147,8 +147,7 @@ export async function executeAction(
       await handleSwitchProvider(state, dashboardLines);
       return SKIP_REFRESH;
 
-    case "checkout-main":
-      await handleCheckoutMain(dashboardLines);
+    case "refresh":
       return CONTINUE;
 
     default:
@@ -383,16 +382,6 @@ async function handleSwitchProvider(
   state.config.ai.provider = provider as AIProvider;
 }
 
-async function handleCheckoutMain(dashboardLines: string[]): Promise<void> {
-  try {
-    showStatus("Switching", "Switching to main...", dashboardLines);
-    await execa("git", ["checkout", "main"]);
-    await execa("git", ["pull"]);
-  } catch (error) {
-    logger.error(`Checkout failed: ${error}`);
-  }
-}
-
 /** Returns true if a branch switch occurred. */
 async function handleList(
   dashboardLines: string[]
@@ -403,7 +392,7 @@ async function handleList(
     const config = loadConfig();
     const workflowLabels = getWorkflowLabels(config);
 
-    const [inProgress, ready, prs, localBranches] = await Promise.all([
+    const [inProgress, ready, prs, localBranches, dirty] = await Promise.all([
       listIssues({
         labels: [workflowLabels.inProgress],
         state: "open",
@@ -416,6 +405,7 @@ async function handleList(
       }),
       listOpenPrs(30),
       listLocalBranches(),
+      hasUncommittedChanges(),
     ]);
 
     sortByPriority(inProgress);
@@ -429,10 +419,17 @@ async function handleList(
     const items: SelectEntry[] = [];
 
     // Main branch option
-    const mainLabel =
-      defaultBranch +
-      (currentBranch === defaultBranch ? " (current)" : "");
-    items.push({ name: mainLabel, value: "__main__" });
+    const isMain = currentBranch === defaultBranch;
+    const mainLabel = defaultBranch + (isMain ? " (current)" : "");
+
+    if (dirty && !isMain) {
+      items.push({
+        name: `${mainLabel} (disabled - uncommitted changes)`,
+        value: "__main_disabled__",
+      });
+    } else {
+      items.push({ name: mainLabel, value: "__main__" });
+    }
 
     const inProgressChoices = choices.filter(
       (c) => c.category === "in-progress"
@@ -468,12 +465,6 @@ async function handleList(
       }
     }
 
-    if (choices.length === 0) {
-      showStatus("List", "No tickets found", dashboardLines);
-      await new Promise((r) => setTimeout(r, 1500));
-      return false;
-    }
-
     const selected = await showSelect({
       title: "Switch Ticket",
       items,
@@ -482,18 +473,20 @@ async function handleList(
 
     if (!selected) return false;
 
+    // Handle disabled main
+    if (selected === "__main_disabled__") {
+      showStatus(
+        "Uncommitted Changes",
+        "Commit or stash changes before switching to main",
+        dashboardLines
+      );
+      await new Promise((r) => setTimeout(r, 2000));
+      return false;
+    }
+
     // Handle main branch selection
     if (selected === "__main__") {
       if (currentBranch === defaultBranch) return false;
-      const dirty = await hasUncommittedChanges();
-      if (dirty) {
-        const ok = await showConfirm({
-          title: "Uncommitted Changes",
-          message: "You have uncommitted changes. Continue?",
-          dashboardLines,
-        });
-        if (!ok) return false;
-      }
       showStatus("Switching", `Switching to ${defaultBranch}...`, dashboardLines);
       await checkoutBranch(defaultBranch);
       return true;
@@ -504,7 +497,6 @@ async function handleList(
     const ticket = choices.find((c) => c.issueNumber === issueNumber);
     if (!ticket) return false;
 
-    const dirty = await hasUncommittedChanges();
     if (dirty) {
       const ok = await showConfirm({
         title: "Uncommitted Changes",
