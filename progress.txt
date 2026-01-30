@@ -140,3 +140,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/actions.ts, src/commands/tui.ts, src/commands/pr.ts, src/tui/actions.test.ts, src/commands/tui.test.ts
 - Changes: Removed video action from TUI actions and command handler. Added post-PR suggestion to run Playwright MCP for video capture and upload to GitHub Assets. Fixed AI interactive mode to properly await the subprocess result before returning to dashboard.
 - Decisions: Video suggestion only shown when UI changes detected and Playwright available. AI interactive fix was awaiting the wrapper function but not the execa ResultPromise.
+
+[2026-01-30] #64 refactor: replace TUI command interactions with floating modal dialogs
+- Files: src/tui/modal.ts, src/tui/modal.test.ts, src/tui/display.ts, src/commands/tui.ts, src/commands/tui.test.ts
+- Changes: Built modal overlay system (confirm, select, input, status) that renders centered floating dialogs over dimmed dashboard. Refactored display.ts to support buildDashboardLines for modal compositing. Replaced all inquirer prompts and clearScreen patterns in TUI with modal overlays. Removed unnecessary confirmation dialogs for pr, run, push, checkout-main actions. Removed promptContinue calls for auto-close behavior.
+- Decisions: Custom modal system using ANSI cursor positioning over raw terminal (no new dependencies). Kept full-screen mode for AI interactive sessions and list command. Commit message generation uses non-streaming mode for modal compatibility.

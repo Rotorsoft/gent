@@ -5,10 +5,10 @@ import type { TuiAction } from "./actions.js";
 import type { TuiState } from "./state.js";
 
 // eslint-disable-next-line no-control-regex
-const stripAnsi = (str: string) => str.replace(/\x1b\[[0-9;]*m/g, "");
-const visibleLen = (str: string) => stripAnsi(str).length;
+export const stripAnsi = (str: string) => str.replace(/\x1b\[[0-9;]*m/g, "");
+export const visibleLen = (str: string) => stripAnsi(str).length;
 
-function termWidth(): number {
+export function termWidth(): number {
   return Math.min(process.stdout.columns || 80, 90);
 }
 
@@ -167,9 +167,11 @@ export function renderActionPanel(title: string, content: string[]): void {
   console.log(botRow(w));
 }
 
-// ── Settings ────────────────────────────────────────────────────
+// ── Dashboard line builder ──────────────────────────────────────
 
-function renderSettings(state: TuiState, w: number): void {
+type Out = (line: string) => void;
+
+function renderSettingsTo(state: TuiState, w: number, out: Out): void {
   const provider = getProviderDisplayName(state.config.ai.provider);
   const provTag = state.isAIProviderAvailable
     ? chalk.green(provider)
@@ -181,80 +183,82 @@ function renderSettings(state: TuiState, w: number): void {
     ? chalk.green("on")
     : chalk.dim("off");
 
-  console.log(row(chalk.dim("Provider: ") + provTag, w));
-  console.log(row(chalk.dim("GitHub:   ") + ghTag, w));
-  console.log(row(chalk.dim("Video:    ") + videoTag, w));
+  out(row(chalk.dim("Provider: ") + provTag, w));
+  out(row(chalk.dim("GitHub:   ") + ghTag, w));
+  out(row(chalk.dim("Video:    ") + videoTag, w));
 }
 
-// ── Main render ─────────────────────────────────────────────────
-
-export function renderDashboard(
+/**
+ * Build dashboard output as an array of strings.
+ * Used by modals to capture dashboard state for overlay rendering.
+ */
+export function buildDashboardLines(
   state: TuiState,
   actions: TuiAction[],
   hint?: string,
   refreshing?: boolean
-): void {
+): string[] {
+  const lines: string[] = [];
+  const out: Out = (line: string) => lines.push(line);
   const w = termWidth();
   const descMax = w - 8;
   const version = getVersion();
 
   const titleLabel = `gent v${version}`;
-  console.log(topRow(titleLabel, w));
-  renderSettings(state, w);
+  out(topRow(titleLabel, w));
+  renderSettingsTo(state, w, out);
 
   // ── Error states ──────────────────────────────────────────────
   if (!state.isGitRepo) {
-    console.log(row(chalk.red("Not a git repository"), w));
-    console.log(
-      row(chalk.dim("Run gent init in a git repo to get started"), w)
-    );
-    console.log(botRow(w));
-    return;
+    out(row(chalk.red("Not a git repository"), w));
+    out(row(chalk.dim("Run gent init in a git repo to get started"), w));
+    out(botRow(w));
+    return lines;
   }
   if (!state.isGhAuthenticated) {
-    console.log(row(chalk.red("GitHub CLI not authenticated"), w));
-    console.log(row(chalk.dim("Run: gh auth login"), w));
-    console.log(botRow(w));
-    return;
+    out(row(chalk.red("GitHub CLI not authenticated"), w));
+    out(row(chalk.dim("Run: gh auth login"), w));
+    out(botRow(w));
+    return lines;
   }
 
   // ── On main – nothing active ─────────────────────────────────
   if (state.isOnMain) {
-    console.log(
+    out(
       row(
         chalk.magenta(state.branch) + chalk.dim("  ·  ready to start new work"),
         w
       )
     );
     if (state.hasUncommittedChanges) {
-      console.log(row(chalk.yellow("● uncommitted changes"), w));
+      out(row(chalk.yellow("● uncommitted changes"), w));
     }
     if (hint) {
-      console.log(midRow("Hint", w));
-      console.log(row(chalk.yellow(hint), w));
+      out(midRow("Hint", w));
+      out(row(chalk.yellow(hint), w));
     }
-    console.log(divRow(w));
+    out(divRow(w));
     if (refreshing) {
-      console.log(row(chalk.yellow("Refreshing…"), w));
+      out(row(chalk.yellow("Refreshing…"), w));
     } else {
       for (const line of formatCommandBar(actions, w)) {
-        console.log(row(line, w));
+        out(row(line, w));
       }
     }
-    console.log(botRow(w));
-    console.log();
-    return;
+    out(botRow(w));
+    out("");
+    return lines;
   }
 
   // ── Feature branch dashboard ──────────────────────────────────
   const section = (title: string) => {
-    console.log(midRow(title, w));
+    out(midRow(title, w));
   };
 
   // Ticket
   section("Ticket");
   if (state.issue) {
-    console.log(
+    out(
       row(
         chalk.cyan(`#${state.issue.number}`) +
           "  " +
@@ -263,7 +267,7 @@ export function renderDashboard(
       )
     );
     const desc = extractDescription(state.issue.body, descMax);
-    if (desc) console.log(row(chalk.dim(desc), w));
+    if (desc) out(row(chalk.dim(desc), w));
     const tags: string[] = [];
     if (state.workflowStatus !== "none")
       tags.push(workflowBadge(state.workflowStatus));
@@ -271,14 +275,14 @@ export function renderDashboard(
       const l = state.issue.labels.find((x) => x.startsWith(prefix));
       if (l) tags.push(chalk.dim(l));
     }
-    if (tags.length) console.log(row(tags.join("  "), w));
+    if (tags.length) out(row(tags.join("  "), w));
   } else {
-    console.log(row(chalk.dim("No linked issue"), w));
+    out(row(chalk.dim("No linked issue"), w));
   }
 
   // Branch
   section("Branch");
-  console.log(row(chalk.magenta(state.branch), w));
+  out(row(chalk.magenta(state.branch), w));
   const bits: string[] = [];
   if (state.commits.length > 0)
     bits.push(chalk.dim(`${state.commits.length} ahead`));
@@ -291,7 +295,7 @@ export function renderDashboard(
   ) {
     bits.push(chalk.green("● synced"));
   }
-  if (bits.length) console.log(row(bits.join(chalk.dim("  ·  ")), w));
+  if (bits.length) out(row(bits.join(chalk.dim("  ·  ")), w));
 
   // Pull Request
   section("Pull Request");
@@ -299,8 +303,8 @@ export function renderDashboard(
     const titleText = state.pr.title
       ? "  " + truncate(state.pr.title, descMax - 12)
       : "";
-    console.log(row(chalk.cyan(`#${state.pr.number}`) + titleText, w));
-    console.log(
+    out(row(chalk.cyan(`#${state.pr.number}`) + titleText, w));
+    out(
       row(
         prBadge(state.pr.state, state.pr.isDraft) +
           reviewBadge(state.pr.reviewDecision),
@@ -309,7 +313,7 @@ export function renderDashboard(
     );
     if (state.hasActionableFeedback) {
       const n = state.reviewFeedback.length;
-      console.log(
+      out(
         row(
           chalk.yellow(`${n} actionable comment${n !== 1 ? "s" : ""} pending`),
           w
@@ -322,7 +326,7 @@ export function renderDashboard(
       state.config.video.enabled &&
       state.pr.state === "open"
     ) {
-      console.log(
+      out(
         row(
           chalk.cyan("UI changes detected") +
             chalk.dim(" · video capture available"),
@@ -330,9 +334,9 @@ export function renderDashboard(
         )
       );
     }
-    console.log(row(chalk.dim(state.pr.url), w));
+    out(row(chalk.dim(state.pr.url), w));
   } else {
-    console.log(row(chalk.dim("No PR created"), w));
+    out(row(chalk.dim("No PR created"), w));
   }
 
   // Commits
@@ -340,33 +344,47 @@ export function renderDashboard(
   if (state.commits.length > 0) {
     const max = 6;
     for (const c of state.commits.slice(0, max)) {
-      console.log(row(c.substring(0, w - 5), w));
+      out(row(c.substring(0, w - 5), w));
     }
     if (state.commits.length > max) {
-      console.log(
-        row(chalk.dim(`… and ${state.commits.length - max} more`), w)
-      );
+      out(row(chalk.dim(`… and ${state.commits.length - max} more`), w));
     }
   } else {
-    console.log(row(chalk.dim("No commits"), w));
+    out(row(chalk.dim("No commits"), w));
   }
 
   // Hint
   if (hint) {
     section("Hint");
-    console.log(row(chalk.yellow(hint), w));
+    out(row(chalk.yellow(hint), w));
   }
 
   // Command bar (inside the frame)
-  console.log(divRow(w));
+  out(divRow(w));
   if (refreshing) {
-    console.log(row(chalk.yellow("Refreshing…"), w));
+    out(row(chalk.yellow("Refreshing…"), w));
   } else {
     for (const line of formatCommandBar(actions, w)) {
-      console.log(row(line, w));
+      out(row(line, w));
     }
   }
-  console.log(botRow(w));
+  out(botRow(w));
+
+  return lines;
+}
+
+// ── Main render ─────────────────────────────────────────────────
+
+export function renderDashboard(
+  state: TuiState,
+  actions: TuiAction[],
+  hint?: string,
+  refreshing?: boolean
+): void {
+  const lines = buildDashboardLines(state, actions, hint, refreshing);
+  for (const line of lines) {
+    console.log(line);
+  }
 }
 
 export function clearScreen(): void {

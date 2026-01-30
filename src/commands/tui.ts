@@ -1,14 +1,19 @@
-import inquirer from "inquirer";
 import { execa } from "execa";
 import { aggregateState, type TuiState } from "../tui/state.js";
 import { getAvailableActions, type TuiAction } from "../tui/actions.js";
 import {
   renderDashboard,
+  buildDashboardLines,
   renderActionPanel,
   clearScreen,
 } from "../tui/display.js";
+import {
+  showConfirm,
+  showSelect,
+  showInput,
+  showStatus,
+} from "../tui/modal.js";
 import { logger } from "../utils/logger.js";
-import { createSpinner } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
 import { prCommand } from "./pr.js";
 import { listCommand } from "./list.js";
@@ -31,18 +36,6 @@ import { readProgress } from "../lib/progress.js";
 import type { AIProvider } from "../types/index.js";
 
 const CANCEL = Symbol("cancel");
-
-async function confirm(message: string): Promise<boolean> {
-  const { ok } = await inquirer.prompt<{ ok: boolean }>([
-    {
-      type: "confirm",
-      name: "ok",
-      message,
-      default: true,
-    },
-  ]);
-  return ok;
-}
 
 async function waitForKey(validKeys: string[]): Promise<string> {
   return new Promise((resolve) => {
@@ -76,7 +69,8 @@ async function waitForKey(validKeys: string[]): Promise<string> {
 
 export async function executeAction(
   actionId: string,
-  state: TuiState
+  state: TuiState,
+  dashboardLines: string[]
 ): Promise<boolean> {
   switch (actionId) {
     case "quit":
@@ -89,101 +83,71 @@ export async function executeAction(
       } catch (error) {
         logger.error(`List failed: ${error}`);
       }
-      await promptContinue();
       return true;
     }
 
     case "create": {
+      const description = await showInput({
+        title: "New Ticket",
+        label: "Describe the ticket:",
+        dashboardLines,
+      });
+      if (!description) return true;
+
       clearScreen();
-      const { description } = await inquirer.prompt<{ description: string }>([
-        {
-          type: "input",
-          name: "description",
-          message: "Describe the ticket (empty to cancel):",
-        },
-      ]);
-      if (!description.trim()) {
-        logger.info("Cancelled");
-        return true;
-      }
       try {
         await createCommand(description, {});
       } catch (error) {
         logger.error(`Create failed: ${error}`);
       }
-      await promptContinue();
       return true;
     }
 
     case "commit":
-      clearScreen();
-      await handleCommit(state);
-      await promptContinue();
+      await handleCommit(state, dashboardLines);
       return true;
 
     case "push":
-      clearScreen();
-      await handlePush();
-      await promptContinue();
+      await handlePush(dashboardLines);
       return true;
 
     case "pr": {
       clearScreen();
-      if (!(await confirm("Create a pull request?"))) return true;
       await prCommand({});
-      await promptContinue();
       return true;
     }
 
     case "run": {
-      clearScreen();
-      const hasCommits = state.commits.length > 0;
-      const hasFeedback = state.hasActionableFeedback;
-      let msg: string;
-      if (hasFeedback && hasCommits) {
-        msg = "Start AI agent to address review feedback?";
-      } else if (hasCommits) {
-        msg =
-          "Start AI agent to continue implementation from existing commits?";
-      } else {
-        msg = "Start AI agent to implement this ticket from scratch?";
-      }
-      if (!(await confirm(msg))) return true;
       await handleRun(state);
-      await promptContinue();
       return true;
     }
 
     case "switch-provider":
-      clearScreen();
-      await handleSwitchProvider(state);
+      await handleSwitchProvider(state, dashboardLines);
       return true;
 
-    case "checkout-main": {
-      clearScreen();
-      if (!(await confirm("Switch to main branch?"))) return true;
-      await handleCheckoutMain();
+    case "checkout-main":
+      await handleCheckoutMain(dashboardLines);
       return true;
-    }
 
     default:
       return true;
   }
 }
 
-async function handleCommit(state: TuiState): Promise<void> {
+async function handleCommit(
+  state: TuiState,
+  dashboardLines: string[]
+): Promise<void> {
   try {
     const { stdout: status } = await execa("git", ["status", "--short"]);
     if (!status.trim()) {
-      logger.info("No changes to commit");
+      showStatus("Commit", "No changes to commit", dashboardLines);
+      await new Promise((r) => setTimeout(r, 1500));
       return;
     }
 
-    logger.info("Changes:");
-    console.log(status);
-    console.log();
-
-    // Stage all changes first so we can get a clean cached diff
+    // Stage all changes
     await execa("git", ["add", "-A"]);
 
     // Get staged diff for AI commit message generation
@@ -200,61 +164,63 @@ async function handleCommit(state: TuiState): Promise<void> {
     const provider = state.config.ai.provider;
     const providerName = getProviderDisplayName(provider);
 
-    const { mode } = await inquirer.prompt<{ mode: "ai" | "manual" }>([
-      {
-        type: "list",
-        name: "mode",
-        message: "How would you like to provide the commit message?",
-        choices: [
-          { name: `Generate with ${providerName}`, value: "ai" },
-          { name: "Enter manually", value: "manual" },
-        ],
-      },
-    ]);
+    // Modal select: AI or Manual
+    const mode = await showSelect({
+      title: "Commit",
+      items: [
+        { name: `Generate with ${providerName}`, value: "ai" },
+        { name: "Enter manually", value: "manual" },
+      ],
+      dashboardLines,
+    });
+
+    if (!mode) {
+      await execa("git", ["reset", "HEAD"]);
+      return;
+    }
 
     let message: string | typeof CANCEL;
 
     if (mode === "manual") {
-      const { manualInput } = await inquirer.prompt<{ manualInput: string }>([
-        {
-          type: "input",
-          name: "manualInput",
-          message: "Commit message (empty to cancel):",
-        },
-      ]);
-      message = manualInput.trim() || CANCEL;
+      const input = await showInput({
+        title: "Commit Message",
+        label: "Enter commit message:",
+        dashboardLines,
+      });
+      message = input || CANCEL;
     } else {
-      logger.info(`Generating commit message with ${providerName}...`);
+      showStatus("Generating", `Generating commit message with ${providerName}...`, dashboardLines);
       message = await generateCommitMessage(
         diffContent,
         issueNumber,
         issueTitle,
-        state
+        state,
+        dashboardLines
       );
     }
+
     if (message === CANCEL) {
       await execa("git", ["reset", "HEAD"]);
-      logger.info("Cancelled");
       return;
     }
 
-    console.log();
-    logger.info(`Message: ${message}`);
-    console.log();
+    // Confirm commit with generated message
+    const confirmed = await showConfirm({
+      title: "Commit",
+      message: `Message: ${message.length > 50 ? message.slice(0, 50) + "…" : message}`,
+      dashboardLines,
+    });
 
-    if (!(await confirm("Commit with this message?"))) {
+    if (!confirmed) {
       await execa("git", ["reset", "HEAD"]);
-      logger.info("Commit cancelled");
       return;
     }
 
     const providerEmail = getProviderEmail(provider);
     const fullMessage = `${message}\n\nCo-Authored-By: ${providerName} <${providerEmail}>`;
 
-    const spinner = createSpinner("Committing...");
-    spinner.start();
+    showStatus("Committing", "Committing changes...", dashboardLines);
     await execa("git", ["commit", "-m", fullMessage]);
-    spinner.succeed("Changes committed");
   } catch (error) {
     logger.error(`Commit failed: ${error}`);
   }
@@ -264,7 +230,8 @@ async function generateCommitMessage(
   diffContent: string,
   issueNumber: number | null,
   issueTitle: string | null,
-  state: TuiState
+  state: TuiState,
+  dashboardLines: string[]
 ): Promise<string | typeof CANCEL> {
   try {
     const prompt = buildCommitMessagePrompt(
@@ -272,7 +239,7 @@ async function generateCommitMessage(
       issueNumber,
       issueTitle
     );
-    const result = await invokeAI({ prompt, streamOutput: true }, state.config);
+    const result = await invokeAI({ prompt, streamOutput: false }, state.config);
     let message = result.output.trim().split("\n")[0].trim();
     // Strip wrapping quotes, backticks, or code fences
     for (const q of ['"', "'", "`"]) {
@@ -284,16 +251,13 @@ async function generateCommitMessage(
     message = message.replace(/^```\w*\s*/, "").replace(/\s*```$/, "");
     return message;
   } catch {
-    logger.warning("AI commit message generation failed");
-    console.log();
-    const { message } = await inquirer.prompt<{ message: string }>([
-      {
-        type: "input",
-        name: "message",
-        message: "Commit message (empty to cancel):",
-      },
-    ]);
-    return message.trim() || CANCEL;
+    // AI failed — fall back to manual input
+    const input = await showInput({
+      title: "Commit Message",
+      label: "AI generation failed. Enter commit message:",
+      dashboardLines,
+    });
+    return input || CANCEL;
   }
 }
 
@@ -355,15 +319,13 @@ async function handleRun(state: TuiState): Promise<void> {
   }
 }
 
-async function handlePush(): Promise<void> {
+async function handlePush(dashboardLines: string[]): Promise<void> {
   try {
     const { stdout: branch } = await execa("git", ["branch", "--show-current"]);
-    if (!(await confirm(`Push ${branch.trim()} to remote?`))) return;
+    const branchName = branch.trim();
 
-    const spinner = createSpinner("Pushing...");
-    spinner.start();
-    await execa("git", ["push", "-u", "origin", branch.trim()]);
-    spinner.succeed("Pushed to remote");
+    showStatus("Pushing", `Pushing ${branchName} to remote...`, dashboardLines);
+    await execa("git", ["push", "-u", "origin", branchName]);
   } catch (error) {
     logger.error(`Push failed: ${error}`);
   }
@@ -371,56 +333,44 @@ async function handlePush(): Promise<void> {
 
 const PROVIDERS: AIProvider[] = ["claude", "gemini", "codex"];
 
-async function handleSwitchProvider(state: TuiState): Promise<void> {
+async function handleSwitchProvider(
+  state: TuiState,
+  dashboardLines: string[]
+): Promise<void> {
   const current = state.config.ai.provider;
-  const { provider } = await inquirer.prompt<{ provider: AIProvider }>([
-    {
-      type: "list",
-      name: "provider",
-      message: "Select AI provider:",
-      choices: PROVIDERS.map((p) => ({
-        name:
-          p.charAt(0).toUpperCase() +
-          p.slice(1) +
-          (p === current ? " (current)" : ""),
-        value: p,
-      })),
-      default: current,
-    },
-  ]);
+  const items = PROVIDERS.map((p) => ({
+    name:
+      p.charAt(0).toUpperCase() +
+      p.slice(1) +
+      (p === current ? " (current)" : ""),
+    value: p,
+  }));
 
-  if (provider === current) return;
+  const provider = await showSelect({
+    title: "AI Provider",
+    items,
+    dashboardLines,
+  });
 
-  setRuntimeProvider(provider);
-  logger.success(`Provider switched to ${provider} (session only)`);
+  if (!provider || provider === current) return;
+
+  setRuntimeProvider(provider as AIProvider);
 }
 
-async function handleCheckoutMain(): Promise<void> {
+async function handleCheckoutMain(dashboardLines: string[]): Promise<void> {
   try {
-    const spinner = createSpinner("Switching to main...");
-    spinner.start();
+    showStatus("Switching", "Switching to main...", dashboardLines);
     await execa("git", ["checkout", "main"]);
     await execa("git", ["pull"]);
-    spinner.succeed("Switched to main");
   } catch (error) {
     logger.error(`Checkout failed: ${error}`);
   }
 }
 
-async function promptContinue(): Promise<void> {
-  console.log();
-  await inquirer.prompt([
-    {
-      type: "input",
-      name: "continue",
-      message: "Press Enter to continue...",
-    },
-  ]);
-}
-
 export async function tuiCommand(): Promise<void> {
   let running = true;
   let lastActions: TuiAction[] = [];
+  let lastDashboardLines: string[] = [];
 
   // Initial placeholder state for the first "Loading..." render
   const config = loadConfig();
@@ -472,7 +422,12 @@ export async function tuiCommand(): Promise<void> {
       hint = "Review feedback needs attention";
     }
 
-    renderDashboard(state, actions, hint);
+    // Build and render dashboard, capturing lines for modal overlays
+    lastDashboardLines = buildDashboardLines(state, actions, hint);
+    clearScreen();
+    for (const line of lastDashboardLines) {
+      console.log(line);
+    }
 
     // Wait for a valid keypress
     const validKeys = actions.map((a) => a.shortcut);
@@ -481,7 +436,7 @@ export async function tuiCommand(): Promise<void> {
     // Find the matching action
     const action = actions.find((a) => a.shortcut === key);
     if (action) {
-      running = await executeAction(action.id, state);
+      running = await executeAction(action.id, state, lastDashboardLines);
     }
   }
 }
