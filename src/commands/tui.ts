@@ -100,9 +100,10 @@ export async function executeAction(
     case "quit":
       return QUIT;
 
-    case "list":
-      await handleList(dashboardLines);
-      return CONTINUE;
+    case "list": {
+      const switched = await handleList(dashboardLines);
+      return switched ? CONTINUE : SKIP_REFRESH;
+    }
 
     case "create": {
       const description = await showInput({
@@ -121,9 +122,10 @@ export async function executeAction(
       return CONTINUE;
     }
 
-    case "commit":
-      await handleCommit(state, dashboardLines);
-      return CONTINUE;
+    case "commit": {
+      const committed = await handleCommit(state, dashboardLines);
+      return committed ? CONTINUE : SKIP_REFRESH;
+    }
 
     case "push":
       await handlePush(dashboardLines);
@@ -153,16 +155,17 @@ export async function executeAction(
   }
 }
 
+/** Returns true if a commit was made. */
 async function handleCommit(
   state: TuiState,
   dashboardLines: string[]
-): Promise<void> {
+): Promise<boolean> {
   try {
     const { stdout: status } = await execa("git", ["status", "--short"]);
     if (!status.trim()) {
       showStatus("Commit", "No changes to commit", dashboardLines);
       await new Promise((r) => setTimeout(r, 1500));
-      return;
+      return false;
     }
 
     // Stage all changes
@@ -194,7 +197,7 @@ async function handleCommit(
 
     if (!mode) {
       await execa("git", ["reset", "HEAD"]);
-      return;
+      return false;
     }
 
     let message: string | typeof CANCEL;
@@ -219,7 +222,7 @@ async function handleCommit(
 
     if (message === CANCEL) {
       await execa("git", ["reset", "HEAD"]);
-      return;
+      return false;
     }
 
     // Confirm commit with generated message
@@ -231,7 +234,7 @@ async function handleCommit(
 
     if (!confirmed) {
       await execa("git", ["reset", "HEAD"]);
-      return;
+      return false;
     }
 
     const providerEmail = getProviderEmail(provider);
@@ -239,8 +242,10 @@ async function handleCommit(
 
     showStatus("Committing", "Committing changes...", dashboardLines);
     await execa("git", ["commit", "-m", fullMessage]);
+    return true;
   } catch (error) {
     logger.error(`Commit failed: ${error}`);
+    return false;
   }
 }
 
@@ -387,9 +392,10 @@ async function handleCheckoutMain(dashboardLines: string[]): Promise<void> {
   }
 }
 
+/** Returns true if a branch switch occurred. */
 async function handleList(
   dashboardLines: string[]
-): Promise<void> {
+): Promise<boolean> {
   try {
     showStatus("Loading", "Fetching tickets...", dashboardLines);
 
@@ -464,7 +470,7 @@ async function handleList(
     if (choices.length === 0) {
       showStatus("List", "No tickets found", dashboardLines);
       await new Promise((r) => setTimeout(r, 1500));
-      return;
+      return false;
     }
 
     const selected = await showSelect({
@@ -473,11 +479,11 @@ async function handleList(
       dashboardLines,
     });
 
-    if (!selected) return;
+    if (!selected) return false;
 
     // Handle main branch selection
     if (selected === "__main__") {
-      if (currentBranch === defaultBranch) return;
+      if (currentBranch === defaultBranch) return false;
       const dirty = await hasUncommittedChanges();
       if (dirty) {
         const ok = await showConfirm({
@@ -485,17 +491,17 @@ async function handleList(
           message: "You have uncommitted changes. Continue?",
           dashboardLines,
         });
-        if (!ok) return;
+        if (!ok) return false;
       }
       showStatus("Switching", `Switching to ${defaultBranch}...`, dashboardLines);
       await checkoutBranch(defaultBranch);
-      return;
+      return true;
     }
 
     // Find selected ticket
     const issueNumber = parseInt(selected, 10);
     const ticket = choices.find((c) => c.issueNumber === issueNumber);
-    if (!ticket) return;
+    if (!ticket) return false;
 
     const dirty = await hasUncommittedChanges();
     if (dirty) {
@@ -504,7 +510,7 @@ async function handleList(
         message: "You have uncommitted changes. Continue?",
         dashboardLines,
       });
-      if (!ok) return;
+      if (!ok) return false;
     }
 
     const targetBranch = ticket.branch;
@@ -513,18 +519,20 @@ async function handleList(
       if (await branchExists(targetBranch)) {
         showStatus("Switching", `Switching to ${targetBranch}...`, dashboardLines);
         await checkoutBranch(targetBranch);
+        return true;
       } else if (await remoteBranchExists(targetBranch)) {
         showStatus("Fetching", `Fetching ${targetBranch}...`, dashboardLines);
         await fetchAndCheckout(targetBranch);
+        return true;
       } else {
-        await offerCreateBranch(
+        return await offerCreateBranch(
           issueNumber,
           ticket.title,
           dashboardLines
         );
       }
     } else {
-      await offerCreateBranch(
+      return await offerCreateBranch(
         issueNumber,
         ticket.title,
         dashboardLines
@@ -532,14 +540,16 @@ async function handleList(
     }
   } catch (error) {
     logger.error(`List failed: ${error}`);
+    return false;
   }
 }
 
+/** Returns true if a branch was created. */
 async function offerCreateBranch(
   issueNumber: number,
   title: string,
   dashboardLines: string[]
-): Promise<void> {
+): Promise<boolean> {
   const config = loadConfig();
   const branchName = await generateBranchName(
     config,
@@ -554,11 +564,12 @@ async function offerCreateBranch(
     dashboardLines,
   });
 
-  if (!create) return;
+  if (!create) return false;
 
   const defaultBranch = await getDefaultBranch();
   showStatus("Creating", `Creating ${branchName}...`, dashboardLines);
   await createBranch(branchName, defaultBranch);
+  return true;
 }
 
 export async function tuiCommand(): Promise<void> {
