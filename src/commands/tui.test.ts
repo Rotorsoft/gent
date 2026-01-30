@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as aiProvider from "../lib/ai-provider.js";
 import * as display from "../tui/display.js";
 import * as modal from "../tui/modal.js";
+import * as github from "../lib/github.js";
+import * as git from "../lib/git.js";
+import * as branch from "../lib/branch.js";
 import type { TuiState } from "../tui/state.js";
 import { executeAction } from "./tui.js";
 
@@ -11,7 +14,9 @@ vi.mock("../tui/modal.js");
 vi.mock("../lib/ai-provider.js");
 vi.mock("../lib/config.js", () => ({
   loadAgentInstructions: () => "mock instructions",
-  loadConfig: () => ({}),
+  loadConfig: () => ({
+    labels: {},
+  }),
   setRuntimeProvider: vi.fn(),
 }));
 vi.mock("../lib/prompts.js", () => ({
@@ -20,6 +25,41 @@ vi.mock("../lib/prompts.js", () => ({
 }));
 vi.mock("../lib/progress.js", () => ({
   readProgress: () => "mock progress",
+}));
+vi.mock("../lib/github.js", () => ({
+  listIssues: vi.fn().mockResolvedValue([]),
+  listOpenPrs: vi.fn().mockResolvedValue([]),
+}));
+vi.mock("../lib/git.js", () => ({
+  getCurrentBranch: vi.fn().mockResolvedValue("main"),
+  getDefaultBranch: vi.fn().mockResolvedValue("main"),
+  hasUncommittedChanges: vi.fn().mockResolvedValue(false),
+  branchExists: vi.fn().mockResolvedValue(false),
+  checkoutBranch: vi.fn().mockResolvedValue(undefined),
+  createBranch: vi.fn().mockResolvedValue(undefined),
+  listLocalBranches: vi.fn().mockResolvedValue([]),
+  remoteBranchExists: vi.fn().mockResolvedValue(false),
+  fetchAndCheckout: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("../lib/labels.js", () => ({
+  getWorkflowLabels: () => ({
+    ready: "ai-ready",
+    inProgress: "ai-in-progress",
+    completed: "ai-completed",
+    blocked: "ai-blocked",
+  }),
+  sortByPriority: vi.fn(),
+}));
+vi.mock("../lib/branch.js", () => ({
+  generateBranchName: vi.fn().mockResolvedValue("ro/feature-1-test"),
+  parseBranchName: vi.fn().mockImplementation((branch: string) => {
+    // Simple parser: extract issue number from branch name like "ro/feature-5-some-feature"
+    const match = branch.match(/(\w+)-(\d+)-/);
+    if (match) {
+      return { issueNumber: parseInt(match[2], 10), type: match[1] };
+    }
+    return null;
+  }),
 }));
 
 describe("executeAction", () => {
@@ -127,5 +167,93 @@ describe("executeAction", () => {
       "Switching to main...",
       mockDashboardLines
     );
+  });
+
+  it("returns true for 'list' action and shows modal select with tickets", async () => {
+    // Mock GitHub data
+    vi.mocked(github.listIssues).mockResolvedValue([
+      {
+        number: 10,
+        title: "Ready ticket",
+        body: "",
+        labels: ["ai-ready"],
+        state: "open",
+        url: "url",
+      },
+    ]);
+    vi.mocked(github.listOpenPrs).mockResolvedValue([]);
+    vi.mocked(git.listLocalBranches).mockResolvedValue([]);
+
+    // User cancels the select modal
+    vi.mocked(modal.showSelect).mockResolvedValue(null);
+
+    const result = await executeAction("list", mockState, mockDashboardLines);
+
+    expect(result).toBe(true);
+    // Should show loading status first
+    expect(modal.showStatus).toHaveBeenCalledWith(
+      "Loading",
+      "Fetching tickets...",
+      mockDashboardLines
+    );
+    // Should show the select modal
+    expect(modal.showSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Switch Ticket" })
+    );
+  });
+
+  it("'list' action shows empty message when no tickets found", async () => {
+    vi.mocked(github.listIssues).mockResolvedValue([]);
+    vi.mocked(github.listOpenPrs).mockResolvedValue([]);
+    vi.mocked(git.listLocalBranches).mockResolvedValue([]);
+    vi.mocked(modal.showSelect).mockResolvedValue(null);
+
+    const result = await executeAction("list", mockState, mockDashboardLines);
+
+    expect(result).toBe(true);
+    expect(modal.showStatus).toHaveBeenCalledWith(
+      "List",
+      "No tickets found",
+      mockDashboardLines
+    );
+  });
+
+  it("'list' action switches branch on ticket selection", async () => {
+    vi.mocked(github.listIssues)
+      .mockResolvedValueOnce([]) // in-progress
+      .mockResolvedValueOnce([
+        {
+          number: 5,
+          title: "Some feature",
+          body: "",
+          labels: ["ai-ready"],
+          state: "open",
+          url: "url",
+        },
+      ]);
+    vi.mocked(github.listOpenPrs).mockResolvedValue([]);
+    vi.mocked(git.listLocalBranches).mockResolvedValue(["ro/feature-5-some-feature"]);
+    vi.mocked(git.getCurrentBranch).mockResolvedValue("main");
+    vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.branchExists).mockResolvedValue(true);
+    vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
+
+    // User selects ticket #5
+    vi.mocked(modal.showSelect).mockResolvedValue("5");
+
+    // parseBranchName mock is reset by resetAllMocks — re-set it
+    vi.mocked(branch.parseBranchName).mockImplementation((name: string) => {
+      const m = name.match(/(\w+)-(\d+)-/);
+      if (m) return { name, issueNumber: parseInt(m[2], 10), type: m[1], slug: "test", author: "ro" };
+      return null;
+    });
+
+    const result = await executeAction("list", mockState, mockDashboardLines);
+
+    expect(result).toBe(true);
+    expect(modal.showSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Switch Ticket" })
+    );
+    expect(git.checkoutBranch).toHaveBeenCalledWith("ro/feature-5-some-feature");
   });
 });

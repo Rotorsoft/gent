@@ -145,3 +145,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/modal.ts, src/tui/modal.test.ts, src/tui/display.ts, src/commands/tui.ts, src/commands/tui.test.ts
 - Changes: Built modal overlay system (confirm, select, input, status) that renders centered floating dialogs over dimmed dashboard. Refactored display.ts to support buildDashboardLines for modal compositing. Replaced all inquirer prompts and clearScreen patterns in TUI with modal overlays. Removed unnecessary confirmation dialogs for pr, run, push, checkout-main actions. Removed promptContinue calls for auto-close behavior.
 - Decisions: Custom modal system using ANSI cursor positioning over raw terminal (no new dependencies). Kept full-screen mode for AI interactive sessions and list command. Commit message generation uses non-streaming mode for modal compatibility.
+
+[2026-01-30] #64 refactor: convert list command and PR flow to modal dialogs
+- Files: src/commands/tui.ts, src/commands/tui.test.ts, src/commands/pr.ts
+- Changes: Converted list command from clearScreen+inquirer to modal select overlay with category separators. Added modal-based branch switching with dirty-state confirmation and branch creation dialogs. Removed inquirer push confirmation from PR command (auto-push). Fixed process.exit calls in pr.ts to use return for TUI compatibility.
+- Decisions: List modal fetches tickets inline and builds SelectEntry items with separators. Full-screen kept only for AI streaming (create, pr, run).

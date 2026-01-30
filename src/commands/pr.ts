@@ -1,4 +1,3 @@
-import inquirer from "inquirer";
 import { logger, colors } from "../utils/logger.js";
 import { withSpinner } from "../utils/spinner.js";
 import { loadConfig } from "../lib/config.js";
@@ -55,20 +54,20 @@ export async function prCommand(options: PrOptions): Promise<void> {
 
   if (!ghAuth) {
     logger.error("Not authenticated with GitHub. Run 'gh auth login' first.");
-    process.exit(1);
+    return;
   }
 
   if (!aiOk) {
     logger.error(
       `${providerName} CLI not found. Please install ${provider} CLI first.`
     );
-    process.exit(1);
+    return;
   }
 
   // Check we're not on main
   if (await isOnMainBranch()) {
     logger.error("Cannot create PR from main/master branch.");
-    process.exit(1);
+    return;
   }
 
   // Check for existing PR
@@ -86,25 +85,13 @@ export async function prCommand(options: PrOptions): Promise<void> {
   logger.info(`Branch: ${colors.branch(currentBranch)}`);
   logger.info(`Base: ${colors.branch(baseBranch)}`);
 
-  // Check if we need to push
+  // Auto-push if needed
   const hasUnpushed = await getUnpushedCommits();
   if (hasUnpushed) {
-    logger.warning("Branch has unpushed commits.");
-    const { push } = await inquirer.prompt([
-      {
-        type: "confirm",
-        name: "push",
-        message: "Push to remote before creating PR?",
-        default: true,
-      },
-    ]);
-
-    if (push) {
-      await withSpinner("Pushing branch...", async () => {
-        await pushBranch();
-      });
-      logger.success("Branch pushed");
-    }
+    await withSpinner("Pushing branch...", async () => {
+      await pushBranch();
+    });
+    logger.success("Branch pushed");
   }
 
   // Extract issue number from branch
