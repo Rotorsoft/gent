@@ -1,3 +1,10 @@
+## [1.15.3](https://github.com/rotorsoft/gent/compare/v1.15.2...v1.15.3) (2026-01-30)
+
+
+### Bug Fixes
+
+* add prefix to list items ([cc8929f](https://github.com/rotorsoft/gent/commit/cc8929fdb07dede22e460e884b5c5568b5255f87))
+
 ## [1.15.2](https://github.com/rotorsoft/gent/compare/v1.15.1...v1.15.2) (2026-01-30)
 
 
