@@ -317,7 +317,7 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("quit");
   });
 
-  it("hides create and pr actions when hasValidRemote is false", () => {
+  it("hides create, pr, and list actions when hasValidRemote is false", () => {
     const actions = getAvailableActions(
       createBaseState({
         hasValidRemote: false,
@@ -330,13 +330,14 @@ describe("getAvailableActions", () => {
 
     expect(ids).not.toContain("create");
     expect(ids).not.toContain("pr");
-    // Other actions should still be present
-    expect(ids).toContain("list");
+    expect(ids).not.toContain("list");
+    // github-remote should be available instead of list
+    expect(ids).toContain("github-remote");
     expect(ids).toContain("refresh");
     expect(ids).toContain("quit");
   });
 
-  it("shows create and pr actions when hasValidRemote is true", () => {
+  it("shows create, pr, and list actions when hasValidRemote is true", () => {
     const actions = getAvailableActions(
       createBaseState({
         hasValidRemote: true,
@@ -349,6 +350,8 @@ describe("getAvailableActions", () => {
 
     expect(ids).toContain("create");
     expect(ids).toContain("pr");
+    expect(ids).toContain("list");
+    expect(ids).not.toContain("github-remote");
   });
 
   it("has unique shortcuts per action set", () => {

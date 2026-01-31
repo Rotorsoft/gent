@@ -258,7 +258,7 @@ describe("display", () => {
 
       expect(output).toContain("Hint");
       expect(output).toContain(
-        "Add a GitHub remote to create tickets and pull requests"
+        "Press [g] to create a GitHub repo and push"
       );
     });
 
@@ -274,7 +274,7 @@ describe("display", () => {
       const output = lines.join("\n");
 
       expect(output).not.toContain(
-        "Add a GitHub remote to create tickets and pull requests"
+        "Press [g] to create a GitHub repo and push"
       );
     });
 

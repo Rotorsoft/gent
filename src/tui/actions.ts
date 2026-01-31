@@ -39,7 +39,11 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   }
 
   // Common navigation/config actions
-  actions.push({ id: "list", label: "list", shortcut: "l" });
+  if (state.hasValidRemote) {
+    actions.push({ id: "list", label: "list", shortcut: "l" });
+  } else {
+    actions.push({ id: "github-remote", label: "github", shortcut: "g" });
+  }
   actions.push({ id: "refresh", label: "refresh", shortcut: "f" });
   actions.push({ id: "switch-provider", label: "ai", shortcut: "a" });
   actions.push({ id: "quit", label: "quit", shortcut: "q" });

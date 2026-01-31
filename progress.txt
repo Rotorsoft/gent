@@ -218,3 +218,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/state.ts, src/tui/actions.ts, src/tui/display.ts, src/tui/actions.test.ts, src/tui/state.test.ts, src/tui/display.test.ts, src/commands/tui.ts, src/commands/tui.test.ts
 - Changes: Added `hasValidRemote` field to TuiState, populated via `getRepoInfo()`. Gated "new" and "pr" actions on valid remote. Added hint in display when remote is missing.
 - Decisions: Reused existing `getRepoInfo()` from git.ts. Remote check runs in parallel with other git state queries. Hint displayed in dedicated section, takes priority over custom hints.
+
+[2026-01-31] #87 feat: hide list command and add github-remote command
+- Files: src/tui/actions.ts, src/tui/display.ts, src/commands/github-remote.ts, src/commands/tui.ts, src/index.ts, src/tui/actions.test.ts, src/tui/display.test.ts, progress.txt
+- Changes: Gated `list` action on `hasValidRemote`. Added `github-remote` action (shortcut `g`) visible when no remote exists. Created `github-remote` command using `gh repo create --source=. --push --private`. Registered CLI command and TUI handler with confirmation modal.
+- Decisions: Used `gh repo create --source=. --push --private` for single-command repo creation + push. Shortcut `g` (GitHub) to avoid conflicts with existing shortcuts.

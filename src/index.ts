@@ -8,6 +8,7 @@ import { prCommand } from "./commands/pr.js";
 import { fixCommand } from "./commands/fix.js";
 import { statusCommand } from "./commands/status.js";
 import { tuiCommand } from "./commands/tui.js";
+import { githubRemoteCommand } from "./commands/github-remote.js";
 import {
   getVersion,
   checkForUpdates,
@@ -144,6 +145,13 @@ program
   .description("Show current workflow status")
   .action(async () => {
     await statusCommand();
+  });
+
+program
+  .command("github-remote")
+  .description("Create a GitHub repository and push local repo")
+  .action(async () => {
+    await githubRemoteCommand();
   });
 
 program
