@@ -202,6 +202,48 @@ describe("display", () => {
       expect(output).not.toContain("Update available");
     });
 
+    it("renders helpful message and quit command when not in a git repo", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        isGitRepo: false,
+        isGhAuthenticated: false,
+        branch: "",
+        isOnMain: false,
+      };
+
+      const quitAction: TuiAction[] = [
+        { id: "quit", label: "quit", shortcut: "q" },
+      ];
+
+      const lines = buildDashboardLines(state, quitAction).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).toContain("Not a git repository");
+      expect(output).toContain("Navigate to a git repository to get started");
+      expect(output).toContain("quit");
+      // Should not render git-specific sections
+      expect(output).not.toContain("Branch");
+      expect(output).not.toContain("Ticket");
+      expect(output).not.toContain("Commits");
+    });
+
+    it("renders quit command when GitHub CLI not authenticated", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        isGhAuthenticated: false,
+      };
+
+      const quitAction: TuiAction[] = [
+        { id: "quit", label: "quit", shortcut: "q" },
+      ];
+
+      const lines = buildDashboardLines(state, quitAction).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).toContain("GitHub CLI not authenticated");
+      expect(output).toContain("quit");
+    });
+
     it("renders bullets for list items", () => {
       const state: TuiState = {
         ...mockBaseState,

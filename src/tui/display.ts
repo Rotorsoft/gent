@@ -244,14 +244,22 @@ export function buildDashboardLines(
 
   // ── Error states ──────────────────────────────────────────────
   if (!state.isGitRepo) {
-    out(row(chalk.red("Not a git repository"), w));
-    out(row(chalk.dim("Run gent init in a git repo to get started"), w));
+    out(row(chalk.yellow("Not a git repository"), w));
+    out(row(chalk.dim("Navigate to a git repository to get started"), w));
+    out(divRow(w));
+    for (const line of formatCommandBar(actions, w)) {
+      out(row(line, w));
+    }
     out(botRow(w));
     return lines;
   }
   if (!state.isGhAuthenticated) {
     out(row(chalk.red("GitHub CLI not authenticated"), w));
     out(row(chalk.dim("Run: gh auth login"), w));
+    out(divRow(w));
+    for (const line of formatCommandBar(actions, w)) {
+      out(row(line, w));
+    }
     out(botRow(w));
     return lines;
   }
