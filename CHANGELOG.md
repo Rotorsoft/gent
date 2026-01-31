@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/rotorsoft/gent/compare/v1.17.1...v1.18.0) (2026-01-31)
+
+
+### Features
+
+* add cursor movement and full editing support to multiline input ([1efc63a](https://github.com/rotorsoft/gent/commit/1efc63a9fc362e8a96a887c0a7cd8a95af27fca7)), closes [#82](https://github.com/rotorsoft/gent/issues/82)
+
 ## [1.17.1](https://github.com/rotorsoft/gent/compare/v1.17.0...v1.17.1) (2026-01-31)
 
 
