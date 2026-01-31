@@ -198,3 +198,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: README.md, AGENT.md, progress.txt
 - Changes: Rewrote README to lead with dashboard as primary interface. Added dedicated Dashboard section with panels, keyboard shortcuts, modal dialogs, and typical workflow. Renamed "Commands" to "CLI Reference" as secondary. Updated workflow diagram to use dashboard shortcuts. Updated AGENT.md architecture description.
 - Decisions: Quick Start now ends with "Launch the dashboard" instead of individual CLI commands. Added "Dashboard vs CLI" tips section. Added GENT_SKIP_UPDATE_CHECK to env vars table.
+
+[2026-01-31] #79 refactor: remap TUI shortcuts and use bracket notation
+- Files: src/tui/actions.ts, src/tui/display.ts, src/tui/actions.test.ts, src/tui/display.test.ts, README.md
+- Changes: Remapped shortcuts: push `p`→`s` (send), PR `r`→`p`, run `u`→`r`. Changed command bar format from inline letter highlighting to explicit `[x]label` bracket notation. Updated tests and README.
+- Decisions: `s` for push (send/sync), `p` for PR, `r` for run — each action uses its natural first letter. Bracket notation is more explicit than coloring a letter within a word.

@@ -113,7 +113,7 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("commit");
   });
 
-  it("shows push with P shortcut when unpushed commits exist", () => {
+  it("shows push with 's' shortcut when unpushed commits exist", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -125,7 +125,7 @@ describe("getAvailableActions", () => {
     const push = actions.find((a) => a.id === "push");
 
     expect(push).toBeDefined();
-    expect(push!.shortcut).toBe("p");
+    expect(push!.shortcut).toBe("s");
   });
 
   it("shows both commit and push when uncommitted and unpushed exist", () => {
@@ -144,7 +144,7 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("commit");
   });
 
-  it("shows create pr with 'r' shortcut when no PR exists but commits do", () => {
+  it("shows create pr with 'p' shortcut when no PR exists but commits do", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -155,7 +155,7 @@ describe("getAvailableActions", () => {
     const pr = actions.find((a) => a.id === "pr");
 
     expect(pr).toBeDefined();
-    expect(pr!.shortcut).toBe("r");
+    expect(pr!.shortcut).toBe("p");
   });
 
   it("shows run when issue exists on feature branch", () => {
@@ -178,7 +178,7 @@ describe("getAvailableActions", () => {
     expect(ids).toContain("run");
   });
 
-  it("uses u shortcut for run action", () => {
+  it("uses 'r' shortcut for run action", () => {
     const actions = getAvailableActions(
       createBaseState({
         isOnMain: false,
@@ -196,7 +196,7 @@ describe("getAvailableActions", () => {
     const impl = actions.find((a) => a.id === "run");
 
     expect(impl).toBeDefined();
-    expect(impl!.shortcut).toBe("u");
+    expect(impl!.shortcut).toBe("r");
   });
 
   it("does not show video action", () => {

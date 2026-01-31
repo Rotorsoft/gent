@@ -71,24 +71,23 @@ The dashboard is your primary interface. From here you can create tickets, switc
 Running `gent` launches an interactive dashboard that shows your current workflow at a glance:
 
 ```
-┌ gent v1.17.0 ─────────────────────────────────────────┐
-│ Provider: Claude                                       │
-│ GitHub:   authenticated                                │
-├ Ticket ────────────────────────────────────────────────┤
-│ · #47  Add interactive TUI interface                   │
-│    IN PROGRESS   type:feature  priority:high  area:ui  │
-├ Branch ────────────────────────────────────────────────┤
-│ · ro/feature-47-add-interactive-tui                    │
-│   3 ahead  ·  ● uncommitted  ·  ● unpushed            │
-├ Pull Request ──────────────────────────────────────────┤
-│   No PR created                                        │
-├ Commits ───────────────────────────────────────────────┤
-│ · feat: add TUI state aggregation                      │
-│ · feat: add TUI display components                     │
-├────────────────────────────────────────────────────────┤
-│ n new   c commit   p push   r pr   u run   l list     │
-│ f refresh   a ai   q quit                              │
-└────────────────────────────────────────────────────────┘
+┌ gent v1.17.0 ────────────────────────────────────────┐
+│ Provider: Claude                                     │
+│ GitHub:   authenticated                              │
+├ Ticket ──────────────────────────────────────────────┤
+│ · #47  Add interactive TUI interface                 │
+│   IN PROGRESS  type:feature  priority:high  area:ui  │
+├ Branch ──────────────────────────────────────────────┤
+│ · ro/feature-47-add-interactive-tui                  │
+│   3 ahead  ·  ● uncommitted  ·  ● unpushed           │
+├ Pull Request ────────────────────────────────────────┤
+│   No PR created                                      │
+├ Commits ─────────────────────────────────────────────┤
+│ · feat: add TUI state aggregation                    │
+│ · feat: add TUI display components                   │
+├──────────────────────────────────────────────────────┤
+│ new  commit  push  pr  run  list  refresh  ai  quit  │
+└──────────────────────────────────────────────────────┘
 ```
 
 ### Dashboard Panels
@@ -106,11 +105,11 @@ The dashboard shows only the actions relevant to your current context:
 
 | Key | Action | When Available |
 |-----|--------|----------------|
-| `n` | Create a new ticket | Always |
+| `n` | New ticket | Always |
 | `c` | Commit changes | Uncommitted changes on feature branch |
-| `p` | Push to remote | Unpushed commits on feature branch |
-| `r` | Create a pull request | Feature branch with commits, no PR yet |
-| `u` | Run AI implementation | Feature branch with linked issue, PR not merged |
+| `s` | Push (send) to remote | Unpushed commits on feature branch |
+| `p` | Create PR | Feature branch with commits, no PR yet |
+| `r` | Run AI implementation | Feature branch with linked issue, PR not merged |
 | `l` | List and switch tickets | Always |
 | `f` | Refresh dashboard | Always |
 | `a` | Switch AI provider | Always |
@@ -139,11 +138,11 @@ Actions that need input (commit, list, create, switch provider) open floating mo
 
 1. Press `n` to create a new ticket (describe the feature in the multiline input)
 2. Press `l` to list tickets and switch to the new one (creates a branch automatically)
-3. Press `u` to run AI implementation (opens an interactive AI session)
+3. Press `r` to run AI implementation (opens an interactive AI session)
 4. Press `c` to commit (choose AI-generated or manual commit message)
-5. Press `p` to push to remote
-6. Press `r` to create a pull request
-7. After review feedback, press `u` again to address comments (review context is included automatically)
+5. Press `s` to send (push) to remote
+6. Press `p` to create a pull request
+7. After review feedback, press `r` again to address comments (review context is included automatically)
 
 ## Workflow
 
@@ -165,7 +164,7 @@ Actions that need input (commit, list, create, switch provider) open floating mo
                                     │ created  │
                                     └────┬─────┘
                                          │
-                                    u (run)
+                                    r (run)
                                          │
                                          v
                                     ┌──────────┐
@@ -173,7 +172,7 @@ Actions that need input (commit, list, create, switch provider) open floating mo
                                     │ai-complete│
                                     └────┬─────┘
                                          │
-                                    c (commit) → p (push) → r (pr)
+                                    c (commit) → s (send) → p (pr)
                                          │
                                          v
                                     ┌──────────┐
@@ -188,7 +187,7 @@ Actions that need input (commit, list, create, switch provider) open floating mo
                          Changes                Approved
                          requested                  │
                               │                     │
-                         u (run)                    │
+                         r (run)                    │
                               │                     │
                               v                     │
                          ┌──────────┐               │
@@ -249,7 +248,7 @@ Creates labels in these categories:
 
 ### `gent create <description>`
 
-Create an AI-enhanced GitHub issue (dashboard shortcut: `n`).
+Create an AI-enhanced GitHub issue (dashboard: `n`).
 
 ```bash
 gent create "Add dark mode toggle to settings page"
@@ -262,7 +261,7 @@ Options:
 
 ### `gent list`
 
-List and switch between GitHub issues (dashboard shortcut: `l`).
+List and switch between GitHub issues (dashboard: `l`).
 
 ```bash
 gent list                          # Show ai-ready issues
@@ -278,7 +277,7 @@ Options:
 
 ### `gent run [issue-number]`
 
-Run AI to implement a GitHub issue (dashboard shortcut: `u`).
+Run AI to implement a GitHub issue (dashboard: `r`).
 
 ```bash
 gent run 123                   # Implement issue #123
@@ -290,7 +289,7 @@ Options:
 
 ### `gent pr`
 
-Create an AI-enhanced pull request (dashboard shortcut: `r`).
+Create an AI-enhanced pull request (dashboard: `p`).
 
 ```bash
 gent pr                      # Create PR
@@ -517,7 +516,7 @@ If the AI gets stuck (`ai-blocked` label):
 
 ### PR Review Iteration
 
-After receiving review feedback, press `u` in the dashboard (or run `gent fix` from the CLI) to address comments. The AI automatically includes review context and only focuses on new feedback since your last commit. Unresolved threads are always included regardless of age.
+After receiving review feedback, press `r` in the dashboard (or run `gent fix` from the CLI) to address comments. The AI automatically includes review context and only focuses on new feedback since your last commit. Unresolved threads are always included regardless of age.
 
 ```bash
 # CLI equivalent for review iteration

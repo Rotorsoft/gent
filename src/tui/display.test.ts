@@ -54,7 +54,7 @@ const mockBaseState: TuiState = {
 };
 
 const mockActions: TuiAction[] = [
-  { label: "run", shortcut: "u", handler: async () => {} },
+  { id: "run", label: "run", shortcut: "r" },
 ];
 
 describe("display", () => {
