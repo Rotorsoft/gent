@@ -208,3 +208,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/display.ts, src/tui/display.test.ts
 - Changes: Render command bar (with quit shortcut) in non-git-repo and non-authenticated error states instead of closing the box early. Improved non-git message to "Navigate to a git repository to get started".
 - Decisions: Changed error color from red to yellow for non-git state since it's informational, not an error. Applied same command bar fix to the non-authenticated state for consistency.
+
+[2026-01-31] #82 feat: add cursor movement and full editing support to multiline input
+- Files: src/tui/modal.ts, src/tui/modal.test.ts
+- Changes: Added cursor position tracking, arrow key navigation (left/right/up/down across visual lines), Home/End/Ctrl+A/Ctrl+E, Ctrl+Left/Right word jump, Delete key, mid-text insertion/deletion. Added visual line mapping (getVisualLines, findCursorVisualPos) for cursor-to-screen coordinate translation through word-wrap. Decoded new ANSI sequences in readKey().
+- Decisions: Replaced wrapLine with wrapLineWithMap that tracks character offsets through word-wrap breaks. Cursor movement helpers are exported pure functions for testability. Kept cursorPos optional in buildMultilineInputContent for backward compatibility.
