@@ -24,15 +24,15 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     }
 
     if (state.hasUnpushedCommits && state.commits.length > 0) {
-      actions.push({ id: "push", label: "push", shortcut: "p" });
+      actions.push({ id: "push", label: "push", shortcut: "s" });
     }
 
     if (!state.pr && state.commits.length > 0) {
-      actions.push({ id: "pr", label: "pr", shortcut: "r" });
+      actions.push({ id: "pr", label: "pr", shortcut: "p" });
     }
 
     if (state.issue && state.pr?.state !== "merged") {
-      actions.push({ id: "run", label: "run", shortcut: "u" });
+      actions.push({ id: "run", label: "run", shortcut: "r" });
     }
   }
 

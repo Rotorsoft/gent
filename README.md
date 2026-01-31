@@ -1,14 +1,15 @@
 # @rotorsoft/gent
 
-AI-powered GitHub workflow CLI - leverage AI (Claude, Gemini, or Codex) to create tickets, implement features, and manage PRs.
+AI-powered GitHub workflow tool - leverage AI (Claude, Gemini, or Codex) to create tickets, implement features, and manage PRs from an interactive dashboard.
 
 ## Overview
 
-`gent` is a command-line tool that integrates AI with GitHub to automate your development workflow:
+`gent` provides an interactive dashboard that integrates AI with GitHub to automate your development workflow. Just run `gent` to launch:
 
-- **Create AI-enhanced tickets** - Describe what you need, the AI generates detailed GitHub issues with proper labels
-- **Implement with AI** - Pick a ticket and let the AI implement it with automatic branch management
-- **Track progress** - Maintain a progress log for context across AI sessions
+- **Dashboard at a glance** - See your current ticket, branch, PR, and commits in one view
+- **Context-aware actions** - The dashboard adapts to your workflow state with relevant shortcuts
+- **Create AI-enhanced tickets** - Describe what you need, the AI generates detailed GitHub issues
+- **Implement with AI** - Select a ticket and let the AI implement it with automatic branch management
 - **Create smart PRs** - Generate AI-enhanced pull requests with proper descriptions
 - **Iterate on feedback** - Address PR review comments with AI assistance
 
@@ -32,7 +33,7 @@ Verify prerequisites:
 gh auth status    # Should show authenticated
 claude --version  # Should show version (if using Claude)
 gemini --version  # Should show version (if using Gemini)
-codex --version  # Should show version (if using Codex)
+codex --version   # Should show version (if using Codex)
 ```
 
 ## Quick Start
@@ -57,97 +58,167 @@ gent setup-labels
 
 Creates workflow labels (`ai-ready`, `ai-in-progress`, etc.) and category labels.
 
-### 3. Create a ticket
+### 3. Launch the dashboard
 
 ```bash
-gent create "Add user authentication with JWT tokens"
+gent
 ```
 
-The AI will:
-- Generate a detailed issue with technical context
-- Infer appropriate labels (type, priority, risk, area)
-- Create the issue on GitHub with `ai-ready` label
-
-### 4. Implement a ticket
-
-```bash
-# Pick a specific issue
-gent run 123
-
-# Or auto-select highest priority ai-ready issue
-gent run --auto
-```
-
-The AI will:
-- Create a feature branch
-- Update labels to `ai-in-progress`
-- Implement the feature following your `AGENT.md` instructions
-- Run validation commands
-- Create a commit
-- Update labels to `ai-completed`
-
-### 5. Create a pull request
-
-```bash
-gent pr
-```
-
-The AI will:
-- Generate a PR description from commits and linked issue
-- Include "Closes #" reference
-- Create the PR on GitHub
-
-### 6. Address review feedback
-
-After reviewers leave comments on your PR:
-
-```bash
-gent fix
-```
-
-The AI will:
-- Fetch all review comments and threads from the PR
-- Filter to show only feedback since your last commit
-- Present a summary of actionable feedback
-- Re-run implementation with review context
-- Auto-reply to addressed feedback comments
-
-Repeat `gent fix` as needed until the PR is approved.
+The dashboard is your primary interface. From here you can create tickets, switch between issues, run AI implementations, commit, push, and create PRs - all with single-key shortcuts.
 
 ## Dashboard
 
-Running `gent` with no arguments launches a dashboard that shows your current workflow at a glance:
+Running `gent` launches an interactive dashboard that shows your current workflow at a glance:
 
 ```
- gent v2.0.0                                     Claude · gh
-
-┌ Ticket ──────────────────────────────────────────────┐
-│ #47  Add interactive TUI interface                   │
-│  IN PROGRESS   type:feature  priority:high  area:ui  │
+┌ gent v1.17.0 ────────────────────────────────────────┐
+│ Provider: Claude                                     │
+│ GitHub:   authenticated                              │
+├ Ticket ──────────────────────────────────────────────┤
+│ · #47  Add interactive TUI interface                 │
+│   IN PROGRESS  type:feature  priority:high  area:ui  │
 ├ Branch ──────────────────────────────────────────────┤
-│ ro/feature-47-add-interactive-tui                    │
-│ 3 ahead  ·  ● uncommitted  ·  ● unpushed            │
+│ · ro/feature-47-add-interactive-tui                  │
+│   3 ahead  ·  ● uncommitted  ·  ● unpushed           │
 ├ Pull Request ────────────────────────────────────────┤
-│ No PR created                                        │
+│   No PR created                                      │
 ├ Commits ─────────────────────────────────────────────┤
-│ feat: add TUI state aggregation                      │
-│ feat: add TUI display components                     │
+│ · feat: add TUI state aggregation                    │
+│ · feat: add TUI display components                   │
+├──────────────────────────────────────────────────────┤
+│ new  commit  push  pr  run  list  refresh  ai  quit  │
 └──────────────────────────────────────────────────────┘
-
-  c  commit    p  create pr    r  continue impl    q  quit
- Commit your changes before creating a PR
 ```
 
-The dashboard adapts to your current context:
-- **On main branch** - offers to create new tickets or implement open issues
-- **Uncommitted changes** - prompts to commit before other actions
-- **No PR yet** - offers to create a pull request
-- **PR with review feedback** - offers to fix review comments
-- **UI changes with Playwright** - offers to record demo videos
+### Dashboard Panels
 
-You can also launch it explicitly with `gent ui`.
+- **Settings** - Shows AI provider, GitHub auth status, and update notifications
+- **Ticket** - Current issue with labels, priority, and workflow status badges
+- **Branch** - Current branch with sync status (ahead/uncommitted/unpushed/synced)
+- **Pull Request** - PR state (open/draft/merged/closed), review decision, and actionable feedback count
+- **Commits** - Recent commits on the current branch
+- **Hint** - Contextual suggestion based on your workflow state
 
-## Commands
+### Keyboard Shortcuts
+
+The dashboard shows only the actions relevant to your current context:
+
+| Key | Action | When Available |
+|-----|--------|----------------|
+| `n` | New ticket | Always |
+| `c` | Commit changes | Uncommitted changes on feature branch |
+| `s` | Push (send) to remote | Unpushed commits on feature branch |
+| `p` | Create PR | Feature branch with commits, no PR yet |
+| `r` | Run AI implementation | Feature branch with linked issue, PR not merged |
+| `l` | List and switch tickets | Always |
+| `f` | Refresh dashboard | Always |
+| `a` | Switch AI provider | Always |
+| `q` | Quit | Always |
+
+### Context-Aware Behavior
+
+The dashboard adapts to your current state:
+
+- **On main branch** - Shows "ready to start new work"; use `n` to create a ticket or `l` to pick an existing one
+- **Uncommitted changes** - Hints to commit before creating a PR
+- **No PR yet** - Offers to create a pull request after commits are pushed
+- **PR with review feedback** - Shows actionable comment count and hints to address feedback
+- **UI changes with Playwright** - Notes that video capture is available
+
+### Modal Dialogs
+
+Actions that need input (commit, list, create, switch provider) open floating modal dialogs over the dashboard. Modals support:
+
+- **Select** - Arrow keys to navigate, Enter to confirm, Escape to cancel
+- **Confirm** - y/n to confirm or cancel
+- **Input** - Type text, Enter to submit, Escape to cancel
+- **Multiline input** - For ticket descriptions; Enter for newline, Ctrl+S to submit
+
+### Typical Workflow from the Dashboard
+
+1. Press `n` to create a new ticket (describe the feature in the multiline input)
+2. Press `l` to list tickets and switch to the new one (creates a branch automatically)
+3. Press `r` to run AI implementation (opens an interactive AI session)
+4. Press `c` to commit (choose AI-generated or manual commit message)
+5. Press `s` to send (push) to remote
+6. Press `p` to create a pull request
+7. After review feedback, press `r` again to address comments (review context is included automatically)
+
+## Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                          GENT WORKFLOW                          │
+└─────────────────────────────────────────────────────────────────┘
+
+     ┌──────────┐    n (new)        ┌──────────┐
+     │   Idea   │ ─────────────────>│  Issue   │
+     └──────────┘                   │ ai-ready │
+                                    └────┬─────┘
+                                         │
+                                    l (list) → select
+                                         │
+                                         v
+                                    ┌──────────┐
+                                    │  Branch  │
+                                    │ created  │
+                                    └────┬─────┘
+                                         │
+                                    r (run)
+                                         │
+                                         v
+                                    ┌──────────┐
+                                    │  Issue   │
+                                    │ai-complete│
+                                    └────┬─────┘
+                                         │
+                                    c (commit) → s (send) → p (pr)
+                                         │
+                                         v
+                                    ┌──────────┐
+                                    │   PR     │
+                                    │ created  │
+                                    └────┬─────┘
+                                         │
+                                    Human review
+                                         │
+                              ┌──────────┴──────────┐
+                              │                     │
+                         Changes                Approved
+                         requested                  │
+                              │                     │
+                         r (run)                    │
+                              │                     │
+                              v                     │
+                         ┌──────────┐               │
+                         │   AI     │               │
+                         │  fixes   │───────────────┤
+                         └────┬─────┘               │
+                              │                     │
+                              └─── (repeat if needed)
+                                                    │
+                                               Merge PR
+                                                    │
+                                                    v
+                                               ┌──────────┐
+                                               │  Issue   │
+                                               │  closed  │
+                                               └──────────┘
+```
+
+## CLI Reference
+
+All dashboard actions map to CLI commands that can also be run directly. This is useful for scripting, CI pipelines, or if you prefer a command-driven workflow.
+
+### `gent`
+
+Launch the interactive dashboard (default when no command is given).
+
+```bash
+gent
+# or explicitly
+gent ui
+```
 
 ### `gent init`
 
@@ -177,11 +248,11 @@ Creates labels in these categories:
 
 ### `gent create <description>`
 
-Create an AI-enhanced GitHub issue.
+Create an AI-enhanced GitHub issue (dashboard: `n`).
 
 ```bash
 gent create "Add dark mode toggle to settings page"
-gent create "Fix login bug" --provider gemini   # Use specific AI provider
+gent create "Fix login bug" --provider gemini
 ```
 
 Options:
@@ -190,7 +261,7 @@ Options:
 
 ### `gent list`
 
-List GitHub issues by label/status.
+List and switch between GitHub issues (dashboard: `l`).
 
 ```bash
 gent list                          # Show ai-ready issues
@@ -206,21 +277,19 @@ Options:
 
 ### `gent run [issue-number]`
 
-Run AI to implement a GitHub issue.
+Run AI to implement a GitHub issue (dashboard: `r`).
 
 ```bash
 gent run 123                   # Implement issue #123
-gent run --auto                # Auto-select highest priority ai-ready issue
 gent run 123 --provider gemini # Use specific AI provider
 ```
 
 Options:
-- `-a, --auto` - Auto-select highest priority ai-ready issue
 - `-p, --provider <provider>` - AI provider to use (`claude`, `gemini`, or `codex`)
 
 ### `gent pr`
 
-Create an AI-enhanced pull request.
+Create an AI-enhanced pull request (dashboard: `p`).
 
 ```bash
 gent pr                      # Create PR
@@ -254,7 +323,7 @@ Options:
 
 ### `gent status`
 
-Show current workflow status.
+Show current workflow status (useful for scripting and debugging).
 
 ```bash
 gent status
@@ -268,18 +337,6 @@ Displays:
 - Linked issue status
 - PR status
 - Suggested actions
-
-### `gent ui`
-
-Launch the interactive dashboard. Also available by running `gent` with no arguments.
-
-```bash
-gent ui
-# or simply
-gent
-```
-
-The dashboard displays panels for Ticket, Branch, Pull Request, and Commits with context-aware keyboard shortcuts at the bottom. Actions refresh the dashboard automatically after completion.
 
 ## Configuration
 
@@ -360,68 +417,6 @@ Append-only log that tracks AI implementation sessions. Each entry includes:
 
 This provides context for future AI sessions and human reviewers.
 
-## Workflow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                          GENT WORKFLOW                          │
-└─────────────────────────────────────────────────────────────────┘
-
-     ┌──────────┐    gent create    ┌──────────┐
-     │   Idea   │ ─────────────────>│  Issue   │
-     └──────────┘                   │ ai-ready │
-                                    └────┬─────┘
-                                         │
-                                    gent run
-                                         │
-                                         v
-                                    ┌──────────┐
-                                    │  Branch  │
-                                    │ created  │
-                                    └────┬─────┘
-                                         │
-                                    AI implements
-                                         │
-                                         v
-                                    ┌──────────┐
-                                    │  Issue   │
-                                    │ai-complete│
-                                    └────┬─────┘
-                                         │
-                                    gent pr
-                                         │
-                                         v
-                                    ┌──────────┐
-                                    │   PR     │
-                                    │ created  │
-                                    └────┬─────┘
-                                         │
-                                    Human review
-                                         │
-                              ┌──────────┴──────────┐
-                              │                     │
-                         Changes                Approved
-                         requested                  │
-                              │                     │
-                         gent fix                   │
-                              │                     │
-                              v                     │
-                         ┌──────────┐               │
-                         │   AI     │               │
-                         │  fixes   │───────────────┤
-                         └────┬─────┘               │
-                              │                     │
-                              └─── (repeat if needed)
-                                                    │
-                                               Merge PR
-                                                    │
-                                                    v
-                                               ┌──────────┐
-                                               │  Issue   │
-                                               │  closed  │
-                                               └──────────┘
-```
-
 ## Label Conventions
 
 ### Workflow Status
@@ -473,7 +468,7 @@ Examples:
 The author is derived from:
 1. `GENT_AUTHOR` environment variable (if `author_source: env`)
 2. `git config user.initials` (if set)
-3. Initials from `git config user.name` (e.g., "John Doe" → "jd")
+3. Initials from `git config user.name` (e.g., "John Doe" -> "jd")
 
 ## Environment Variables
 
@@ -481,11 +476,14 @@ The author is derived from:
 |----------|-------------|
 | `GENT_AUTHOR` | Override author initials for branch naming |
 | `GENT_AI_PROVIDER` | Override AI provider (`claude`, `gemini`, or `codex`) |
+| `GENT_SKIP_UPDATE_CHECK` | Set to `1` to disable update notifications |
 | `DEBUG` | Enable debug output |
 
 ## Tips
 
 ### Writing Good Descriptions
+
+When creating tickets (via `n` in the dashboard or `gent create`):
 
 ```bash
 # Good - specific and actionable
@@ -518,23 +516,31 @@ If the AI gets stuck (`ai-blocked` label):
 
 ### PR Review Iteration
 
-The `gent fix` command streamlines the review cycle by allowing you to address feedback iteratively. It's particularly useful when you have multiple reviewers or several rounds of changes. The command intelligently ignores feedback you've already addressed in previous commits, keeping the AI focused only on what's currently pending.
+After receiving review feedback, press `r` in the dashboard (or run `gent fix` from the CLI) to address comments. The AI automatically includes review context and only focuses on new feedback since your last commit. Unresolved threads are always included regardless of age.
 
 ```bash
-# After creating a PR and receiving review feedback
+# CLI equivalent for review iteration
 gent fix                    # AI addresses the feedback
 git push                    # Push the fixes
 
-# If more feedback comes in later or new reviewers add comments
-gent fix                    # AI only focuses on the NEW comments
+# If more feedback comes in
+gent fix                    # AI only focuses on NEW comments
 git push                    # Push again
 ```
 
-The command intelligently:
-- Only shows feedback newer than your last commit to avoid redundant work.
-- Always includes unresolved review threads to ensure every concern is addressed.
-- Auto-replies to feedback comments after fixes are committed, closing the loop with reviewers.
-- Works with any AI provider (Claude, Gemini, Codex).
+### Dashboard vs CLI
+
+The dashboard (`gent`) is the recommended way to use gent. It provides:
+- A unified view of your workflow state
+- Context-aware actions (only shows what's relevant)
+- Modal dialogs for input (no need to remember command flags)
+- Automatic refresh after actions
+
+CLI commands are available for:
+- Scripting and automation (`gent create --yes "..."`)
+- CI/CD pipelines
+- Users who prefer a command-driven workflow
+- Advanced filtering (`gent list --status all --label priority:high`)
 
 ## Contributing
 

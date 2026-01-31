@@ -142,16 +142,14 @@ const shortcutColors = [
 ];
 
 function formatAction(a: TuiAction, color: (s: string) => string): string {
-  const key = a.shortcut;
-  const idx = a.label.indexOf(key);
+  const idx = a.label.indexOf(a.shortcut);
+  const styledKey = color(chalk.underline(a.shortcut));
   if (idx >= 0) {
-    // Highlight the shortcut letter within the label
     const before = a.label.slice(0, idx);
-    const after = a.label.slice(idx + key.length);
-    return chalk.dim(before) + color(key) + chalk.dim(after);
+    const after = a.label.slice(idx + a.shortcut.length);
+    return chalk.dim(before) + styledKey + chalk.dim(after);
   }
-  // Shortcut not in label — show separately
-  return color(key) + " " + chalk.dim(a.label);
+  return styledKey + " " + chalk.dim(a.label);
 }
 
 function formatCommandBar(actions: TuiAction[], w: number): string[] {
