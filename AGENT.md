@@ -20,7 +20,7 @@ pnpm vitest src/lib/branch.test.ts  # Run a single test file
 
 ## Architecture
 
-This is a TypeScript CLI tool (`gent`) that integrates AI (Claude, Gemini, or Codex) with GitHub for automated development workflows. It requires the `gh` CLI and `claude`, `gemini`, or `codex` CLI as external dependencies.
+This is a TypeScript CLI tool (`gent`) that integrates AI (Claude, Gemini, or Codex) with GitHub for automated development workflows. Running `gent` with no arguments launches an interactive TUI dashboard, which is the primary interface. Individual CLI commands are available for scripting and advanced usage. It requires the `gh` CLI and `claude`, `gemini`, or `codex` CLI as external dependencies.
 
 ### Entry Point and Commands
 

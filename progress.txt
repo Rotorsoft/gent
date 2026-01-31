@@ -193,3 +193,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/tui.ts, src/commands/tui.test.ts, src/tui/modal.ts, src/tui/modal.test.ts
 - Changes: Added `currentIndex` to `buildSelectContent` and `showSelect` to style the active ticket with `chalk.cyan`. Added `initialIndex` so cursor starts on the current ticket. Reverted cursor-selection inverse styling (kept bold).
 - Decisions: Used color-only highlighting (no added text) to avoid truncation in narrow modals. Pre-selecting current ticket reduces navigation effort.
+
+[2026-01-31] #79 docs: update documentation with TUI-first approach
+- Files: README.md, AGENT.md, progress.txt
+- Changes: Rewrote README to lead with dashboard as primary interface. Added dedicated Dashboard section with panels, keyboard shortcuts, modal dialogs, and typical workflow. Renamed "Commands" to "CLI Reference" as secondary. Updated workflow diagram to use dashboard shortcuts. Updated AGENT.md architecture description.
+- Decisions: Quick Start now ends with "Launch the dashboard" instead of individual CLI commands. Added "Dashboard vs CLI" tips section. Added GENT_SKIP_UPDATE_CHECK to env vars table.
