@@ -13,6 +13,7 @@ import {
   getCommitsSinceBase,
   getDefaultBranch,
   getLastCommitTimestamp,
+  getRepoInfo,
 } from "../lib/git.js";
 import { extractIssueNumber, parseBranchName } from "../lib/branch.js";
 import { getWorkflowLabels } from "../lib/labels.js";
@@ -72,6 +73,9 @@ export interface TuiState {
   // UI changes detection
   hasUIChanges: boolean;
   isPlaywrightAvailable: boolean;
+
+  // Remote detection
+  hasValidRemote: boolean;
 }
 
 // Session-level cache for environment checks that don't change mid-session
@@ -113,6 +117,7 @@ export async function aggregateState(): Promise<TuiState> {
       hasActionableFeedback: false,
       hasUIChanges: false,
       isPlaywrightAvailable: false,
+      hasValidRemote: false,
     };
   }
 
@@ -134,12 +139,14 @@ export async function aggregateState(): Promise<TuiState> {
   const { isGhAuthenticated, isAIProviderAvailable } = envCache;
 
   // Gather git state in parallel
-  const [branch, isOnMain, uncommitted, baseBranch] = await Promise.all([
-    getCurrentBranch(),
-    isOnMainBranch(),
-    hasUncommittedChanges(),
-    getDefaultBranch(),
-  ]);
+  const [branch, isOnMain, uncommitted, baseBranch, repoInfo] =
+    await Promise.all([
+      getCurrentBranch(),
+      isOnMainBranch(),
+      hasUncommittedChanges(),
+      getDefaultBranch(),
+      getRepoInfo(),
+    ]);
 
   const hasConfig = configExists();
   const hasProgress = progressExists(config);
@@ -237,5 +244,6 @@ export async function aggregateState(): Promise<TuiState> {
     hasActionableFeedback,
     hasUIChanges: uiChanges,
     isPlaywrightAvailable: playwrightAvailable,
+    hasValidRemote: repoInfo !== null,
   };
 }

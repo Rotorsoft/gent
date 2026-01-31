@@ -385,7 +385,17 @@ export function buildDashboardLines(
   }
 
   // Hint
-  if (hint) {
+  if (!state.hasValidRemote) {
+    section("Hint");
+    out(
+      row(
+        chalk.yellow(
+          "Add a GitHub remote to create tickets and pull requests"
+        ),
+        w
+      )
+    );
+  } else if (hint) {
     section("Hint");
     out(row(chalk.yellow(hint), w));
   }

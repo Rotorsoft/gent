@@ -213,3 +213,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/modal.ts, src/tui/modal.test.ts
 - Changes: Added cursor position tracking, arrow key navigation (left/right/up/down across visual lines), Home/End/Ctrl+A/Ctrl+E, Ctrl+Left/Right word jump, Delete key, mid-text insertion/deletion. Added visual line mapping (getVisualLines, findCursorVisualPos) for cursor-to-screen coordinate translation through word-wrap. Decoded new ANSI sequences in readKey().
 - Decisions: Replaced wrapLine with wrapLineWithMap that tracks character offsets through word-wrap breaks. Cursor movement helpers are exported pure functions for testability. Kept cursorPos optional in buildMultilineInputContent for backward compatibility.
+
+[2026-01-31] #85 feat: gate new and pr actions on valid git remote
+- Files: src/tui/state.ts, src/tui/actions.ts, src/tui/display.ts, src/tui/actions.test.ts, src/tui/state.test.ts, src/tui/display.test.ts, src/commands/tui.ts, src/commands/tui.test.ts
+- Changes: Added `hasValidRemote` field to TuiState, populated via `getRepoInfo()`. Gated "new" and "pr" actions on valid remote. Added hint in display when remote is missing.
+- Decisions: Reused existing `getRepoInfo()` from git.ts. Remote check runs in parallel with other git state queries. Hint displayed in dedicated section, takes priority over custom hints.

@@ -51,6 +51,7 @@ const mockBaseState: TuiState = {
   hasActionableFeedback: false,
   hasUIChanges: false,
   isPlaywrightAvailable: false,
+  hasValidRemote: true,
 };
 
 const mockActions: TuiAction[] = [
@@ -242,6 +243,39 @@ describe("display", () => {
 
       expect(output).toContain("GitHub CLI not authenticated");
       expect(output).toContain("quit");
+    });
+
+    it("renders hint when hasValidRemote is false in a git repo", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "main",
+        isOnMain: true,
+        hasValidRemote: false,
+      };
+
+      const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).toContain("Hint");
+      expect(output).toContain(
+        "Add a GitHub remote to create tickets and pull requests"
+      );
+    });
+
+    it("does not render remote hint when hasValidRemote is true", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "main",
+        isOnMain: true,
+        hasValidRemote: true,
+      };
+
+      const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).not.toContain(
+        "Add a GitHub remote to create tickets and pull requests"
+      );
     });
 
     it("renders bullets for list items", () => {
