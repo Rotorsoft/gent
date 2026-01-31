@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/rotorsoft/gent/compare/v1.19.0...v1.20.0) (2026-01-31)
+
+
+### Features
+
+* hide list command and add github-remote when no git remote configured ([d952800](https://github.com/rotorsoft/gent/commit/d95280089a834b60c979b8d0e615768f3e18a154)), closes [#87](https://github.com/rotorsoft/gent/issues/87)
+
 # [1.19.0](https://github.com/rotorsoft/gent/compare/v1.18.0...v1.19.0) (2026-01-31)
 
 
