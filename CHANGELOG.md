@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/rotorsoft/gent/compare/v1.17.0...v1.17.1) (2026-01-31)
+
+
+### Bug Fixes
+
+* show command bar and improve message when not in a git repo ([ec501dd](https://github.com/rotorsoft/gent/commit/ec501dd7b60ac7f90e1a5a3e91e6b56a07115bb3)), closes [#81](https://github.com/rotorsoft/gent/issues/81)
+
 # [1.17.0](https://github.com/rotorsoft/gent/compare/v1.16.0...v1.17.0) (2026-01-30)
 
 
