@@ -390,7 +390,7 @@ export function buildDashboardLines(
     out(
       row(
         chalk.yellow(
-          "Add a GitHub remote to create tickets and pull requests"
+          "Press [g] to create a GitHub repo and push"
         ),
         w
       )

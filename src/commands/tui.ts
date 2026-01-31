@@ -20,6 +20,7 @@ import { logger } from "../utils/logger.js";
 import { createCommand } from "./create.js";
 import { prCommand } from "./pr.js";
 import { buildTicketChoices } from "./list.js";
+import { githubRemoteCommand } from "./github-remote.js";
 import {
   buildCommitMessagePrompt,
   buildImplementationPrompt,
@@ -141,6 +142,18 @@ export async function executeAction(
 
     case "run": {
       await handleRun(state);
+      return CONTINUE;
+    }
+
+    case "github-remote": {
+      const confirmed = await showConfirm({
+        title: "Push to GitHub",
+        message: "Create a private GitHub repo and push?",
+        dashboardLines,
+      });
+      if (!confirmed) return SKIP_REFRESH;
+      showStatus("Pushing", "Creating GitHub repo and pushing...", dashboardLines);
+      await githubRemoteCommand();
       return CONTINUE;
     }
 
