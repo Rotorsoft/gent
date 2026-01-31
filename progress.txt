@@ -203,3 +203,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/actions.ts, src/tui/display.ts, src/tui/actions.test.ts, src/tui/display.test.ts, README.md
 - Changes: Remapped shortcuts: push `p`→`s` (send), PR `r`→`p`, run `u`→`r`. Changed command bar format from inline letter highlighting to explicit `[x]label` bracket notation. Updated tests and README.
 - Decisions: `s` for push (send/sync), `p` for PR, `r` for run — each action uses its natural first letter. Bracket notation is more explicit than coloring a letter within a word.
+
+[2026-01-31] #81 fix: improve hint section when not in a git repo
+- Files: src/tui/display.ts, src/tui/display.test.ts
+- Changes: Render command bar (with quit shortcut) in non-git-repo and non-authenticated error states instead of closing the box early. Improved non-git message to "Navigate to a git repository to get started".
+- Decisions: Changed error color from red to yellow for non-git state since it's informational, not an error. Applied same command bar fix to the non-authenticated state for consistency.
