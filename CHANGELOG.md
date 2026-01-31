@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/rotorsoft/gent/compare/v1.18.0...v1.19.0) (2026-01-31)
+
+
+### Features
+
+* gate new and pr actions on valid git remote ([b1f2682](https://github.com/rotorsoft/gent/commit/b1f268242c316fb3e96c599d78618477a3c741ac)), closes [#85](https://github.com/rotorsoft/gent/issues/85)
+
 # [1.18.0](https://github.com/rotorsoft/gent/compare/v1.17.1...v1.18.0) (2026-01-31)
 
 
