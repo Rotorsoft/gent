@@ -52,6 +52,7 @@ vi.mock("../lib/git.js", () => ({
   getCommitsSinceBase: vi.fn(),
   getDefaultBranch: vi.fn(),
   getLastCommitTimestamp: vi.fn(),
+  getRepoInfo: vi.fn(),
 }));
 
 vi.mock("../lib/branch.js", () => ({
@@ -121,6 +122,10 @@ describe("aggregateState", () => {
     vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
     vi.mocked(git.getCommitsSinceBase).mockResolvedValue([]);
     vi.mocked(git.getUnpushedCommits).mockResolvedValue(false);
+    vi.mocked(git.getRepoInfo).mockResolvedValue({
+      owner: "test",
+      repo: "repo",
+    });
     vi.mocked(branch.parseBranchName).mockReturnValue(null);
 
     const state = await aggregateState();
@@ -130,6 +135,25 @@ describe("aggregateState", () => {
     expect(state.branch).toBe("main");
     expect(state.issue).toBeNull();
     expect(state.pr).toBeNull();
+    expect(state.hasValidRemote).toBe(true);
+  });
+
+  it("sets hasValidRemote to false when no remote configured", async () => {
+    vi.mocked(validators.checkGitRepo).mockResolvedValue(true);
+    vi.mocked(validators.checkGhAuth).mockResolvedValue(true);
+    vi.mocked(validators.checkAIProvider).mockResolvedValue(true);
+    vi.mocked(git.getCurrentBranch).mockResolvedValue("main");
+    vi.mocked(git.isOnMainBranch).mockResolvedValue(true);
+    vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
+    vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.getCommitsSinceBase).mockResolvedValue([]);
+    vi.mocked(git.getUnpushedCommits).mockResolvedValue(false);
+    vi.mocked(git.getRepoInfo).mockResolvedValue(null);
+    vi.mocked(branch.parseBranchName).mockReturnValue(null);
+
+    const state = await aggregateState();
+
+    expect(state.hasValidRemote).toBe(false);
   });
 
   it("detects feature branch with issue correctly", async () => {
@@ -140,6 +164,10 @@ describe("aggregateState", () => {
     vi.mocked(git.isOnMainBranch).mockResolvedValue(false);
     vi.mocked(git.hasUncommittedChanges).mockResolvedValue(true);
     vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.getRepoInfo).mockResolvedValue({
+      owner: "test",
+      repo: "repo",
+    });
     vi.mocked(git.getCommitsSinceBase).mockResolvedValue([
       "feat: add TUI",
       "fix: typo",
@@ -190,6 +218,10 @@ describe("aggregateState", () => {
     vi.mocked(git.isOnMainBranch).mockResolvedValue(false);
     vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
     vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.getRepoInfo).mockResolvedValue({
+      owner: "test",
+      repo: "repo",
+    });
     vi.mocked(git.getCommitsSinceBase).mockResolvedValue(["feat: add TUI"]);
     vi.mocked(git.getUnpushedCommits).mockResolvedValue(false);
     vi.mocked(git.getLastCommitTimestamp).mockResolvedValue(
@@ -252,6 +284,10 @@ describe("aggregateState", () => {
     vi.mocked(git.isOnMainBranch).mockResolvedValue(true);
     vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
     vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.getRepoInfo).mockResolvedValue({
+      owner: "test",
+      repo: "repo",
+    });
     vi.mocked(git.getCommitsSinceBase).mockResolvedValue([]);
     vi.mocked(git.getUnpushedCommits).mockResolvedValue(false);
     vi.mocked(branch.parseBranchName).mockReturnValue(null);

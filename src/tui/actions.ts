@@ -14,8 +14,10 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
     return actions;
   }
 
-  // Common actions available everywhere
-  actions.push({ id: "create", label: "new", shortcut: "n" });
+  // Common actions available everywhere (gated on valid remote for GitHub-dependent actions)
+  if (state.hasValidRemote) {
+    actions.push({ id: "create", label: "new", shortcut: "n" });
+  }
 
   // On feature branch - add context-aware actions BEFORE other common actions
   if (!state.isOnMain) {
@@ -27,7 +29,7 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
       actions.push({ id: "push", label: "push", shortcut: "s" });
     }
 
-    if (!state.pr && state.commits.length > 0) {
+    if (state.hasValidRemote && !state.pr && state.commits.length > 0) {
       actions.push({ id: "pr", label: "pr", shortcut: "p" });
     }
 

@@ -56,6 +56,7 @@ function createBaseState(overrides: Partial<TuiState> = {}): TuiState {
     hasActionableFeedback: false,
     hasUIChanges: false,
     isPlaywrightAvailable: false,
+    hasValidRemote: true,
     ...overrides,
   };
 }
@@ -314,6 +315,40 @@ describe("getAvailableActions", () => {
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("quit");
+  });
+
+  it("hides create and pr actions when hasValidRemote is false", () => {
+    const actions = getAvailableActions(
+      createBaseState({
+        hasValidRemote: false,
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        commits: ["feat: test"],
+      })
+    );
+    const ids = actions.map((a) => a.id);
+
+    expect(ids).not.toContain("create");
+    expect(ids).not.toContain("pr");
+    // Other actions should still be present
+    expect(ids).toContain("list");
+    expect(ids).toContain("refresh");
+    expect(ids).toContain("quit");
+  });
+
+  it("shows create and pr actions when hasValidRemote is true", () => {
+    const actions = getAvailableActions(
+      createBaseState({
+        hasValidRemote: true,
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        commits: ["feat: test"],
+      })
+    );
+    const ids = actions.map((a) => a.id);
+
+    expect(ids).toContain("create");
+    expect(ids).toContain("pr");
   });
 
   it("has unique shortcuts per action set", () => {

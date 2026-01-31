@@ -600,6 +600,7 @@ export async function tuiCommand(): Promise<void> {
     hasActionableFeedback: false,
     hasUIChanges: false,
     isPlaywrightAvailable: false,
+    hasValidRemote: true,
   };
 
   let needsRefresh = true;

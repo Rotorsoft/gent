@@ -98,6 +98,7 @@ describe("executeAction", () => {
       hasActionableFeedback: false,
       hasUIChanges: false,
       isPlaywrightAvailable: false,
+      hasValidRemote: true,
     };
   });
 
