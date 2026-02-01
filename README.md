@@ -2,6 +2,10 @@
 
 AI-powered GitHub workflow tool - leverage AI (Claude, Gemini, or Codex) to create tickets, implement features, and manage PRs from an interactive dashboard.
 
+
+https://github.com/user-attachments/assets/c18fe01a-9695-4e8a-bf27-bb54f27247ef
+
+
 ## Overview
 
 `gent` provides an interactive dashboard that integrates AI with GitHub to automate your development workflow. Just run `gent` to launch:
