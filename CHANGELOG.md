@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/rotorsoft/gent/compare/v1.20.1...v1.21.0) (2026-02-02)
+
+
+### Features
+
+* show init/setup hints when repo is not initialized ([657587c](https://github.com/rotorsoft/gent/commit/657587c92cbf33641c7cc47ba1de038bb6451476)), closes [#89](https://github.com/rotorsoft/gent/issues/89)
+
 ## [1.20.1](https://github.com/rotorsoft/gent/compare/v1.20.0...v1.20.1) (2026-02-02)
 
 
