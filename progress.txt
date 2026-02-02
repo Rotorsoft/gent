@@ -243,3 +243,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/git.ts, src/lib/git.test.ts, src/commands/init.ts, src/commands/setup-labels.ts, src/index.ts, src/tui/display.ts, src/tui/display.test.ts
 - Changes: Added `getRepoSetupState()` function in git.ts returning consolidated setup state (git, gent, remote, labels). Updated init command to check for remote before suggesting labels, offering `github-remote` creation first. Added remote check to `checkPrerequisites()` and `setup-labels` command. TUI setup hints now show numbered steps in sequential order. Replaced `process.exit(1)` with `return` in init and setup-labels commands.
 - Decisions: Sequential early-return pattern in `getRepoSetupState()` — each step checks prerequisite before proceeding. Display uses "Step N" labels to guide users through the correct order.
+
+[2026-02-02] #95 feat: create .gitignore and initial commit on virgin repos
+- Files: src/commands/init.ts
+- Changes: Init command now creates a default `.gitignore` if missing. Detects empty repos (no commits) and creates an initial commit with `.gitignore`, `.gent.yml`, `AGENT.md`, and `progress.txt` so that `gh repo create --source=. --push` succeeds.
+- Decisions: Commit message uses `chore: initialize gent workflow`. Only auto-commits on truly virgin repos (no existing commits).

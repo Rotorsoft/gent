@@ -1,5 +1,6 @@
 import { writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { execa } from "execa";
 import inquirer from "inquirer";
 import { logger, colors } from "../utils/logger.js";
 import { checkGitRepo } from "../utils/validators.js";
@@ -11,6 +12,49 @@ import {
 import { initializeProgress } from "../lib/progress.js";
 import { loadConfig } from "../lib/config.js";
 import { getRepoInfo } from "../lib/git.js";
+
+const DEFAULT_GITIGNORE = `# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Test coverage
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+`;
+
+async function hasCommits(): Promise<boolean> {
+  try {
+    await execa("git", ["rev-parse", "HEAD"]);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const DEFAULT_AGENT_MD = `# AI Agent Instructions
 
@@ -108,6 +152,15 @@ export async function initCommand(options: { force?: boolean }): Promise<void> {
     },
   ]);
 
+  // Create .gitignore
+  const gitignorePath = join(cwd, ".gitignore");
+  if (!existsSync(gitignorePath)) {
+    writeFileSync(gitignorePath, DEFAULT_GITIGNORE, "utf-8");
+    logger.success(`Created ${colors.file(".gitignore")}`);
+  } else {
+    logger.info(`${colors.file(".gitignore")} already exists, skipping`);
+  }
+
   // Create .gent.yml
   const configPath = getConfigPath(cwd);
   writeFileSync(configPath, generateDefaultConfig(provider), "utf-8");
@@ -126,6 +179,15 @@ export async function initCommand(options: { force?: boolean }): Promise<void> {
   const config = loadConfig(cwd);
   initializeProgress(config, cwd);
   logger.success(`Created ${colors.file(config.progress.file)}`);
+
+  // If the repo has no commits, create an initial commit with the gent config files
+  if (!(await hasCommits())) {
+    logger.newline();
+    logger.info("No commits found. Creating initial commit with gent config...");
+    await execa("git", ["add", ".gitignore", ".gent.yml", "AGENT.md", config.progress.file]);
+    await execa("git", ["commit", "-m", "chore: initialize gent workflow"]);
+    logger.success("Created initial commit");
+  }
 
   // Check if a GitHub remote exists
   const repoInfo = await getRepoInfo();
