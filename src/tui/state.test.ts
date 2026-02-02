@@ -284,7 +284,6 @@ describe("aggregateState", () => {
     vi.mocked(validators.checkGitRepo).mockResolvedValue(true);
     vi.mocked(validators.checkGhAuth).mockResolvedValue(true);
     vi.mocked(validators.checkAIProvider).mockResolvedValue(true);
-    vi.mocked(config.configExists).mockReturnValue(true);
     vi.mocked(git.getCurrentBranch).mockResolvedValue("main");
     vi.mocked(git.isOnMainBranch).mockResolvedValue(true);
     vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
@@ -307,7 +306,6 @@ describe("aggregateState", () => {
     vi.mocked(validators.checkGitRepo).mockResolvedValue(true);
     vi.mocked(validators.checkGhAuth).mockResolvedValue(true);
     vi.mocked(validators.checkAIProvider).mockResolvedValue(true);
-    vi.mocked(config.configExists).mockReturnValue(true);
     vi.mocked(git.getCurrentBranch).mockResolvedValue("main");
     vi.mocked(git.isOnMainBranch).mockResolvedValue(true);
     vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
@@ -324,6 +322,30 @@ describe("aggregateState", () => {
     const state = await aggregateState();
 
     expect(state.hasLabels).toBe(false);
+  });
+
+  it("checks labels even without config file", async () => {
+    vi.mocked(validators.checkGitRepo).mockResolvedValue(true);
+    vi.mocked(validators.checkGhAuth).mockResolvedValue(true);
+    vi.mocked(validators.checkAIProvider).mockResolvedValue(true);
+    vi.mocked(config.configExists).mockReturnValue(false);
+    vi.mocked(git.getCurrentBranch).mockResolvedValue("main");
+    vi.mocked(git.isOnMainBranch).mockResolvedValue(true);
+    vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
+    vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.getCommitsSinceBase).mockResolvedValue([]);
+    vi.mocked(git.getUnpushedCommits).mockResolvedValue(false);
+    vi.mocked(git.getRepoInfo).mockResolvedValue({
+      owner: "test",
+      repo: "repo",
+    });
+    vi.mocked(branch.parseBranchName).mockReturnValue(null);
+    vi.mocked(github.checkLabelsExist).mockResolvedValue(true);
+
+    const state = await aggregateState();
+
+    expect(state.hasConfig).toBe(false);
+    expect(state.hasLabels).toBe(true);
   });
 
   it("caches environment checks across multiple calls", async () => {

@@ -21,9 +21,6 @@ export async function getRepoSetupState(): Promise<RepoSetupState> {
 
   // Step 2: Check gent config
   const gentInitialized = configExists();
-  if (!gentInitialized) {
-    return { gitInitialized, gentInitialized: false, hasRemote: false, hasLabels: false };
-  }
 
   // Step 3: Check remote
   let hasRemote = false;

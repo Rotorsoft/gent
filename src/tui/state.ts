@@ -165,9 +165,9 @@ export async function aggregateState(): Promise<TuiState> {
     getUnpushedCommits(),
   ]);
 
-  // Check labels once per session (deferred until config and remote exist)
+  // Check labels once per session (deferred until remote exists)
   const hasRemote = repoInfo !== null;
-  if (hasConfig && hasRemote && envCache!.hasLabels === null) {
+  if (hasRemote && envCache!.hasLabels === null) {
     envCache!.hasLabels = await checkLabelsExist().catch(() => false);
   }
   const hasLabels = envCache!.hasLabels ?? false;

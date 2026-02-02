@@ -113,7 +113,7 @@ All AI commits should include the Co-Authored-By trailer as specified in the tas
 `;
 
 export async function initCommand(options: { force?: boolean }): Promise<void> {
-  logger.bold("Initializing gent workflow...");
+  logger.bold("Initializing gent workflow (optional — gent works with sensible defaults)...");
   logger.newline();
 
   // Check if we're in a git repo

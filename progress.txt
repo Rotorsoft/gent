@@ -248,3 +248,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/init.ts
 - Changes: Init command now creates a default `.gitignore` if missing. Detects empty repos (no commits) and creates an initial commit with `.gitignore`, `.gent.yml`, `AGENT.md`, and `progress.txt` so that `gh repo create --source=. --push` succeeds.
 - Decisions: Commit message uses `chore: initialize gent workflow`. Only auto-commits on truly virgin repos (no existing commits).
+
+[2026-02-02] #97 feat: make gent configuration optional with sensible defaults
+- Files: src/index.ts, src/tui/actions.ts, src/tui/display.ts, src/tui/state.ts, src/lib/git.ts, src/commands/init.ts, src/lib/config.test.ts, src/lib/git.test.ts, src/tui/actions.test.ts, src/tui/display.test.ts, src/tui/state.test.ts, progress.txt
+- Changes: Removed `checkInitialized()` gate from CLI commands so `.gent.yml` is no longer required. TUI now shows init as optional tip instead of blocking step. Labels check no longer requires config to exist. `getRepoSetupState()` no longer short-circuits when config is missing.
+- Decisions: Config defaults already existed in `loadConfig()` — just removed guards that blocked usage without the file. Init remains available as convenience for customization. Setup steps renumbered (remote=1, labels=2).

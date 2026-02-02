@@ -97,10 +97,12 @@ describe("git", () => {
       });
     });
 
-    it("should detect git init but no gent config", async () => {
+    it("should detect git init but no gent config and still check remote", async () => {
       // git rev-parse --git-dir
       mockExeca.mockResolvedValueOnce({ stdout: ".git", stderr: "", exitCode: 0 } as never);
       mockConfigExists.mockReturnValue(false);
+      // git config --get remote.origin.url
+      mockExeca.mockRejectedValueOnce(new Error("no remote"));
 
       const state = await getRepoSetupState();
 
@@ -109,6 +111,24 @@ describe("git", () => {
         gentInitialized: false,
         hasRemote: false,
         hasLabels: false,
+      });
+    });
+
+    it("should detect git init without config but with remote and labels", async () => {
+      // git rev-parse --git-dir
+      mockExeca.mockResolvedValueOnce({ stdout: ".git", stderr: "", exitCode: 0 } as never);
+      mockConfigExists.mockReturnValue(false);
+      // git config --get remote.origin.url
+      mockExeca.mockResolvedValueOnce({ stdout: "git@github.com:owner/repo.git", stderr: "", exitCode: 0 } as never);
+      mockCheckLabelsExist.mockResolvedValue(true);
+
+      const state = await getRepoSetupState();
+
+      expect(state).toEqual({
+        gitInitialized: true,
+        gentInitialized: false,
+        hasRemote: true,
+        hasLabels: true,
       });
     });
 

@@ -378,26 +378,24 @@ describe("getAvailableActions", () => {
   });
 
   // New tests for init/labels state
-  it("shows init action when repo is not initialized", () => {
+  it("shows init as optional and workflow actions when no config exists", () => {
     const actions = getAvailableActions(
-      createBaseState({ hasConfig: false, hasLabels: false })
+      createBaseState({ hasConfig: false, hasLabels: true })
     );
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("init");
-    expect(ids).not.toContain("create");
-    expect(ids).not.toContain("list");
-    expect(ids).not.toContain("setup-labels");
+    expect(ids).toContain("create");
+    expect(ids).toContain("list");
   });
 
-  it("shows setup-labels action when initialized but labels missing", () => {
+  it("shows setup-labels action when labels missing", () => {
     const actions = getAvailableActions(
       createBaseState({ hasConfig: true, hasLabels: false, hasValidRemote: true })
     );
     const ids = actions.map((a) => a.id);
 
     expect(ids).toContain("setup-labels");
-    expect(ids).not.toContain("init");
     expect(ids).not.toContain("create");
     expect(ids).not.toContain("list");
   });
