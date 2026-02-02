@@ -52,6 +52,7 @@ const mockBaseState: TuiState = {
   hasUIChanges: false,
   isPlaywrightAvailable: false,
   hasValidRemote: true,
+  hasLabels: true,
 };
 
 const mockActions: TuiAction[] = [
@@ -276,6 +277,59 @@ describe("display", () => {
       expect(output).not.toContain(
         "Press [g] to create a GitHub repo and push"
       );
+    });
+
+    it("renders setup banner when not initialized", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "main",
+        isOnMain: true,
+        hasConfig: false,
+        hasLabels: false,
+      };
+
+      const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).toContain("Setup");
+      expect(output).toContain('Run "gent init" to set up this repository');
+      expect(output).toContain("Press [i] to initialize");
+    });
+
+    it("renders setup banner when labels are missing", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "main",
+        isOnMain: true,
+        hasConfig: true,
+        hasLabels: false,
+        hasValidRemote: true,
+      };
+
+      const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).toContain("Setup");
+      expect(output).toContain('Run "gent setup-labels" to create required GitHub labels');
+      expect(output).toContain("Press [b] to set up labels");
+    });
+
+    it("does not render setup banner when fully initialized", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "main",
+        isOnMain: true,
+        hasConfig: true,
+        hasLabels: true,
+        hasValidRemote: true,
+      };
+
+      const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).not.toContain("Setup");
+      expect(output).not.toContain("gent init");
+      expect(output).not.toContain("gent setup-labels");
     });
 
     it("renders bullets for list items", () => {

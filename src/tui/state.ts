@@ -3,6 +3,7 @@ import {
   getIssue,
   getPrStatus,
   getPrReviewData,
+  checkLabelsExist,
   type PrStatusInfo,
 } from "../lib/github.js";
 import {
@@ -76,6 +77,9 @@ export interface TuiState {
 
   // Remote detection
   hasValidRemote: boolean;
+
+  // Setup state
+  hasLabels: boolean;
 }
 
 // Session-level cache for environment checks that don't change mid-session
@@ -83,6 +87,7 @@ let envCache: {
   isGhAuthenticated: boolean;
   isAIProviderAvailable: boolean;
   isPlaywrightAvailable: boolean;
+  hasLabels: boolean | null; // null = not yet checked
 } | null = null;
 
 /** Reset the environment cache (for testing). */
@@ -118,6 +123,7 @@ export async function aggregateState(): Promise<TuiState> {
       hasUIChanges: false,
       isPlaywrightAvailable: false,
       hasValidRemote: false,
+      hasLabels: false,
     };
   }
 
@@ -134,6 +140,7 @@ export async function aggregateState(): Promise<TuiState> {
       isGhAuthenticated: ghAuth,
       isAIProviderAvailable: aiAvail,
       isPlaywrightAvailable: false, // resolved below on first feature branch visit
+      hasLabels: null, // resolved below when config and remote exist
     };
   }
   const { isGhAuthenticated, isAIProviderAvailable } = envCache;
@@ -157,6 +164,13 @@ export async function aggregateState(): Promise<TuiState> {
     getCommitsSinceBase(baseBranch),
     getUnpushedCommits(),
   ]);
+
+  // Check labels once per session (deferred until config and remote exist)
+  const hasRemote = repoInfo !== null;
+  if (hasConfig && hasRemote && envCache!.hasLabels === null) {
+    envCache!.hasLabels = await checkLabelsExist().catch(() => false);
+  }
+  const hasLabels = envCache!.hasLabels ?? false;
 
   // Initialize state
   let issue: GitHubIssue | null = null;
@@ -244,6 +258,7 @@ export async function aggregateState(): Promise<TuiState> {
     hasActionableFeedback,
     hasUIChanges: uiChanges,
     isPlaywrightAvailable: playwrightAvailable,
-    hasValidRemote: repoInfo !== null,
+    hasValidRemote: hasRemote,
+    hasLabels,
   };
 }

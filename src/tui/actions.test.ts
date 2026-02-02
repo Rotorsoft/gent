@@ -57,6 +57,7 @@ function createBaseState(overrides: Partial<TuiState> = {}): TuiState {
     hasUIChanges: false,
     isPlaywrightAvailable: false,
     hasValidRemote: true,
+    hasLabels: true,
     ...overrides,
   };
 }
@@ -374,5 +375,74 @@ describe("getAvailableActions", () => {
     const shortcuts = actions.map((a) => a.shortcut);
     const unique = new Set(shortcuts);
     expect(unique.size).toBe(shortcuts.length);
+  });
+
+  // New tests for init/labels state
+  it("shows init action when repo is not initialized", () => {
+    const actions = getAvailableActions(
+      createBaseState({ hasConfig: false, hasLabels: false })
+    );
+    const ids = actions.map((a) => a.id);
+
+    expect(ids).toContain("init");
+    expect(ids).not.toContain("create");
+    expect(ids).not.toContain("list");
+    expect(ids).not.toContain("setup-labels");
+  });
+
+  it("shows setup-labels action when initialized but labels missing", () => {
+    const actions = getAvailableActions(
+      createBaseState({ hasConfig: true, hasLabels: false, hasValidRemote: true })
+    );
+    const ids = actions.map((a) => a.id);
+
+    expect(ids).toContain("setup-labels");
+    expect(ids).not.toContain("init");
+    expect(ids).not.toContain("create");
+    expect(ids).not.toContain("list");
+  });
+
+  it("hides run, pr, list when labels are missing on feature branch", () => {
+    const actions = getAvailableActions(
+      createBaseState({
+        hasConfig: true,
+        hasLabels: false,
+        hasValidRemote: true,
+        isOnMain: false,
+        branch: "ro/feature-123-test",
+        hasUncommittedChanges: true,
+        hasUnpushedCommits: true,
+        commits: ["feat: test"],
+        issue: {
+          number: 123,
+          title: "Test",
+          body: "Desc",
+          labels: ["ai-in-progress"],
+          state: "open",
+          url: "https://github.com/test/repo/issues/123",
+        },
+      })
+    );
+    const ids = actions.map((a) => a.id);
+
+    expect(ids).toContain("setup-labels");
+    expect(ids).not.toContain("create");
+    expect(ids).not.toContain("pr");
+    expect(ids).not.toContain("run");
+    expect(ids).not.toContain("list");
+    // commit and push are still available (git operations don't need labels)
+    expect(ids).toContain("commit");
+    expect(ids).toContain("push");
+  });
+
+  it("does not show setup-labels when no valid remote", () => {
+    const actions = getAvailableActions(
+      createBaseState({ hasConfig: true, hasLabels: false, hasValidRemote: false })
+    );
+    const ids = actions.map((a) => a.id);
+
+    // No remote means can't check labels, so don't show setup-labels
+    expect(ids).not.toContain("setup-labels");
+    expect(ids).toContain("github-remote");
   });
 });

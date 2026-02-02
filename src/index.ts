@@ -15,6 +15,8 @@ import {
   formatUpgradeNotification,
 } from "./lib/version.js";
 import { logger } from "./utils/logger.js";
+import { checkInitialized } from "./utils/validators.js";
+import { checkLabelsExist } from "./lib/github.js";
 
 const version = getVersion();
 
@@ -34,6 +36,20 @@ function startVersionCheck(): void {
     .catch(() => {
       // Silently ignore errors
     });
+}
+
+/** Returns true if prerequisites are met, false if command should abort. */
+async function checkPrerequisites(): Promise<boolean> {
+  if (!checkInitialized()) {
+    logger.warning('Repository not initialized. Run "gent init" to set up this repository.');
+    return false;
+  }
+  const labelsOk = await checkLabelsExist();
+  if (!labelsOk) {
+    logger.warning('GitHub labels not found. Run "gent setup-labels" to create required labels.');
+    return false;
+  }
+  return true;
 }
 
 const program = new Command();
@@ -77,6 +93,7 @@ program
   )
   .option("-t, --title <title>", "Override the generated issue title")
   .action(async (description, options) => {
+    if (!(await checkPrerequisites())) return;
     await createCommand(description, {
       yes: options.yes,
       provider: options.provider,
@@ -94,6 +111,7 @@ program
   )
   .option("-n, --limit <number>", "Maximum number of issues to show", "20")
   .action(async (options) => {
+    if (!(await checkPrerequisites())) return;
     await listCommand({
       label: options.label,
       status: options.status,
@@ -109,6 +127,7 @@ program
     "AI provider to use (claude, gemini, or codex)"
   )
   .action(async (issueNumber, options) => {
+    if (!(await checkPrerequisites())) return;
     await runCommand(issueNumber, { provider: options.provider });
   });
 
@@ -122,6 +141,7 @@ program
   )
   .option("--no-video", "Disable video capture for UI changes")
   .action(async (options) => {
+    if (!(await checkPrerequisites())) return;
     await prCommand({
       draft: options.draft,
       provider: options.provider,
@@ -137,6 +157,7 @@ program
     "AI provider to use (claude, gemini, or codex)"
   )
   .action(async (options) => {
+    if (!(await checkPrerequisites())) return;
     await fixCommand({ provider: options.provider });
   });
 
@@ -144,6 +165,7 @@ program
   .command("status")
   .description("Show current workflow status")
   .action(async () => {
+    if (!(await checkPrerequisites())) return;
     await statusCommand();
   });
 

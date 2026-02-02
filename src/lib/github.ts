@@ -5,6 +5,31 @@ import type {
   GitHubReviewData,
 } from "../types/index.js";
 
+const WORKFLOW_LABELS = [
+  "ai-ready",
+  "ai-in-progress",
+  "ai-completed",
+  "ai-blocked",
+];
+
+export async function checkLabelsExist(): Promise<boolean> {
+  try {
+    const { stdout } = await execa("gh", [
+      "label",
+      "list",
+      "--json",
+      "name",
+      "--limit",
+      "200",
+    ]);
+    const labels: { name: string }[] = JSON.parse(stdout);
+    const names = new Set(labels.map((l) => l.name));
+    return WORKFLOW_LABELS.every((wl) => names.has(wl));
+  } catch {
+    return false;
+  }
+}
+
 export async function getIssue(issueNumber: number): Promise<GitHubIssue> {
   const { stdout } = await execa("gh", [
     "issue",

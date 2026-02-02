@@ -384,8 +384,16 @@ export function buildDashboardLines(
     }
   }
 
-  // Hint
-  if (!state.hasValidRemote) {
+  // Setup hints (take priority over other hints)
+  if (!state.hasConfig) {
+    section("Setup");
+    out(row(chalk.yellow('Run "gent init" to set up this repository'), w));
+    out(row(chalk.dim("Press [i] to initialize"), w));
+  } else if (state.hasValidRemote && !state.hasLabels) {
+    section("Setup");
+    out(row(chalk.yellow('Run "gent setup-labels" to create required GitHub labels'), w));
+    out(row(chalk.dim("Press [b] to set up labels"), w));
+  } else if (!state.hasValidRemote) {
     section("Hint");
     out(
       row(

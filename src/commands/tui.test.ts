@@ -99,6 +99,7 @@ describe("executeAction", () => {
       hasUIChanges: false,
       isPlaywrightAvailable: false,
       hasValidRemote: true,
+      hasLabels: true,
     };
   });
 

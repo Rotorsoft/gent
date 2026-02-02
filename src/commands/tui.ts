@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import { aggregateState, type TuiState } from "../tui/state.js";
+import { aggregateState, resetEnvCache, type TuiState } from "../tui/state.js";
 import { getAvailableActions, type TuiAction } from "../tui/actions.js";
 import {
   renderDashboard,
@@ -19,6 +19,8 @@ import { checkForUpdates, type VersionCheckResult } from "../lib/version.js";
 import { logger } from "../utils/logger.js";
 import { aiSpinnerText } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
+import { initCommand } from "./init.js";
+import { setupLabelsCommand } from "./setup-labels.js";
 import { prCommand } from "./pr.js";
 import { buildTicketChoices } from "./list.js";
 import { githubRemoteCommand } from "./github-remote.js";
@@ -143,6 +145,28 @@ export async function executeAction(
 
     case "run": {
       await handleRun(state);
+      return CONTINUE;
+    }
+
+    case "init": {
+      clearScreen();
+      try {
+        await initCommand({});
+      } catch (error) {
+        logger.error(`Init failed: ${error}`);
+      }
+      resetEnvCache();
+      return CONTINUE;
+    }
+
+    case "setup-labels": {
+      clearScreen();
+      try {
+        await setupLabelsCommand();
+      } catch (error) {
+        logger.error(`Setup labels failed: ${error}`);
+      }
+      resetEnvCache();
       return CONTINUE;
     }
 
@@ -615,6 +639,7 @@ export async function tuiCommand(): Promise<void> {
     hasUIChanges: false,
     isPlaywrightAvailable: false,
     hasValidRemote: true,
+    hasLabels: true,
   };
 
   let needsRefresh = true;
