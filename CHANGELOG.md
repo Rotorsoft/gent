@@ -1,3 +1,11 @@
+# [1.23.0](https://github.com/rotorsoft/gent/compare/v1.22.0...v1.23.0) (2026-02-02)
+
+
+### Features
+
+* create .gitignore and initial commit on virgin repos ([37b070b](https://github.com/rotorsoft/gent/commit/37b070bbfac316c7f19122512db99797ec1c7b1e)), closes [#95](https://github.com/rotorsoft/gent/issues/95)
+* improve init workflow with sequential setup guidance ([2fe3043](https://github.com/rotorsoft/gent/commit/2fe3043d5ae14c6ba0a561a2ea4950e9f70c038f)), closes [#95](https://github.com/rotorsoft/gent/issues/95)
+
 # [1.22.0](https://github.com/rotorsoft/gent/compare/v1.21.0...v1.22.0) (2026-02-02)
 
 
