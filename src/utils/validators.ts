@@ -1,5 +1,6 @@
 import { execa } from "execa";
 import type { GentConfig, AIProvider } from "../types/index.js";
+import { configExists } from "../lib/config.js";
 
 export async function checkGhCli(): Promise<boolean> {
   try {
@@ -121,6 +122,10 @@ export async function validatePrerequisites(config?: GentConfig): Promise<{
     valid: missing.length === 0,
     missing,
   };
+}
+
+export function checkInitialized(cwd?: string): boolean {
+  return configExists(cwd);
 }
 
 export function isValidIssueNumber(value: string): boolean {

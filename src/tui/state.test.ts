@@ -42,6 +42,7 @@ vi.mock("../lib/github.js", () => ({
   getIssue: vi.fn(),
   getPrStatus: vi.fn(),
   getPrReviewData: vi.fn(),
+  checkLabelsExist: vi.fn(),
 }));
 
 vi.mock("../lib/git.js", () => ({
@@ -95,11 +96,14 @@ import * as github from "../lib/github.js";
 import * as branch from "../lib/branch.js";
 import * as validators from "../utils/validators.js";
 import * as playwright from "../lib/playwright.js";
+import * as config from "../lib/config.js";
 
 describe("aggregateState", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetEnvCache();
+    // Default mocks for label check
+    vi.mocked(github.checkLabelsExist).mockResolvedValue(true);
   });
 
   it("returns minimal state when not a git repo", async () => {
@@ -274,6 +278,52 @@ describe("aggregateState", () => {
     expect(state.pr?.state).toBe("open");
     expect(state.hasActionableFeedback).toBe(true);
     expect(state.reviewFeedback).toHaveLength(1);
+  });
+
+  it("sets hasLabels to true when workflow labels exist", async () => {
+    vi.mocked(validators.checkGitRepo).mockResolvedValue(true);
+    vi.mocked(validators.checkGhAuth).mockResolvedValue(true);
+    vi.mocked(validators.checkAIProvider).mockResolvedValue(true);
+    vi.mocked(config.configExists).mockReturnValue(true);
+    vi.mocked(git.getCurrentBranch).mockResolvedValue("main");
+    vi.mocked(git.isOnMainBranch).mockResolvedValue(true);
+    vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
+    vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.getCommitsSinceBase).mockResolvedValue([]);
+    vi.mocked(git.getUnpushedCommits).mockResolvedValue(false);
+    vi.mocked(git.getRepoInfo).mockResolvedValue({
+      owner: "test",
+      repo: "repo",
+    });
+    vi.mocked(branch.parseBranchName).mockReturnValue(null);
+    vi.mocked(github.checkLabelsExist).mockResolvedValue(true);
+
+    const state = await aggregateState();
+
+    expect(state.hasLabels).toBe(true);
+  });
+
+  it("sets hasLabels to false when workflow labels are missing", async () => {
+    vi.mocked(validators.checkGitRepo).mockResolvedValue(true);
+    vi.mocked(validators.checkGhAuth).mockResolvedValue(true);
+    vi.mocked(validators.checkAIProvider).mockResolvedValue(true);
+    vi.mocked(config.configExists).mockReturnValue(true);
+    vi.mocked(git.getCurrentBranch).mockResolvedValue("main");
+    vi.mocked(git.isOnMainBranch).mockResolvedValue(true);
+    vi.mocked(git.hasUncommittedChanges).mockResolvedValue(false);
+    vi.mocked(git.getDefaultBranch).mockResolvedValue("main");
+    vi.mocked(git.getCommitsSinceBase).mockResolvedValue([]);
+    vi.mocked(git.getUnpushedCommits).mockResolvedValue(false);
+    vi.mocked(git.getRepoInfo).mockResolvedValue({
+      owner: "test",
+      repo: "repo",
+    });
+    vi.mocked(branch.parseBranchName).mockReturnValue(null);
+    vi.mocked(github.checkLabelsExist).mockResolvedValue(false);
+
+    const state = await aggregateState();
+
+    expect(state.hasLabels).toBe(false);
   });
 
   it("caches environment checks across multiple calls", async () => {

@@ -228,3 +228,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/utils/spinner.ts, src/lib/ai-provider.ts, src/commands/create.ts, src/commands/run.ts, src/commands/pr.ts, src/commands/fix.ts, src/commands/tui.ts
 - Changes: Added `aiSpinnerText(provider, action)` helper and real ora spinners for AI wait states. Removed old "Creating AI-enhanced..." header messages. Added `onFirstData` callback to streaming providers so spinner stops when AI starts responding.
 - Decisions: Used `onFirstData` callback in `AIProviderOptions` to cleanly stop spinner on first streaming output. Interactive commands stop spinner before handing over stdio.
+
+[2026-02-02] #89 feat: show init/setup hints when repo is not initialized
+- Files: src/utils/validators.ts, src/lib/github.ts, src/tui/state.ts, src/tui/actions.ts, src/tui/display.ts, src/commands/tui.ts, src/index.ts, src/lib/github.test.ts, src/tui/actions.test.ts, src/tui/display.test.ts, src/tui/state.test.ts, src/utils/validators.test.ts, src/commands/tui.test.ts
+- Changes: Added `checkInitialized()` validator and `checkLabelsExist()` GitHub check. Added `hasLabels` to TUI state with session-level caching. Gated workflow actions (create, list, run, pr) on init+labels status. Added setup banners and init/setup-labels actions to TUI. Guarded CLI commands with prerequisite checks showing clear hints.
+- Decisions: Labels check cached per session (like other env checks). Git operations (commit, push) remain available without labels. Labels check deferred until config and remote both exist.

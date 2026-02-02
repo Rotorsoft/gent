@@ -5,9 +5,13 @@ import {
   sanitizeSlug,
   checkCodexCLI,
   checkAIProvider,
+  checkInitialized,
 } from "./validators.js";
 
 vi.mock("execa");
+vi.mock("../lib/config.js", () => ({
+  configExists: vi.fn(),
+}));
 
 describe("validators", () => {
   describe("isValidIssueNumber", () => {
@@ -61,6 +65,20 @@ describe("validators", () => {
       vi.mocked(execa).mockRejectedValue(new Error("Command not found"));
       const result = await checkCodexCLI();
       expect(result).toBe(false);
+    });
+  });
+
+  describe("checkInitialized", () => {
+    it("should return true when .gent.yml exists", async () => {
+      const { configExists } = await import("../lib/config.js");
+      vi.mocked(configExists).mockReturnValue(true);
+      expect(checkInitialized()).toBe(true);
+    });
+
+    it("should return false when .gent.yml is absent", async () => {
+      const { configExists } = await import("../lib/config.js");
+      vi.mocked(configExists).mockReturnValue(false);
+      expect(checkInitialized()).toBe(false);
     });
   });
 
