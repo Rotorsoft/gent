@@ -15,7 +15,6 @@ import {
   formatUpgradeNotification,
 } from "./lib/version.js";
 import { logger } from "./utils/logger.js";
-import { checkInitialized } from "./utils/validators.js";
 import { checkLabelsExist } from "./lib/github.js";
 import { getRepoInfo } from "./lib/git.js";
 
@@ -41,10 +40,6 @@ function startVersionCheck(): void {
 
 /** Returns true if prerequisites are met, false if command should abort. */
 async function checkPrerequisites(): Promise<boolean> {
-  if (!checkInitialized()) {
-    logger.warning('Repository not initialized. Run "gent init" to set up this repository.');
-    return false;
-  }
   const repoInfo = await getRepoInfo();
   if (!repoInfo) {
     logger.warning('No GitHub remote found. Run "gent github-remote" to create one.');
@@ -76,7 +71,7 @@ program
 
 program
   .command("init")
-  .description("Initialize gent workflow in current repository")
+  .description("Initialize gent workflow in current repository (optional — for customization)")
   .option("-f, --force", "Overwrite existing configuration")
   .action(async (options) => {
     await initCommand(options);

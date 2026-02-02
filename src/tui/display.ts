@@ -396,18 +396,17 @@ export function buildDashboardLines(
   }
 
   // Setup hints (take priority over other hints, shown in sequential order)
-  if (!state.hasConfig) {
+  if (!state.hasValidRemote) {
     section("Setup");
-    out(row(chalk.yellow("Step 1: Initialize gent configuration"), w));
-    out(row(chalk.dim("Press [i] to run gent init"), w));
-  } else if (!state.hasValidRemote) {
-    section("Setup");
-    out(row(chalk.yellow("Step 2: Create a GitHub repository"), w));
+    out(row(chalk.yellow("Step 1: Create a GitHub repository"), w));
     out(row(chalk.dim("Press [g] to create a GitHub repo and push"), w));
   } else if (!state.hasLabels) {
     section("Setup");
-    out(row(chalk.yellow("Step 3: Create workflow labels"), w));
+    out(row(chalk.yellow("Step 2: Create workflow labels"), w));
     out(row(chalk.dim("Press [b] to set up labels"), w));
+  } else if (!state.hasConfig) {
+    section("Tip");
+    out(row(chalk.dim("Press [i] to customize configuration (optional)"), w));
   } else if (hint) {
     section("Hint");
     out(row(chalk.yellow(hint), w));

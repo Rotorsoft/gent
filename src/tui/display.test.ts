@@ -315,7 +315,7 @@ Second content`;
       expect(output).toContain("quit");
     });
 
-    it("renders setup step 2 when hasValidRemote is false", () => {
+    it("renders setup step 1 when hasValidRemote is false", () => {
       const state: TuiState = {
         ...mockBaseState,
         branch: "main",
@@ -327,7 +327,7 @@ Second content`;
       const output = lines.join("\n");
 
       expect(output).toContain("Setup");
-      expect(output).toContain("Step 2: Create a GitHub repository");
+      expect(output).toContain("Step 1: Create a GitHub repository");
       expect(output).toContain(
         "Press [g] to create a GitHub repo and push"
       );
@@ -345,28 +345,29 @@ Second content`;
       const output = lines.join("\n");
 
       expect(output).not.toContain(
-        "Step 2: Create a GitHub repository"
+        "Step 1: Create a GitHub repository"
       );
     });
 
-    it("renders setup step 1 when not initialized", () => {
+    it("shows optional init tip when no config exists but fully set up", () => {
       const state: TuiState = {
         ...mockBaseState,
         branch: "main",
         isOnMain: true,
         hasConfig: false,
-        hasLabels: false,
+        hasLabels: true,
+        hasValidRemote: true,
       };
 
       const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
       const output = lines.join("\n");
 
-      expect(output).toContain("Setup");
-      expect(output).toContain("Step 1: Initialize gent configuration");
-      expect(output).toContain("Press [i] to run gent init");
+      expect(output).toContain("Tip");
+      expect(output).toContain("customize configuration (optional)");
+      expect(output).not.toContain("Setup");
     });
 
-    it("renders setup step 3 when labels are missing", () => {
+    it("renders setup step 2 when labels are missing", () => {
       const state: TuiState = {
         ...mockBaseState,
         branch: "main",
@@ -380,7 +381,7 @@ Second content`;
       const output = lines.join("\n");
 
       expect(output).toContain("Setup");
-      expect(output).toContain("Step 3: Create workflow labels");
+      expect(output).toContain("Step 2: Create workflow labels");
       expect(output).toContain("Press [b] to set up labels");
     });
 
@@ -398,7 +399,6 @@ Second content`;
       const output = lines.join("\n");
 
       expect(output).not.toContain("Setup");
-      expect(output).not.toContain("gent init");
       expect(output).not.toContain("gent setup-labels");
     });
 

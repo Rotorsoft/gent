@@ -15,17 +15,19 @@ export function getAvailableActions(state: TuiState): TuiAction[] {
   }
 
   // Setup actions when prerequisites are missing
-  const needsInit = !state.hasConfig;
-  const needsLabels = state.hasConfig && state.hasValidRemote && !state.hasLabels;
+  const needsLabels = state.hasValidRemote && !state.hasLabels;
 
-  if (needsInit) {
-    actions.push({ id: "init", label: "init", shortcut: "i" });
-  } else if (needsLabels) {
+  if (needsLabels) {
     actions.push({ id: "setup-labels", label: "setup-labels", shortcut: "b" });
   }
 
-  // Only show workflow actions when fully set up
-  const isSetUp = state.hasConfig && (!state.hasValidRemote || state.hasLabels);
+  // Init is always available as optional convenience (not a prerequisite)
+  if (!state.hasConfig) {
+    actions.push({ id: "init", label: "init", shortcut: "i" });
+  }
+
+  // Only show workflow actions when fully set up (labels exist or no remote to check against)
+  const isSetUp = !state.hasValidRemote || state.hasLabels;
 
   // Common actions available everywhere (gated on valid remote for GitHub-dependent actions)
   if (isSetUp && state.hasValidRemote) {
