@@ -233,3 +233,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/utils/validators.ts, src/lib/github.ts, src/tui/state.ts, src/tui/actions.ts, src/tui/display.ts, src/commands/tui.ts, src/index.ts, src/lib/github.test.ts, src/tui/actions.test.ts, src/tui/display.test.ts, src/tui/state.test.ts, src/utils/validators.test.ts, src/commands/tui.test.ts
 - Changes: Added `checkInitialized()` validator and `checkLabelsExist()` GitHub check. Added `hasLabels` to TUI state with session-level caching. Gated workflow actions (create, list, run, pr) on init+labels status. Added setup banners and init/setup-labels actions to TUI. Guarded CLI commands with prerequisite checks showing clear hints.
 - Decisions: Labels check cached per session (like other env checks). Git operations (commit, push) remain available without labels. Labels check deferred until config and remote both exist.
+
+[2026-02-02] #91 feat: show at least 3 lines of ticket description in TUI
+- Files: src/tui/display.ts, src/tui/display.test.ts
+- Changes: Replaced single-line `extractDescription` with `extractDescriptionLines` that returns up to 3 content lines. Updated ticket panel to render multiple description lines. Added filters for Category/Priority/Risk metadata prefixes.
+- Decisions: Exported function for direct unit testing. Added 7 unit tests for edge cases (empty, short, long, metadata-only, custom maxLines).
