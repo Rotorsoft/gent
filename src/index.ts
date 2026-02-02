@@ -17,6 +17,7 @@ import {
 import { logger } from "./utils/logger.js";
 import { checkInitialized } from "./utils/validators.js";
 import { checkLabelsExist } from "./lib/github.js";
+import { getRepoInfo } from "./lib/git.js";
 
 const version = getVersion();
 
@@ -42,6 +43,11 @@ function startVersionCheck(): void {
 async function checkPrerequisites(): Promise<boolean> {
   if (!checkInitialized()) {
     logger.warning('Repository not initialized. Run "gent init" to set up this repository.');
+    return false;
+  }
+  const repoInfo = await getRepoInfo();
+  if (!repoInfo) {
+    logger.warning('No GitHub remote found. Run "gent github-remote" to create one.');
     return false;
   }
   const labelsOk = await checkLabelsExist();
