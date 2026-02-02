@@ -1,3 +1,10 @@
+# [1.22.0](https://github.com/rotorsoft/gent/compare/v1.21.0...v1.22.0) (2026-02-02)
+
+
+### Features
+
+* show at least 3 lines of ticket description in TUI ([dd04dc1](https://github.com/rotorsoft/gent/commit/dd04dc18ae1ae40a783b46b4ce97bc6d4ce30062)), closes [#91](https://github.com/rotorsoft/gent/issues/91)
+
 # [1.21.0](https://github.com/rotorsoft/gent/compare/v1.20.1...v1.21.0) (2026-02-02)
 
 
