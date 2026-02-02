@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import chalk from "chalk";
-import { buildDashboardLines, stripAnsi, truncateAnsi } from "./display.js";
+import {
+  buildDashboardLines,
+  extractDescriptionLines,
+  stripAnsi,
+  truncateAnsi,
+} from "./display.js";
 import type { TuiState } from "./state.js";
 import type { TuiAction } from "./actions.js";
 
@@ -75,6 +80,70 @@ describe("display", () => {
       expect(stripAnsi(truncated)).toBe("hello …");
       expect(truncated).toContain("hello");
       expect(truncated).toContain("\x1b[0m…");
+    });
+  });
+
+  describe("extractDescriptionLines", () => {
+    it("returns empty array for empty body", () => {
+      expect(extractDescriptionLines("", 80)).toEqual([]);
+    });
+
+    it("returns up to 3 content lines, skipping headings and metadata", () => {
+      const body = `## Description
+First line
+Second line
+Third line
+Fourth line`;
+      expect(extractDescriptionLines(body, 80)).toEqual([
+        "First line",
+        "Second line",
+        "Third line",
+      ]);
+    });
+
+    it("skips markdown headings, separators, and metadata prefixes", () => {
+      const body = `# Title
+## Section
+---
+**Type:** feature
+**Category:** ui
+**Priority:** medium
+**Risk:** low
+Actual content line
+Second content`;
+      expect(extractDescriptionLines(body, 80)).toEqual([
+        "Actual content line",
+        "Second content",
+      ]);
+    });
+
+    it("strips markdown formatting", () => {
+      const body = "**bold text** and [link](http://example.com)";
+      expect(extractDescriptionLines(body, 80)).toEqual([
+        "bold text and link",
+      ]);
+    });
+
+    it("truncates long lines", () => {
+      const body = "A".repeat(100);
+      const result = extractDescriptionLines(body, 20);
+      expect(result[0]).toHaveLength(20);
+      expect(result[0].endsWith("…")).toBe(true);
+    });
+
+    it("handles body with only headings and metadata", () => {
+      const body = `## Description
+**Type:** feat
+---`;
+      expect(extractDescriptionLines(body, 80)).toEqual([]);
+    });
+
+    it("respects custom maxLines parameter", () => {
+      const body = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5";
+      expect(extractDescriptionLines(body, 80, 2)).toEqual([
+        "Line 1",
+        "Line 2",
+      ]);
     });
   });
 
@@ -330,6 +399,47 @@ describe("display", () => {
       expect(output).not.toContain("Setup");
       expect(output).not.toContain("gent init");
       expect(output).not.toContain("gent setup-labels");
+    });
+
+    it("renders up to 3 lines of ticket description", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "ro/feat-1-test",
+        isOnMain: false,
+        issue: {
+          number: 1,
+          title: "Test Issue",
+          body: "## Description\nFirst line of description\nSecond line of description\nThird line of description\nFourth line should not show",
+          labels: ["type:feat"],
+        } as any,
+      };
+
+      const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).toContain("First line of description");
+      expect(output).toContain("Second line of description");
+      expect(output).toContain("Third line of description");
+      expect(output).not.toContain("Fourth line should not show");
+    });
+
+    it("renders empty description gracefully", () => {
+      const state: TuiState = {
+        ...mockBaseState,
+        branch: "ro/feat-1-test",
+        isOnMain: false,
+        issue: {
+          number: 1,
+          title: "Test Issue",
+          body: "",
+          labels: ["type:feat"],
+        } as any,
+      };
+
+      const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
+      const output = lines.join("\n");
+
+      expect(output).toContain("· #1 Test Issue");
     });
 
     it("renders bullets for list items", () => {

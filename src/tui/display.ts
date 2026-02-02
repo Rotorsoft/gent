@@ -38,21 +38,30 @@ function truncate(text: string, max: number): string {
   return text.slice(0, max - 1) + "…";
 }
 
-function extractDescription(body: string, maxLen: number): string {
+export function extractDescriptionLines(
+  body: string,
+  maxLen: number,
+  maxLines = 3
+): string[] {
+  const result: string[] = [];
   const lines = body.split("\n");
   for (const line of lines) {
+    if (result.length >= maxLines) break;
     const trimmed = line.trim();
     if (!trimmed) continue;
     if (trimmed.startsWith("#")) continue;
     if (trimmed.startsWith("---")) continue;
     if (trimmed.startsWith("META:")) continue;
     if (trimmed.startsWith("**Type:**")) continue;
+    if (trimmed.startsWith("**Category:**")) continue;
+    if (trimmed.startsWith("**Priority:**")) continue;
+    if (trimmed.startsWith("**Risk:**")) continue;
     const clean = trimmed
       .replace(/\*\*/g, "")
       .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
-    return truncate(clean, maxLen);
+    result.push(truncate(clean, maxLen));
   }
-  return "";
+  return result;
 }
 
 // ── Box drawing ─────────────────────────────────────────────────
@@ -281,8 +290,10 @@ export function buildDashboardLines(
           w
         )
       );
-      const desc = extractDescription(state.issue.body, descMax);
-      if (desc) out(row("  " + chalk.dim(desc), w));
+      const descLines = extractDescriptionLines(state.issue.body, descMax);
+      for (const desc of descLines) {
+        out(row("  " + chalk.dim(desc), w));
+      }
       const tags: string[] = [];
       if (state.workflowStatus !== "none")
         tags.push(workflowBadge(state.workflowStatus));
