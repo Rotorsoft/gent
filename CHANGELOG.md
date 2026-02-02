@@ -1,3 +1,10 @@
+## [1.20.1](https://github.com/rotorsoft/gent/compare/v1.20.0...v1.20.1) (2026-02-02)
+
+
+### Bug Fixes
+
+* use real ora spinners for AI wait states instead of static text ([aceef86](https://github.com/rotorsoft/gent/commit/aceef86a3b1f9392bada78cb5778b0d3f871bde2)), closes [#90](https://github.com/rotorsoft/gent/issues/90)
+
 # [1.20.0](https://github.com/rotorsoft/gent/compare/v1.19.0...v1.20.0) (2026-01-31)
 
 
