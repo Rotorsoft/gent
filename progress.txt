@@ -225,6 +225,6 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Decisions: Used `gh repo create --source=. --push --private` for single-command repo creation + push. Shortcut `g` (GitHub) to avoid conflicts with existing shortcuts.
 
 [2026-02-02] #90 refactor: simplify AI status labels to consistent spinner messages
-- Files: src/utils/spinner.ts, src/commands/create.ts, src/commands/run.ts, src/commands/pr.ts, src/commands/fix.ts, src/commands/tui.ts
-- Changes: Added `aiSpinnerText(provider, action)` helper to spinner utility. Each command shows one message like "Waiting for Claude to generate ticket..." — no borders, no redundant lines. Removed unused `colors` import from fix.ts.
-- Decisions: Used a function instead of a constant so messages include provider name and action context.
+- Files: src/utils/spinner.ts, src/lib/ai-provider.ts, src/commands/create.ts, src/commands/run.ts, src/commands/pr.ts, src/commands/fix.ts, src/commands/tui.ts
+- Changes: Added `aiSpinnerText(provider, action)` helper and real ora spinners for AI wait states. Removed old "Creating AI-enhanced..." header messages. Added `onFirstData` callback to streaming providers so spinner stops when AI starts responding.
+- Decisions: Used `onFirstData` callback in `AIProviderOptions` to cleanly stop spinner on first streaming output. Interactive commands stop spinner before handing over stdio.

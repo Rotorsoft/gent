@@ -1,7 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { logger, colors } from "../utils/logger.js";
-import { withSpinner, aiSpinnerText } from "../utils/spinner.js";
+import { withSpinner, createSpinner, aiSpinnerText } from "../utils/spinner.js";
 import {
   loadConfig,
   loadAgentInstructions,
@@ -41,9 +41,6 @@ export async function createCommand(
   description: string,
   options: CreateOptions
 ): Promise<void> {
-  logger.bold("Creating AI-enhanced ticket...");
-  logger.newline();
-
   const config = loadConfig();
 
   // Determine which provider to use
@@ -82,13 +79,14 @@ export async function createCommand(
     );
 
     try {
-      logger.info(aiSpinnerText(getProviderDisplayName(currentProvider), "generate ticket"));
-      logger.newline();
+      const spinner = createSpinner(aiSpinnerText(getProviderDisplayName(currentProvider), "generate ticket"));
+      spinner.start();
       const result = await invokeAI(
-        { prompt, streamOutput: true },
+        { prompt, streamOutput: true, onFirstData: () => spinner.stop() },
         config,
         currentProvider
       );
+      spinner.stop();
       aiOutput = result.output;
       logger.newline();
     } catch (error) {

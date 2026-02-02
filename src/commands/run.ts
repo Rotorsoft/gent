@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import { logger, colors } from "../utils/logger.js";
-import { withSpinner, aiSpinnerText } from "../utils/spinner.js";
+import { withSpinner, createSpinner, aiSpinnerText } from "../utils/spinner.js";
 import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import { getIssue, updateIssueLabels, addIssueComment } from "../lib/github.js";
 import { buildImplementationPrompt } from "../lib/prompts.js";
@@ -36,9 +36,6 @@ export async function runCommand(
   issueNumberArg: string | undefined,
   options: RunOptions
 ): Promise<void> {
-  logger.bold("Running AI implementation workflow...");
-  logger.newline();
-
   const config = loadConfig();
 
   // Determine which provider to use
@@ -221,8 +218,8 @@ Labels: ${issue.labels.join(", ")}`
   );
 
   logger.newline();
-  logger.info(aiSpinnerText(providerName, "implement ticket"));
-  logger.newline();
+  const spinner = createSpinner(aiSpinnerText(providerName, "implement ticket"));
+  spinner.start();
 
   // Capture commit SHA before AI runs
   const beforeSha = await getCurrentCommitSha();
@@ -236,6 +233,7 @@ Labels: ${issue.labels.join(", ")}`
   process.on("SIGTERM", handleSignal);
 
   // Invoke AI interactively
+  spinner.stop();
   let aiExitCode: number | undefined;
   let usedProvider = provider;
   try {

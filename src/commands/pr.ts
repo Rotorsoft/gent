@@ -1,5 +1,5 @@
 import { logger, colors } from "../utils/logger.js";
-import { withSpinner, aiSpinnerText } from "../utils/spinner.js";
+import { withSpinner, createSpinner, aiSpinnerText } from "../utils/spinner.js";
 import { loadConfig } from "../lib/config.js";
 import {
   getIssue,
@@ -42,9 +42,6 @@ export interface PrOptions {
 }
 
 export async function prCommand(options: PrOptions): Promise<void> {
-  logger.bold("Creating AI-enhanced pull request...");
-  logger.newline();
-
   const config = loadConfig();
 
   // Determine which provider to use
@@ -169,12 +166,14 @@ IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
   while (true) {
     const providerName = getProviderDisplayName(usedProvider);
     try {
-      logger.info(aiSpinnerText(providerName, "generate PR"));
+      const spinner = createSpinner(aiSpinnerText(providerName, "generate PR"));
+      spinner.start();
       const result = await invokeAI(
-        { prompt, streamOutput: true },
+        { prompt, streamOutput: true, onFirstData: () => spinner.stop() },
         config,
         usedProvider
       );
+      spinner.stop();
       prBody = result.output;
       logger.newline();
       break;
