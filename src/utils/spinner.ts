@@ -1,5 +1,9 @@
 import ora, { Ora } from "ora";
 
+export function aiSpinnerText(provider: string, action: string): string {
+  return `Waiting for ${provider} to ${action}...`;
+}
+
 export function createSpinner(text: string): Ora {
   return ora({
     text,

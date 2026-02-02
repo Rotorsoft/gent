@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
-import { logger, colors } from "../utils/logger.js";
-import { withSpinner } from "../utils/spinner.js";
+import { logger } from "../utils/logger.js";
+import { withSpinner, createSpinner, aiSpinnerText } from "../utils/spinner.js";
 import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import {
   getIssue,
@@ -36,9 +36,6 @@ export interface FixOptions {
 }
 
 export async function fixCommand(options: FixOptions): Promise<void> {
-  logger.bold("Applying PR review feedback with AI...");
-  logger.newline();
-
   const config = loadConfig();
   const provider = options.provider ?? config.ai.provider;
   const providerName = getProviderDisplayName(provider);
@@ -147,9 +144,8 @@ export async function fixCommand(options: FixOptions): Promise<void> {
   );
 
   logger.newline();
-  logger.info(`Starting ${colors.provider(providerName)} fix session...`);
-  logger.dim("Review feedback will be appended to the implementation prompt.");
-  logger.newline();
+  const spinner = createSpinner(aiSpinnerText(providerName, "apply fixes"));
+  spinner.start();
 
   const beforeSha = await getCurrentCommitSha();
 
@@ -160,6 +156,7 @@ export async function fixCommand(options: FixOptions): Promise<void> {
   process.on("SIGINT", handleSignal);
   process.on("SIGTERM", handleSignal);
 
+  spinner.stop();
   let aiExitCode: number | undefined;
   try {
     const { result } = await invokeAIInteractive(

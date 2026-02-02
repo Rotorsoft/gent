@@ -10,6 +10,7 @@ export interface AIProviderOptions {
   permissionMode?: string;
   printOutput?: boolean;
   streamOutput?: boolean;
+  onFirstData?: () => void;
 }
 
 export interface AIProviderResult {
@@ -237,8 +238,13 @@ async function invokeClaudeInternal(
       });
 
       let output = "";
+      let firstData = true;
 
       child.stdout.on("data", (chunk: Buffer) => {
+        if (firstData) {
+          firstData = false;
+          options.onFirstData?.();
+        }
         const text = chunk.toString();
         output += text;
         process.stdout.write(text);
@@ -291,8 +297,13 @@ async function invokeGeminiInternal(
       });
 
       let output = "";
+      let firstData = true;
 
       child.stdout.on("data", (chunk: Buffer) => {
+        if (firstData) {
+          firstData = false;
+          options.onFirstData?.();
+        }
         const text = chunk.toString();
         output += text;
         process.stdout.write(text);
@@ -342,8 +353,13 @@ async function invokeCodexInternal(
       });
 
       let output = "";
+      let firstData = true;
 
       child.stdout.on("data", (chunk: Buffer) => {
+        if (firstData) {
+          firstData = false;
+          options.onFirstData?.();
+        }
         const text = chunk.toString();
         output += text;
         process.stdout.write(text);
