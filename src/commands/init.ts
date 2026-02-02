@@ -10,6 +10,7 @@ import {
 } from "../lib/config.js";
 import { initializeProgress } from "../lib/progress.js";
 import { loadConfig } from "../lib/config.js";
+import { getRepoInfo } from "../lib/git.js";
 
 const DEFAULT_AGENT_MD = `# AI Agent Instructions
 
@@ -75,7 +76,7 @@ export async function initCommand(options: { force?: boolean }): Promise<void> {
   const isGitRepo = await checkGitRepo();
   if (!isGitRepo) {
     logger.error("Not a git repository. Please run 'git init' first.");
-    process.exit(1);
+    return;
   }
 
   const cwd = process.cwd();
@@ -126,28 +127,72 @@ export async function initCommand(options: { force?: boolean }): Promise<void> {
   initializeProgress(config, cwd);
   logger.success(`Created ${colors.file(config.progress.file)}`);
 
-  logger.newline();
-  logger.box(
-    "Setup Complete",
-    `Next steps:
+  // Check if a GitHub remote exists
+  const repoInfo = await getRepoInfo();
+
+  if (!repoInfo) {
+    logger.newline();
+    logger.box(
+      "Setup Complete",
+      `Next steps:
+1. Edit ${colors.file("AGENT.md")} with your project-specific instructions
+2. Edit ${colors.file(".gent.yml")} to customize settings
+3. Create a GitHub remote: ${colors.command("gent github-remote")}
+4. Run ${colors.command("gent setup-labels")} to create GitHub labels`
+    );
+
+    const { createRemote } = await inquirer.prompt([
+      {
+        type: "confirm",
+        name: "createRemote",
+        message: "No GitHub remote found. Would you like to create one now?",
+        default: true,
+      },
+    ]);
+
+    if (createRemote) {
+      const { githubRemoteCommand } = await import("./github-remote.js");
+      const success = await githubRemoteCommand();
+      if (success) {
+        // Remote created — now offer label setup
+        const { setupLabels } = await inquirer.prompt([
+          {
+            type: "confirm",
+            name: "setupLabels",
+            message: "Would you like to setup GitHub labels now?",
+            default: true,
+          },
+        ]);
+        if (setupLabels) {
+          const { setupLabelsCommand } = await import("./setup-labels.js");
+          await setupLabelsCommand();
+        }
+      }
+    }
+  } else {
+    logger.newline();
+    logger.box(
+      "Setup Complete",
+      `Next steps:
 1. Edit ${colors.file("AGENT.md")} with your project-specific instructions
 2. Edit ${colors.file(".gent.yml")} to customize settings
 3. Run ${colors.command("gent setup-labels")} to create GitHub labels
 4. Run ${colors.command("gent create <description>")} to create your first ticket`
-  );
+    );
 
-  // Ask about setting up labels
-  const { setupLabels } = await inquirer.prompt([
-    {
-      type: "confirm",
-      name: "setupLabels",
-      message: "Would you like to setup GitHub labels now?",
-      default: true,
-    },
-  ]);
+    // Remote exists — offer label setup directly
+    const { setupLabels } = await inquirer.prompt([
+      {
+        type: "confirm",
+        name: "setupLabels",
+        message: "Would you like to setup GitHub labels now?",
+        default: true,
+      },
+    ]);
 
-  if (setupLabels) {
-    const { setupLabelsCommand } = await import("./setup-labels.js");
-    await setupLabelsCommand();
+    if (setupLabels) {
+      const { setupLabelsCommand } = await import("./setup-labels.js");
+      await setupLabelsCommand();
+    }
   }
 }

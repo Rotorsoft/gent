@@ -238,3 +238,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/display.ts, src/tui/display.test.ts
 - Changes: Replaced single-line `extractDescription` with `extractDescriptionLines` that returns up to 3 content lines. Updated ticket panel to render multiple description lines. Added filters for Category/Priority/Risk metadata prefixes.
 - Decisions: Exported function for direct unit testing. Added 7 unit tests for edge cases (empty, short, long, metadata-only, custom maxLines).
+
+[2026-02-02] #95 feat: improve init workflow to guide users through sequential setup steps
+- Files: src/lib/git.ts, src/lib/git.test.ts, src/commands/init.ts, src/commands/setup-labels.ts, src/index.ts, src/tui/display.ts, src/tui/display.test.ts
+- Changes: Added `getRepoSetupState()` function in git.ts returning consolidated setup state (git, gent, remote, labels). Updated init command to check for remote before suggesting labels, offering `github-remote` creation first. Added remote check to `checkPrerequisites()` and `setup-labels` command. TUI setup hints now show numbered steps in sequential order. Replaced `process.exit(1)` with `return` in init and setup-labels commands.
+- Decisions: Sequential early-return pattern in `getRepoSetupState()` — each step checks prerequisite before proceeding. Display uses "Step N" labels to guide users through the correct order.

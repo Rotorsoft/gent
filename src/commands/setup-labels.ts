@@ -4,6 +4,7 @@ import { loadConfig } from "../lib/config.js";
 import { getAllLabels } from "../lib/labels.js";
 import { createLabel } from "../lib/github.js";
 import { checkGhAuth } from "../utils/validators.js";
+import { getRepoInfo } from "../lib/git.js";
 
 export async function setupLabelsCommand(): Promise<void> {
   logger.bold("Setting up GitHub labels...");
@@ -13,7 +14,14 @@ export async function setupLabelsCommand(): Promise<void> {
   const isAuthed = await checkGhAuth();
   if (!isAuthed) {
     logger.error("Not authenticated with GitHub. Run 'gh auth login' first.");
-    process.exit(1);
+    return;
+  }
+
+  // Check for remote
+  const repoInfo = await getRepoInfo();
+  if (!repoInfo) {
+    logger.error('No GitHub remote found. Run "gent github-remote" to create one first.');
+    return;
   }
 
   const config = loadConfig();

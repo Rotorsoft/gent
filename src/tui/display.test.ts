@@ -315,7 +315,7 @@ Second content`;
       expect(output).toContain("quit");
     });
 
-    it("renders hint when hasValidRemote is false in a git repo", () => {
+    it("renders setup step 2 when hasValidRemote is false", () => {
       const state: TuiState = {
         ...mockBaseState,
         branch: "main",
@@ -326,7 +326,8 @@ Second content`;
       const lines = buildDashboardLines(state, mockActions).map(stripAnsi);
       const output = lines.join("\n");
 
-      expect(output).toContain("Hint");
+      expect(output).toContain("Setup");
+      expect(output).toContain("Step 2: Create a GitHub repository");
       expect(output).toContain(
         "Press [g] to create a GitHub repo and push"
       );
@@ -344,11 +345,11 @@ Second content`;
       const output = lines.join("\n");
 
       expect(output).not.toContain(
-        "Press [g] to create a GitHub repo and push"
+        "Step 2: Create a GitHub repository"
       );
     });
 
-    it("renders setup banner when not initialized", () => {
+    it("renders setup step 1 when not initialized", () => {
       const state: TuiState = {
         ...mockBaseState,
         branch: "main",
@@ -361,11 +362,11 @@ Second content`;
       const output = lines.join("\n");
 
       expect(output).toContain("Setup");
-      expect(output).toContain('Run "gent init" to set up this repository');
-      expect(output).toContain("Press [i] to initialize");
+      expect(output).toContain("Step 1: Initialize gent configuration");
+      expect(output).toContain("Press [i] to run gent init");
     });
 
-    it("renders setup banner when labels are missing", () => {
+    it("renders setup step 3 when labels are missing", () => {
       const state: TuiState = {
         ...mockBaseState,
         branch: "main",
@@ -379,7 +380,7 @@ Second content`;
       const output = lines.join("\n");
 
       expect(output).toContain("Setup");
-      expect(output).toContain('Run "gent setup-labels" to create required GitHub labels');
+      expect(output).toContain("Step 3: Create workflow labels");
       expect(output).toContain("Press [b] to set up labels");
     });
 

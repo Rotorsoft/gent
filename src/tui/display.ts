@@ -395,25 +395,19 @@ export function buildDashboardLines(
     }
   }
 
-  // Setup hints (take priority over other hints)
+  // Setup hints (take priority over other hints, shown in sequential order)
   if (!state.hasConfig) {
     section("Setup");
-    out(row(chalk.yellow('Run "gent init" to set up this repository'), w));
-    out(row(chalk.dim("Press [i] to initialize"), w));
-  } else if (state.hasValidRemote && !state.hasLabels) {
-    section("Setup");
-    out(row(chalk.yellow('Run "gent setup-labels" to create required GitHub labels'), w));
-    out(row(chalk.dim("Press [b] to set up labels"), w));
+    out(row(chalk.yellow("Step 1: Initialize gent configuration"), w));
+    out(row(chalk.dim("Press [i] to run gent init"), w));
   } else if (!state.hasValidRemote) {
-    section("Hint");
-    out(
-      row(
-        chalk.yellow(
-          "Press [g] to create a GitHub repo and push"
-        ),
-        w
-      )
-    );
+    section("Setup");
+    out(row(chalk.yellow("Step 2: Create a GitHub repository"), w));
+    out(row(chalk.dim("Press [g] to create a GitHub repo and push"), w));
+  } else if (!state.hasLabels) {
+    section("Setup");
+    out(row(chalk.yellow("Step 3: Create workflow labels"), w));
+    out(row(chalk.dim("Press [b] to set up labels"), w));
   } else if (hint) {
     section("Hint");
     out(row(chalk.yellow(hint), w));

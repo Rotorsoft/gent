@@ -1,4 +1,47 @@
 import { execa } from "execa";
+import { configExists } from "./config.js";
+import { checkLabelsExist } from "./github.js";
+
+export interface RepoSetupState {
+  gitInitialized: boolean;
+  gentInitialized: boolean;
+  hasRemote: boolean;
+  hasLabels: boolean;
+}
+
+export async function getRepoSetupState(): Promise<RepoSetupState> {
+  // Step 1: Check git init
+  let gitInitialized = false;
+  try {
+    await execa("git", ["rev-parse", "--git-dir"]);
+    gitInitialized = true;
+  } catch {
+    return { gitInitialized: false, gentInitialized: false, hasRemote: false, hasLabels: false };
+  }
+
+  // Step 2: Check gent config
+  const gentInitialized = configExists();
+  if (!gentInitialized) {
+    return { gitInitialized, gentInitialized: false, hasRemote: false, hasLabels: false };
+  }
+
+  // Step 3: Check remote
+  let hasRemote = false;
+  try {
+    const { stdout } = await execa("git", ["config", "--get", "remote.origin.url"]);
+    hasRemote = stdout.trim().length > 0;
+  } catch {
+    // No remote
+  }
+  if (!hasRemote) {
+    return { gitInitialized, gentInitialized, hasRemote: false, hasLabels: false };
+  }
+
+  // Step 4: Check labels
+  const hasLabels = await checkLabelsExist().catch(() => false);
+
+  return { gitInitialized, gentInitialized, hasRemote, hasLabels };
+}
 
 export async function getCurrentBranch(): Promise<string> {
   const { stdout } = await execa("git", ["branch", "--show-current"]);
