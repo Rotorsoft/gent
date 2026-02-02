@@ -1,5 +1,5 @@
 import { logger, colors } from "../utils/logger.js";
-import { withSpinner } from "../utils/spinner.js";
+import { withSpinner, aiSpinnerText } from "../utils/spinner.js";
 import { loadConfig } from "../lib/config.js";
 import {
   getIssue,
@@ -169,10 +169,7 @@ IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
   while (true) {
     const providerName = getProviderDisplayName(usedProvider);
     try {
-      logger.info(
-        `Generating PR description with ${colors.provider(providerName)}...`
-      );
-      logger.newline();
+      logger.info(aiSpinnerText(providerName, "generate PR"));
       const result = await invokeAI(
         { prompt, streamOutput: true },
         config,

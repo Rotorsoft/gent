@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import { logger, colors } from "../utils/logger.js";
-import { withSpinner } from "../utils/spinner.js";
+import { withSpinner, aiSpinnerText } from "../utils/spinner.js";
 import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import { getIssue, updateIssueLabels, addIssueComment } from "../lib/github.js";
 import { buildImplementationPrompt } from "../lib/prompts.js";
@@ -221,11 +221,7 @@ Labels: ${issue.labels.join(", ")}`
   );
 
   logger.newline();
-  logger.info(
-    `Starting ${colors.provider(providerName)} implementation session...`
-  );
-  logger.dim(`${providerName} will implement the feature and create a commit.`);
-  logger.dim("Review the changes before pushing.");
+  logger.info(aiSpinnerText(providerName, "implement ticket"));
   logger.newline();
 
   // Capture commit SHA before AI runs

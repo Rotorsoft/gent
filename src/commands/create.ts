@@ -1,7 +1,7 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
 import { logger, colors } from "../utils/logger.js";
-import { withSpinner } from "../utils/spinner.js";
+import { withSpinner, aiSpinnerText } from "../utils/spinner.js";
 import {
   loadConfig,
   loadAgentInstructions,
@@ -74,7 +74,6 @@ export async function createCommand(
   let additionalHints: string | null = null;
 
   while (true) {
-    const providerName = getProviderDisplayName(currentProvider);
     // Build prompt and invoke AI
     const prompt = buildTicketPrompt(
       description,
@@ -83,12 +82,7 @@ export async function createCommand(
     );
 
     try {
-      // Show visual indicator before AI output
-      console.log(
-        chalk.dim(
-          `┌─ Generating ticket with ${providerName}... ──────────────────────────┐`
-        )
-      );
+      logger.info(aiSpinnerText(getProviderDisplayName(currentProvider), "generate ticket"));
       logger.newline();
       const result = await invokeAI(
         { prompt, streamOutput: true },
@@ -97,13 +91,8 @@ export async function createCommand(
       );
       aiOutput = result.output;
       logger.newline();
-      console.log(
-        chalk.dim(
-          "└────────────────────────────────────────────────────────────┘"
-        )
-      );
-      logger.newline();
     } catch (error) {
+      const providerName = getProviderDisplayName(currentProvider);
       if (error && typeof error === "object" && "rateLimited" in error) {
         logger.warning(`${providerName} is rate limited.`);
 
@@ -156,7 +145,7 @@ export async function createCommand(
     // Extract issue body (without META line) and append signature
     const issueBody =
       extractIssueBody(aiOutput) +
-      `\n\n---\n*Created with ${providerName} by [gent](https://github.com/Rotorsoft/gent)*`;
+      `\n\n---\n*Created with ${getProviderDisplayName(currentProvider)} by [gent](https://github.com/Rotorsoft/gent)*`;
 
     // Determine title: user override > AI-generated > fallback
     let title: string;

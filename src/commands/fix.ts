@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
-import { logger, colors } from "../utils/logger.js";
-import { withSpinner } from "../utils/spinner.js";
+import { logger } from "../utils/logger.js";
+import { withSpinner, aiSpinnerText } from "../utils/spinner.js";
 import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import {
   getIssue,
@@ -147,8 +147,7 @@ export async function fixCommand(options: FixOptions): Promise<void> {
   );
 
   logger.newline();
-  logger.info(`Starting ${colors.provider(providerName)} fix session...`);
-  logger.dim("Review feedback will be appended to the implementation prompt.");
+  logger.info(aiSpinnerText(providerName, "apply fixes"));
   logger.newline();
 
   const beforeSha = await getCurrentCommitSha();

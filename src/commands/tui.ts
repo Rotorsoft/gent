@@ -17,6 +17,7 @@ import {
 } from "../tui/modal.js";
 import { checkForUpdates, type VersionCheckResult } from "../lib/version.js";
 import { logger } from "../utils/logger.js";
+import { aiSpinnerText } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
 import { prCommand } from "./pr.js";
 import { buildTicketChoices } from "./list.js";
@@ -224,7 +225,7 @@ async function handleCommit(
       });
       message = input || CANCEL;
     } else {
-      showStatus("Generating", `Generating commit message with ${providerName}...`, dashboardLines);
+      showStatus("Generating", aiSpinnerText(providerName, "generate commit message"), dashboardLines);
       message = await generateCommitMessage(
         diffContent,
         issueNumber,
