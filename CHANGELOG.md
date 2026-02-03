@@ -1,3 +1,10 @@
+# [1.24.0](https://github.com/rotorsoft/gent/compare/v1.23.0...v1.24.0) (2026-02-03)
+
+
+### Features
+
+* make gent configuration optional with sensible defaults ([1396fb6](https://github.com/rotorsoft/gent/commit/1396fb63ffbf59e24bf67dc79120a5055db00f76)), closes [#97](https://github.com/rotorsoft/gent/issues/97)
+
 # [1.23.0](https://github.com/rotorsoft/gent/compare/v1.22.0...v1.23.0) (2026-02-02)
 
 
