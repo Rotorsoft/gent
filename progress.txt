@@ -258,3 +258,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/ai-provider.ts, src/tui/modal.ts, src/commands/tui.ts, src/lib/ai-provider.test.ts, src/tui/modal.test.ts
 - Changes: Added 30-second timeout to AI provider non-streaming calls via execa's timeout option. Created animated spinner status modal (`showStatusWithSpinner`) for visual feedback during AI generation. Updated commit message generation to use animated spinner and handle timeout errors with user-friendly fallback to manual input.
 - Decisions: Used execa's built-in timeout option (30s default). Spinner animates at 80ms intervals with Unicode braille frames. Timeout errors fall back to manual input with specific "AI generation timed out" message.
+
+[2026-02-04] #101 feat: display operation summary in bordered table
+- Files: src/utils/logger.ts, src/utils/logger.test.ts, src/commands/pr.ts, src/commands/run.ts
+- Changes: Added `logger.table()` utility for rendering bordered key-value summary tables. Updated `pr.ts` and `run.ts` to use the new table format instead of multiple `logger.info()` calls with individual icon lines.
+- Decisions: Table filters empty values, supports ANSI colors, and aligns columns consistently. Exported `TableEntry` interface for typed usage.
