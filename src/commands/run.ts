@@ -126,11 +126,10 @@ export async function runCommand(
   }
 
   logger.newline();
-  logger.box(
-    "Issue Details",
-    `#${issue.number}: ${issue.title}
-Labels: ${issue.labels.join(", ")}`
-  );
+  logger.table("Run Summary", [
+    { key: "Issue", value: `${colors.issue(`#${issue.number}`)} ${issue.title}` },
+    { key: "Labels", value: issue.labels.map((l) => colors.label(l)).join(", ") },
+  ]);
   logger.newline();
 
   // Generate branch name

@@ -16,7 +16,7 @@ import {
   type SelectEntry,
 } from "../tui/modal.js";
 import { checkForUpdates, type VersionCheckResult } from "../lib/version.js";
-import { logger } from "../utils/logger.js";
+import { logger, colors } from "../utils/logger.js";
 import { createCommand } from "./create.js";
 import { initCommand } from "./init.js";
 import { setupLabelsCommand } from "./setup-labels.js";
@@ -250,11 +250,16 @@ async function handleCommit(
       const prompt = buildCommitPrompt(issueNumber, issueTitle, state.config);
 
       clearScreen();
-      renderActionPanel(`${providerName} Commit`, [
-        "Creating commit for staged changes...",
-        issueNumber ? `Related: #${issueNumber} ${issueTitle ?? ""}` : "No linked issue",
+      logger.table("Commit Summary", [
+        {
+          key: "Issue",
+          value: issueNumber
+            ? `${colors.issue(`#${issueNumber}`)} ${issueTitle ?? ""}`
+            : "No linked issue",
+        },
+        { key: "Provider", value: colors.provider(providerName) },
       ]);
-      console.log();
+      logger.newline();
 
       try {
         const { result } = await invokeAIInteractive(prompt, state.config);

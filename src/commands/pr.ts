@@ -83,9 +83,6 @@ export async function prCommand(options: PrOptions): Promise<void> {
   const currentBranch = await getCurrentBranch();
   const baseBranch = await getDefaultBranch();
 
-  logger.info(`Branch: ${colors.branch(currentBranch)}`);
-  logger.info(`Base: ${colors.branch(baseBranch)}`);
-
   // Auto-push if needed
   const hasUnpushed = await getUnpushedCommits();
   if (hasUnpushed) {
@@ -102,9 +99,6 @@ export async function prCommand(options: PrOptions): Promise<void> {
   if (issueNumber) {
     try {
       issue = await getIssue(issueNumber);
-      logger.info(
-        `Linked issue: ${colors.issue(`#${issueNumber}`)} - ${issue.title}`
-      );
     } catch {
       logger.warning(`Could not fetch issue #${issueNumber}`);
     }
@@ -121,29 +115,23 @@ export async function prCommand(options: PrOptions): Promise<void> {
     return;
   }
 
-  logger.info(`Commits: ${commits.length}`);
-  logger.newline();
-
   // Check for UI changes and video capture capability
   // Video is enabled by default (config.video.enabled), but can be disabled with --no-video
   const shouldCaptureVideo = options.video !== false && config.video.enabled;
   let captureVideoInstructions = "";
+  let uiChangesDetected = false;
+  let playwrightAvailable = false;
 
   if (shouldCaptureVideo) {
     const changedFiles = await getChangedFiles(baseBranch);
-    const uiChangesDetected = hasUIChanges(changedFiles);
+    uiChangesDetected = hasUIChanges(changedFiles);
 
     if (uiChangesDetected) {
-      logger.info("UI changes detected in this branch");
-
-      const playwrightAvailable = await isPlaywrightAvailable();
+      playwrightAvailable = await isPlaywrightAvailable();
       if (!playwrightAvailable) {
         logger.warning("Playwright not available. Skipping video capture.");
         logger.dim("Install Playwright with: npm install -D playwright");
       } else {
-        logger.info(
-          "Playwright available - AI will capture demo video via MCP"
-        );
         captureVideoInstructions = `
 
 IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
@@ -155,6 +143,26 @@ IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
       }
     }
   }
+
+  // Display operation summary table
+  logger.table("PR Summary", [
+    { key: "Branch", value: colors.branch(currentBranch) },
+    { key: "Base", value: colors.branch(baseBranch) },
+    {
+      key: "Issue",
+      value: issue
+        ? `${colors.issue(`#${issueNumber}`)} ${issue.title}`
+        : colors.label("(none)"),
+    },
+    { key: "Commits", value: String(commits.length) },
+    ...(uiChangesDetected
+      ? [{ key: "UI Changes", value: "detected" }]
+      : []),
+    ...(playwrightAvailable
+      ? [{ key: "Video", value: "Playwright MCP available" }]
+      : []),
+  ]);
+  logger.newline();
 
   // Generate PR description with AI
   const prompt =
