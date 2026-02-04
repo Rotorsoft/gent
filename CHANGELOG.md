@@ -1,3 +1,11 @@
+## [1.24.1](https://github.com/rotorsoft/gent/compare/v1.24.0...v1.24.1) (2026-02-04)
+
+
+### Bug Fixes
+
+* add timeout and animated spinner for AI commit message generation ([261a709](https://github.com/rotorsoft/gent/commit/261a7091ca61e800d9718afb5a169eac33ff25dd)), closes [#99](https://github.com/rotorsoft/gent/issues/99)
+* use interactive AI for commit to prevent UI blocking ([d335ce1](https://github.com/rotorsoft/gent/commit/d335ce1d9d2a604c7c51f1976d2a7c6a30dc9972))
+
 # [1.24.0](https://github.com/rotorsoft/gent/compare/v1.23.0...v1.24.0) (2026-02-03)
 
 
