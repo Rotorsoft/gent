@@ -1,3 +1,11 @@
+# [1.25.0](https://github.com/rotorsoft/gent/compare/v1.24.1...v1.25.0) (2026-02-04)
+
+
+### Features
+
+* display commit summary in bordered table ([f0f87b4](https://github.com/rotorsoft/gent/commit/f0f87b4bdcc17ddf4186feb83af77cc085ce78f4)), closes [#101](https://github.com/rotorsoft/gent/issues/101)
+* display operation summary in bordered table ([518fbbf](https://github.com/rotorsoft/gent/commit/518fbbf9753ab808eeec688990f939cb5a8efc76)), closes [#101](https://github.com/rotorsoft/gent/issues/101)
+
 ## [1.24.1](https://github.com/rotorsoft/gent/compare/v1.24.0...v1.24.1) (2026-02-04)
 
 
