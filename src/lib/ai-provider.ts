@@ -5,12 +5,17 @@ import { logger, colors } from "../utils/logger.js";
 
 import { checkAIProvider } from "../utils/validators.js";
 
+/** Default timeout for AI provider calls (30 seconds) */
+export const AI_DEFAULT_TIMEOUT_MS = 30_000;
+
 export interface AIProviderOptions {
   prompt: string;
   permissionMode?: string;
   printOutput?: boolean;
   streamOutput?: boolean;
   onFirstData?: () => void;
+  /** Timeout in milliseconds for non-streaming calls. Defaults to AI_DEFAULT_TIMEOUT_MS */
+  timeout?: number;
 }
 
 export interface AIProviderResult {
@@ -210,6 +215,25 @@ function isRateLimitError(error: unknown, provider: AIProvider): boolean {
 }
 
 /**
+ * Check if error is a timeout error
+ */
+export function isTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  // execa sets timedOut property on timeout
+  if ("timedOut" in error && error.timedOut === true) {
+    return true;
+  }
+
+  // Also check for ETIMEDOUT error code
+  if ("code" in error && error.code === "ETIMEDOUT") {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Internal Claude invocation
  */
 async function invokeClaudeInternal(
@@ -267,7 +291,8 @@ async function invokeClaudeInternal(
       child.on("error", reject);
     });
   } else {
-    const { stdout } = await execa("claude", args);
+    const timeout = options.timeout ?? AI_DEFAULT_TIMEOUT_MS;
+    const { stdout } = await execa("claude", args, { timeout });
     return stdout;
   }
 }
@@ -326,7 +351,8 @@ async function invokeGeminiInternal(
       child.on("error", reject);
     });
   } else {
-    const { stdout } = await execa("gemini", args);
+    const timeout = options.timeout ?? AI_DEFAULT_TIMEOUT_MS;
+    const { stdout } = await execa("gemini", args, { timeout });
     return stdout;
   }
 }
@@ -382,7 +408,8 @@ async function invokeCodexInternal(
       child.on("error", reject);
     });
   } else {
-    const { stdout } = await execa("codex", args);
+    const timeout = options.timeout ?? AI_DEFAULT_TIMEOUT_MS;
+    const { stdout } = await execa("codex", args, { timeout });
     return stdout;
   }
 }

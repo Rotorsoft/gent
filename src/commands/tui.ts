@@ -17,7 +17,6 @@ import {
 } from "../tui/modal.js";
 import { checkForUpdates, type VersionCheckResult } from "../lib/version.js";
 import { logger } from "../utils/logger.js";
-import { aiSpinnerText } from "../utils/spinner.js";
 import { createCommand } from "./create.js";
 import { initCommand } from "./init.js";
 import { setupLabelsCommand } from "./setup-labels.js";
@@ -25,11 +24,10 @@ import { prCommand } from "./pr.js";
 import { buildTicketChoices } from "./list.js";
 import { githubRemoteCommand } from "./github-remote.js";
 import {
-  buildCommitMessagePrompt,
+  buildCommitPrompt,
   buildImplementationPrompt,
 } from "../lib/prompts.js";
 import {
-  invokeAI,
   invokeAIInteractive,
   getProviderDisplayName,
   getProviderEmail,
@@ -55,8 +53,6 @@ import {
 import { getWorkflowLabels, sortByPriority } from "../lib/labels.js";
 import { generateBranchName } from "../lib/branch.js";
 import type { AIProvider } from "../types/index.js";
-
-const CANCEL = Symbol("cancel");
 
 async function waitForKey(validKeys: string[]): Promise<string> {
   return new Promise((resolve) => {
@@ -210,15 +206,6 @@ async function handleCommit(
     // Stage all changes
     await execa("git", ["add", "-A"]);
 
-    // Get staged diff for AI commit message generation
-    const { stdout: diffStat } = await execa("git", [
-      "diff",
-      "--cached",
-      "--stat",
-    ]);
-    const { stdout: diffPatch } = await execa("git", ["diff", "--cached"]);
-    const diffContent = (diffStat + "\n\n" + diffPatch).slice(0, 4000);
-
     const issueNumber = state.issue?.number ?? null;
     const issueTitle = state.issue?.title ?? null;
     const provider = state.config.ai.provider;
@@ -239,87 +226,48 @@ async function handleCommit(
       return false;
     }
 
-    let message: string | typeof CANCEL;
-
     if (mode === "manual") {
+      // Manual: prompt for message and commit
       const input = await showInput({
         title: "Commit Message",
         label: "Enter commit message:",
         dashboardLines,
       });
-      message = input || CANCEL;
+
+      if (!input) {
+        await execa("git", ["reset", "HEAD"]);
+        return false;
+      }
+
+      const providerEmail = getProviderEmail(provider);
+      const fullMessage = `${input}\n\nCo-Authored-By: ${providerName} <${providerEmail}>`;
+
+      showStatus("Committing", "Committing changes...", dashboardLines);
+      await execa("git", ["commit", "-m", fullMessage]);
+      return true;
     } else {
-      showStatus("Generating", aiSpinnerText(providerName, "generate commit message"), dashboardLines);
-      message = await generateCommitMessage(
-        diffContent,
-        issueNumber,
-        issueTitle,
-        state,
-        dashboardLines
-      );
+      // AI: let the AI handle diff, message generation, and commit
+      const prompt = buildCommitPrompt(issueNumber, issueTitle, state.config);
+
+      clearScreen();
+      renderActionPanel(`${providerName} Commit`, [
+        "Creating commit for staged changes...",
+        issueNumber ? `Related: #${issueNumber} ${issueTitle ?? ""}` : "No linked issue",
+      ]);
+      console.log();
+
+      try {
+        const { result } = await invokeAIInteractive(prompt, state.config);
+        await result;
+        return true;
+      } catch (error) {
+        logger.error(`${providerName} commit failed: ${error}`);
+        return false;
+      }
     }
-
-    if (message === CANCEL) {
-      await execa("git", ["reset", "HEAD"]);
-      return false;
-    }
-
-    // Confirm commit with generated message
-    const confirmed = await showConfirm({
-      title: "Commit",
-      message: `Message: ${message.length > 50 ? message.slice(0, 50) + "…" : message}`,
-      dashboardLines,
-    });
-
-    if (!confirmed) {
-      await execa("git", ["reset", "HEAD"]);
-      return false;
-    }
-
-    const providerEmail = getProviderEmail(provider);
-    const fullMessage = `${message}\n\nCo-Authored-By: ${providerName} <${providerEmail}>`;
-
-    showStatus("Committing", "Committing changes...", dashboardLines);
-    await execa("git", ["commit", "-m", fullMessage]);
-    return true;
   } catch (error) {
     logger.error(`Commit failed: ${error}`);
     return false;
-  }
-}
-
-async function generateCommitMessage(
-  diffContent: string,
-  issueNumber: number | null,
-  issueTitle: string | null,
-  state: TuiState,
-  dashboardLines: string[]
-): Promise<string | typeof CANCEL> {
-  try {
-    const prompt = buildCommitMessagePrompt(
-      diffContent,
-      issueNumber,
-      issueTitle
-    );
-    const result = await invokeAI({ prompt, streamOutput: false }, state.config);
-    let message = result.output.trim().split("\n")[0].trim();
-    // Strip wrapping quotes, backticks, or code fences
-    for (const q of ['"', "'", "`"]) {
-      if (message.startsWith(q) && message.endsWith(q)) {
-        message = message.slice(1, -1);
-        break;
-      }
-    }
-    message = message.replace(/^```\w*\s*/, "").replace(/\s*```$/, "");
-    return message;
-  } catch {
-    // AI failed — fall back to manual input
-    const input = await showInput({
-      title: "Commit Message",
-      label: "AI generation failed. Enter commit message:",
-      dashboardLines,
-    });
-    return input || CANCEL;
   }
 }
 

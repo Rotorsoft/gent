@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { buildModalFrame, modalWidth } from "./modal.js";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { buildModalFrame, modalWidth, showStatusWithSpinner } from "./modal.js";
 import { stripAnsi } from "./display.js";
 
 describe("buildModalFrame", () => {
@@ -64,5 +64,67 @@ describe("modalWidth", () => {
     const w = modalWidth();
     expect(w).toBeGreaterThan(0);
     expect(w).toBeLessThanOrEqual(60);
+  });
+});
+
+describe("showStatusWithSpinner", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    // Mock stdout.write to avoid polluting test output
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("returns a handle with stop function", () => {
+    const handle = showStatusWithSpinner("Test", "Loading...", []);
+    expect(handle).toHaveProperty("stop");
+    expect(typeof handle.stop).toBe("function");
+    handle.stop();
+  });
+
+  it("renders immediately on creation", () => {
+    const writeSpy = vi.spyOn(process.stdout, "write");
+    const handle = showStatusWithSpinner("Test", "Loading...", []);
+
+    // Should have written to stdout for initial render
+    expect(writeSpy).toHaveBeenCalled();
+    handle.stop();
+  });
+
+  it("stops animation when stop is called", () => {
+    const writeSpy = vi.spyOn(process.stdout, "write");
+    const handle = showStatusWithSpinner("Test", "Loading...", []);
+
+    // Clear call count after initial render
+    writeSpy.mockClear();
+
+    // Stop the spinner
+    handle.stop();
+
+    // Advance timers - should not trigger more renders after stop
+    vi.advanceTimersByTime(500);
+
+    // No additional writes after stop
+    expect(writeSpy).not.toHaveBeenCalled();
+  });
+
+  it("animates spinner frames over time", () => {
+    const writeSpy = vi.spyOn(process.stdout, "write");
+    const handle = showStatusWithSpinner("Test", "Loading...", []);
+
+    // Clear initial render
+    const initialCallCount = writeSpy.mock.calls.length;
+
+    // Advance time by 80ms (one spinner frame interval)
+    vi.advanceTimersByTime(80);
+
+    // Should have rendered another frame
+    expect(writeSpy.mock.calls.length).toBeGreaterThan(initialCallCount);
+
+    handle.stop();
   });
 });

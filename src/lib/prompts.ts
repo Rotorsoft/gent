@@ -147,6 +147,41 @@ Rules:
 - Output ONLY the commit message, nothing else`;
 }
 
+/**
+ * Build prompt for AI to create a commit interactively.
+ * The AI will run git diff, generate a message, and commit.
+ */
+export function buildCommitPrompt(
+  issueNumber: number | null,
+  issueTitle: string | null,
+  config: GentConfig
+): string {
+  const provider = config.ai.provider;
+  const providerName = getProviderDisplayName(provider);
+  const providerEmail = getProviderEmail(provider);
+
+  const issueContext = issueNumber
+    ? `Related Issue: #${issueNumber}${issueTitle ? ` - ${issueTitle}` : ""}`
+    : "No linked issue";
+
+  return `Create a git commit for the staged changes.
+
+Context: ${issueContext}
+
+Steps:
+1. Run \`git diff --cached --stat\` to see what files changed
+2. Run \`git diff --cached\` to see the actual changes
+3. Generate a commit message following these rules:
+   - Use conventional commit format: <type>: <short description>
+   - Types: feat, fix, refactor, chore, docs, test, style, perf
+   - Keep the first line under 72 characters
+   - Add a blank line, then: Co-Authored-By: ${providerName} <${providerEmail}>
+4. Run \`git commit -m "<your message>"\` to create the commit
+5. Exit when done
+
+Do not ask for confirmation - just create the commit.`;
+}
+
 export function parseTicketMeta(
   output: string
 ): { type: string; priority: string; risk: string; area: string } | null {
