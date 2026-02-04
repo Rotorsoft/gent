@@ -143,3 +143,49 @@ export function showStatus(
   const lines = buildModalFrame(title, content, footer, w);
   renderOverlay(dashboardLines, lines, w);
 }
+
+// ── Animated status dialog ──────────────────────────────────────
+
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const SPINNER_INTERVAL_MS = 80;
+
+export interface SpinnerHandle {
+  stop: () => void;
+}
+
+/**
+ * Show an animated spinner status in a modal overlay.
+ * Returns a handle with stop() to stop the animation.
+ */
+export function showStatusWithSpinner(
+  title: string,
+  message: string,
+  dashboardLines: string[]
+): SpinnerHandle {
+  const w = modalWidth();
+  let frameIndex = 0;
+  let stopped = false;
+
+  const render = () => {
+    if (stopped) return;
+    const spinner = chalk.cyan(SPINNER_FRAMES[frameIndex]);
+    const content = [`${spinner} ${message}`];
+    const footer = "";
+    const lines = buildModalFrame(title, content, footer, w);
+    renderOverlay(dashboardLines, lines, w);
+    frameIndex = (frameIndex + 1) % SPINNER_FRAMES.length;
+  };
+
+  // Initial render
+  render();
+
+  // Start animation loop
+  const intervalId = setInterval(render, SPINNER_INTERVAL_MS);
+
+  return {
+    stop: () => {
+      stopped = true;
+      clearInterval(intervalId);
+    },
+  };
+}

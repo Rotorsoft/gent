@@ -253,3 +253,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/index.ts, src/tui/actions.ts, src/tui/display.ts, src/tui/state.ts, src/lib/git.ts, src/commands/init.ts, src/lib/config.test.ts, src/lib/git.test.ts, src/tui/actions.test.ts, src/tui/display.test.ts, src/tui/state.test.ts, progress.txt
 - Changes: Removed `checkInitialized()` gate from CLI commands so `.gent.yml` is no longer required. TUI now shows init as optional tip instead of blocking step. Labels check no longer requires config to exist. `getRepoSetupState()` no longer short-circuits when config is missing.
 - Decisions: Config defaults already existed in `loadConfig()` — just removed guards that blocked usage without the file. Init remains available as convenience for customization. Setup steps renumbered (remote=1, labels=2).
+
+[2026-02-04] #99 fix: fix blocking UI when generating commit message with AI
+- Files: src/lib/ai-provider.ts, src/tui/modal.ts, src/commands/tui.ts, src/lib/ai-provider.test.ts, src/tui/modal.test.ts
+- Changes: Added 30-second timeout to AI provider non-streaming calls via execa's timeout option. Created animated spinner status modal (`showStatusWithSpinner`) for visual feedback during AI generation. Updated commit message generation to use animated spinner and handle timeout errors with user-friendly fallback to manual input.
+- Decisions: Used execa's built-in timeout option (30s default). Spinner animates at 80ms intervals with Unicode braille frames. Timeout errors fall back to manual input with specific "AI generation timed out" message.

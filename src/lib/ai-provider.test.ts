@@ -10,6 +10,8 @@ import {
   getProviderDisplayName,
   invokeAI,
   invokeAIInteractive,
+  isTimeoutError,
+  AI_DEFAULT_TIMEOUT_MS,
 } from "./ai-provider.js";
 import type { AIProvider, GentConfig } from "../types/index.js";
 
@@ -84,13 +86,15 @@ describe("ai-provider", () => {
   });
 
   describe("invokeAI", () => {
-    it("invokes codex with exec subcommand", async () => {
+    it("invokes codex with exec subcommand and default timeout", async () => {
       mockExeca.mockResolvedValue({ stdout: "test output" } as any);
       const config = createTestConfig("codex");
       const result = await invokeAI({ prompt: "test" }, config);
       expect(result.provider).toBe("codex");
       expect(result.output).toBe("test output");
-      expect(mockExeca).toHaveBeenCalledWith("codex", ["exec", "test"]);
+      expect(mockExeca).toHaveBeenCalledWith("codex", ["exec", "test"], {
+        timeout: AI_DEFAULT_TIMEOUT_MS,
+      });
     });
 
     it("falls back to gemini if codex is rate limited", async () => {
@@ -167,6 +171,33 @@ describe("ai-provider", () => {
       expect(mockExeca).toHaveBeenCalledWith("gemini", ["-i", "test prompt"], {
         stdio: "inherit",
       });
+    });
+  });
+
+  describe("isTimeoutError", () => {
+    it("returns true for execa timedOut error", () => {
+      const error = { timedOut: true, message: "timed out" };
+      expect(isTimeoutError(error)).toBe(true);
+    });
+
+    it("returns true for ETIMEDOUT error code", () => {
+      const error = { code: "ETIMEDOUT", message: "connection timed out" };
+      expect(isTimeoutError(error)).toBe(true);
+    });
+
+    it("returns false for null or undefined", () => {
+      expect(isTimeoutError(null)).toBe(false);
+      expect(isTimeoutError(undefined)).toBe(false);
+    });
+
+    it("returns false for non-timeout errors", () => {
+      const error = { message: "some other error" };
+      expect(isTimeoutError(error)).toBe(false);
+    });
+
+    it("returns false for rate limit errors (not timeout)", () => {
+      const error = { exitCode: 2, message: "rate limit exceeded" };
+      expect(isTimeoutError(error)).toBe(false);
     });
   });
 });

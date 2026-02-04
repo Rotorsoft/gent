@@ -13,6 +13,7 @@ import {
   showInput,
   showMultilineInput,
   showStatus,
+  showStatusWithSpinner,
   type SelectEntry,
 } from "../tui/modal.js";
 import { checkForUpdates, type VersionCheckResult } from "../lib/version.js";
@@ -33,6 +34,8 @@ import {
   invokeAIInteractive,
   getProviderDisplayName,
   getProviderEmail,
+  isTimeoutError,
+  AI_DEFAULT_TIMEOUT_MS,
 } from "../lib/ai-provider.js";
 import {
   loadAgentInstructions,
@@ -249,14 +252,23 @@ async function handleCommit(
       });
       message = input || CANCEL;
     } else {
-      showStatus("Generating", aiSpinnerText(providerName, "generate commit message"), dashboardLines);
-      message = await generateCommitMessage(
-        diffContent,
-        issueNumber,
-        issueTitle,
-        state,
+      // Show animated spinner while generating
+      const spinner = showStatusWithSpinner(
+        "Generating",
+        aiSpinnerText(providerName, "generate commit message"),
         dashboardLines
       );
+      try {
+        message = await generateCommitMessage(
+          diffContent,
+          issueNumber,
+          issueTitle,
+          state,
+          dashboardLines
+        );
+      } finally {
+        spinner.stop();
+      }
     }
 
     if (message === CANCEL) {
@@ -301,7 +313,10 @@ async function generateCommitMessage(
       issueNumber,
       issueTitle
     );
-    const result = await invokeAI({ prompt, streamOutput: false }, state.config);
+    const result = await invokeAI(
+      { prompt, streamOutput: false, timeout: AI_DEFAULT_TIMEOUT_MS },
+      state.config
+    );
     let message = result.output.trim().split("\n")[0].trim();
     // Strip wrapping quotes, backticks, or code fences
     for (const q of ['"', "'", "`"]) {
@@ -312,11 +327,15 @@ async function generateCommitMessage(
     }
     message = message.replace(/^```\w*\s*/, "").replace(/\s*```$/, "");
     return message;
-  } catch {
-    // AI failed — fall back to manual input
+  } catch (error) {
+    // Provide specific feedback for timeout vs other errors
+    const errorLabel = isTimeoutError(error)
+      ? "AI generation timed out. Enter commit message:"
+      : "AI generation failed. Enter commit message:";
+
     const input = await showInput({
       title: "Commit Message",
-      label: "AI generation failed. Enter commit message:",
+      label: errorLabel,
       dashboardLines,
     });
     return input || CANCEL;
