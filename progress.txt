@@ -268,3 +268,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts
 - Changes: Strip CI-related environment variables for Gemini interactive sessions so the CLI enters prompt mode reliably. Updated unit tests to assert environment sanitization.
 - Decisions: Only sanitize CI/CI_* vars for Gemini interactive invocations to avoid impacting other providers.
+
+[2026-02-05] #103 fix: align Gemini interactive invocation with chat mode
+- Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts, progress.txt
+- Changes: Switched Gemini interactive sessions to use chat mode and pass the initial prompt as the first chat message while preserving environment sanitization. Updated tests to match the new command arguments.
+- Decisions: Preferred documented chat mode over the deprecated interactive flag for better TTY behavior.

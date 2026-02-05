@@ -122,10 +122,11 @@ export async function invokeAIInteractive(
       };
     }
     case "gemini": {
-      // Gemini CLI uses -i/--prompt-interactive for interactive mode with initial prompt
-      // Without -i, the positional prompt runs in one-shot mode and exits
+      // Gemini CLI interactive sessions are started via the chat mode.
+      // Provide the initial prompt as the first chat message when present.
+      const args = prompt.trim() ? ["chat", prompt] : ["chat"];
       return {
-        result: execa("gemini", ["-i", prompt], {
+        result: execa("gemini", args, {
           stdio: "inherit",
           env: buildGeminiInteractiveEnv(),
         }),

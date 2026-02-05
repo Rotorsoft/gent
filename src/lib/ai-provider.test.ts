@@ -128,7 +128,7 @@ describe("ai-provider", () => {
       );
     });
 
-    it("invokes Gemini with -i flag for interactive mode", async () => {
+    it("invokes Gemini with chat mode for interactive sessions", async () => {
       const mockResult = { exitCode: 0 };
       mockExeca.mockReturnValueOnce(mockResult as never);
 
@@ -148,7 +148,7 @@ describe("ai-provider", () => {
       };
       expect(mockExeca).toHaveBeenCalledWith(
         "gemini",
-        ["-i", "test prompt"],
+        ["chat", "test prompt"],
         expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
       );
       expect(call.env).not.toHaveProperty("CI");
@@ -194,7 +194,7 @@ describe("ai-provider", () => {
       expect(provider).toBe("gemini");
       expect(mockExeca).toHaveBeenCalledWith(
         "gemini",
-        ["-i", "test prompt"],
+        ["chat", "test prompt"],
         expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
       );
     });
