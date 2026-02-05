@@ -273,3 +273,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts, progress.txt
 - Changes: Switched Gemini interactive sessions to use chat mode and pass the initial prompt as the first chat message while preserving environment sanitization. Updated tests to match the new command arguments.
 - Decisions: Preferred documented chat mode over the deprecated interactive flag for better TTY behavior.
+
+[2026-02-05] #105 fix: fix Gemini CLI interactive mode terminal freeze
+- Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts
+- Changes: Fixed Gemini interactive invocation by replacing non-existent `chat` subcommand with `-i` flag for prompt-interactive mode. Switched from `execa` to native `spawn` for better TTY handling. Empty args used when no prompt provided.
+- Decisions: Gemini CLI v0.27+ uses `-i/--prompt-interactive` flag. Native `spawn` handles TTY passthrough better than execa when spawning interactive CLIs (ref: github.com/google-gemini/gemini-cli/issues/6715).
