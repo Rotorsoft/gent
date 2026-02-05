@@ -263,3 +263,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/utils/logger.ts, src/utils/logger.test.ts, src/commands/pr.ts, src/commands/run.ts
 - Changes: Added `logger.table()` utility for rendering bordered key-value summary tables. Updated `pr.ts` and `run.ts` to use the new table format instead of multiple `logger.info()` calls with individual icon lines.
 - Decisions: Table filters empty values, supports ANSI colors, and aligns columns consistently. Exported `TableEntry` interface for typed usage.
+
+[2026-02-05] #103 fix: restore Gemini interactive input handling
+- Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts
+- Changes: Strip CI-related environment variables for Gemini interactive sessions so the CLI enters prompt mode reliably. Updated unit tests to assert environment sanitization.
+- Decisions: Only sanitize CI/CI_* vars for Gemini interactive invocations to avoid impacting other providers.

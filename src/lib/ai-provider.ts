@@ -125,7 +125,10 @@ export async function invokeAIInteractive(
       // Gemini CLI uses -i/--prompt-interactive for interactive mode with initial prompt
       // Without -i, the positional prompt runs in one-shot mode and exits
       return {
-        result: execa("gemini", ["-i", prompt], { stdio: "inherit" }),
+        result: execa("gemini", ["-i", prompt], {
+          stdio: "inherit",
+          env: buildGeminiInteractiveEnv(),
+        }),
         provider,
       };
     }
@@ -231,6 +234,18 @@ export function isTimeoutError(error: unknown): boolean {
   }
 
   return false;
+}
+
+function buildGeminiInteractiveEnv(): Record<string, string | undefined> {
+  const env = { ...process.env };
+  delete env.CI;
+  delete env.CONTINUOUS_INTEGRATION;
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("CI_")) {
+      delete env[key];
+    }
+  }
+  return env;
 }
 
 /**
