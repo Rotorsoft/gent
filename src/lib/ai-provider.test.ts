@@ -128,19 +128,43 @@ describe("ai-provider", () => {
       );
     });
 
-    it("invokes Gemini with -i flag for interactive mode", async () => {
+    it("invokes Gemini with chat mode for interactive sessions", async () => {
       const mockResult = { exitCode: 0 };
       mockExeca.mockReturnValueOnce(mockResult as never);
 
       const config = createTestConfig("gemini");
       const prompt = "test prompt";
+      const previousCI = process.env.CI;
+      const previousCIToken = process.env.CI_TOKEN;
+      process.env.CI = "true";
+      process.env.CI_TOKEN = "abc123";
 
       const { provider } = await invokeAIInteractive(prompt, config);
 
       expect(provider).toBe("gemini");
-      expect(mockExeca).toHaveBeenCalledWith("gemini", ["-i", "test prompt"], {
-        stdio: "inherit",
-      });
+      const call = mockExeca.mock.calls[0]?.[2] as {
+        stdio?: string;
+        env?: Record<string, string | undefined>;
+      };
+      expect(mockExeca).toHaveBeenCalledWith(
+        "gemini",
+        ["chat", "test prompt"],
+        expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
+      );
+      expect(call.env).not.toHaveProperty("CI");
+      expect(call.env).not.toHaveProperty("CI_TOKEN");
+      expect(call.env).not.toHaveProperty("CONTINUOUS_INTEGRATION");
+
+      if (previousCI === undefined) {
+        delete process.env.CI;
+      } else {
+        process.env.CI = previousCI;
+      }
+      if (previousCIToken === undefined) {
+        delete process.env.CI_TOKEN;
+      } else {
+        process.env.CI_TOKEN = previousCIToken;
+      }
     });
 
     it("invokes Codex with prompt for interactive mode", async () => {
@@ -168,9 +192,11 @@ describe("ai-provider", () => {
       const { provider } = await invokeAIInteractive(prompt, config, "gemini");
 
       expect(provider).toBe("gemini");
-      expect(mockExeca).toHaveBeenCalledWith("gemini", ["-i", "test prompt"], {
-        stdio: "inherit",
-      });
+      expect(mockExeca).toHaveBeenCalledWith(
+        "gemini",
+        ["chat", "test prompt"],
+        expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
+      );
     });
   });
 
