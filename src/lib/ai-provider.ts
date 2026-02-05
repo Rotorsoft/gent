@@ -1,26 +1,9 @@
-import { spawn, type ChildProcess } from "child_process";
+import { spawn } from "child_process";
 import { execa, type ResultPromise } from "execa";
 import type { GentConfig, AIProvider } from "../types/index.js";
 import { logger, colors } from "../utils/logger.js";
 
 import { checkAIProvider } from "../utils/validators.js";
-
-/** Wraps a ChildProcess as a promise-like object compatible with ResultPromise interface */
-function wrapChildProcess(child: ChildProcess): ResultPromise {
-  const promise = new Promise<{ exitCode: number | null }>((resolve, reject) => {
-    child.on("close", (code) => {
-      resolve({ exitCode: code });
-    });
-    child.on("error", reject);
-  }) as ResultPromise;
-
-  // Add exitCode getter for compatibility
-  Object.defineProperty(promise, "exitCode", {
-    get: () => child.exitCode,
-  });
-
-  return promise;
-}
 
 /** Default timeout for AI provider calls (30 seconds) */
 export const AI_DEFAULT_TIMEOUT_MS = 30_000;
@@ -139,16 +122,14 @@ export async function invokeAIInteractive(
       };
     }
     case "gemini": {
-      // Use native spawn for Gemini interactive mode to ensure proper TTY handling.
-      // execa can have issues with TTY detection in some environments.
-      // The -i flag executes the prompt and continues in interactive mode.
-      const args = prompt.trim() ? ["-i", prompt] : [];
-      const child = spawn("gemini", args, {
-        stdio: "inherit",
-        env: buildGeminiInteractiveEnv(),
-      });
+      // Gemini CLI defaults to interactive mode with positional query args.
+      // Use execa with stdio: "inherit" (like Claude/Codex) for proper full-screen TUI.
+      const args = prompt.trim() ? [prompt] : [];
       return {
-        result: wrapChildProcess(child),
+        result: execa("gemini", args, {
+          stdio: "inherit",
+          env: buildGeminiInteractiveEnv(),
+        }),
         provider,
       };
     }

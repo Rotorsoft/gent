@@ -278,3 +278,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts
 - Changes: Fixed Gemini interactive invocation by replacing non-existent `chat` subcommand with `-i` flag for prompt-interactive mode. Switched from `execa` to native `spawn` for better TTY handling. Empty args used when no prompt provided.
 - Decisions: Gemini CLI v0.27+ uses `-i/--prompt-interactive` flag. Native `spawn` handles TTY passthrough better than execa when spawning interactive CLIs (ref: github.com/google-gemini/gemini-cli/issues/6715).
+
+[2026-02-05] #105 fix: fix Gemini CLI interactive mode terminal freeze and narrow display
+- Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts, progress.txt
+- Changes: Switched Gemini interactive invocation from native `spawn` with `-i` flag back to `execa` with positional args, matching the Claude/Codex pattern. Removed unused `wrapChildProcess` helper.
+- Decisions: Gemini CLI defaults to interactive mode with positional query args — no `-i` flag needed. `execa` with `stdio: "inherit"` provides proper full-screen TUI handling (same as Claude/Codex), fixing both the terminal freeze and the narrow display issue.

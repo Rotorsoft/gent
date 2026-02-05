@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { EventEmitter } from "events";
 
 // Mock execa
 vi.mock("execa", () => ({
@@ -12,7 +11,6 @@ vi.mock("child_process", () => ({
 }));
 
 import { execa } from "execa";
-import { spawn } from "child_process";
 import {
   getProviderDisplayName,
   invokeAI,
@@ -23,7 +21,6 @@ import {
 import type { AIProvider, GentConfig } from "../types/index.js";
 
 const mockExeca = vi.mocked(execa);
-const mockSpawn = vi.mocked(spawn);
 
 // Minimal config for testing
 const createTestConfig = (
@@ -142,11 +139,8 @@ describe("ai-provider", () => {
       );
     });
 
-    it("invokes Gemini with -i flag for interactive sessions using spawn", async () => {
-      // Create mock child process
-      const mockChildProcess = new EventEmitter() as EventEmitter & { exitCode: number | null };
-      mockChildProcess.exitCode = null;
-      mockSpawn.mockReturnValueOnce(mockChildProcess as never);
+    it("invokes Gemini with positional prompt via execa for full-screen TUI", async () => {
+      mockExeca.mockReturnValueOnce({ exitCode: 0 } as never);
 
       const config = createTestConfig("gemini");
       const prompt = "test prompt";
@@ -157,21 +151,14 @@ describe("ai-provider", () => {
 
       const { provider } = await invokeAIInteractive(prompt, config);
 
-      // Emit close event to resolve the promise
-      mockChildProcess.emit("close", 0);
-
       expect(provider).toBe("gemini");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const calls = mockSpawn.mock.calls as any;
-      expect(mockSpawn).toHaveBeenCalledWith(
+      expect(mockExeca).toHaveBeenCalledWith(
         "gemini",
-        ["-i", "test prompt"],
+        ["test prompt"],
         expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
       );
-      const call = calls[0]?.[2] as {
-        stdio?: string;
-        env?: Record<string, string | undefined>;
-      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call = (mockExeca.mock.calls as any)[1]?.[2] ?? (mockExeca.mock.calls as any)[0]?.[2];
       expect(call.env).not.toHaveProperty("CI");
       expect(call.env).not.toHaveProperty("CI_TOKEN");
       expect(call.env).not.toHaveProperty("CONTINUOUS_INTEGRATION");
@@ -203,43 +190,31 @@ describe("ai-provider", () => {
       });
     });
 
-    it("uses provider override when specified (Gemini via spawn)", async () => {
-      // Create mock child process
-      const mockChildProcess = new EventEmitter() as EventEmitter & { exitCode: number | null };
-      mockChildProcess.exitCode = null;
-      mockSpawn.mockReturnValueOnce(mockChildProcess as never);
+    it("uses provider override when specified (Gemini via execa)", async () => {
+      mockExeca.mockReturnValueOnce({ exitCode: 0 } as never);
 
       const config = createTestConfig("claude");
       const prompt = "test prompt";
 
       const { provider } = await invokeAIInteractive(prompt, config, "gemini");
 
-      // Emit close event to resolve the promise
-      mockChildProcess.emit("close", 0);
-
       expect(provider).toBe("gemini");
-      expect(mockSpawn).toHaveBeenCalledWith(
+      expect(mockExeca).toHaveBeenCalledWith(
         "gemini",
-        ["-i", "test prompt"],
+        ["test prompt"],
         expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
       );
     });
 
     it("invokes Gemini with empty args when no prompt provided", async () => {
-      // Create mock child process
-      const mockChildProcess = new EventEmitter() as EventEmitter & { exitCode: number | null };
-      mockChildProcess.exitCode = null;
-      mockSpawn.mockReturnValueOnce(mockChildProcess as never);
+      mockExeca.mockReturnValueOnce({ exitCode: 0 } as never);
 
       const config = createTestConfig("gemini");
 
       const { provider } = await invokeAIInteractive("", config);
 
-      // Emit close event to resolve the promise
-      mockChildProcess.emit("close", 0);
-
       expect(provider).toBe("gemini");
-      expect(mockSpawn).toHaveBeenCalledWith(
+      expect(mockExeca).toHaveBeenCalledWith(
         "gemini",
         [],
         expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
