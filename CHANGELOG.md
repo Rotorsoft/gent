@@ -1,3 +1,11 @@
+## [1.25.1](https://github.com/rotorsoft/gent/compare/v1.25.0...v1.25.1) (2026-02-05)
+
+
+### Bug Fixes
+
+* align gemini interactive chat mode ([cfa2d44](https://github.com/rotorsoft/gent/commit/cfa2d44ef0c3a413bcf20c037d85b7ab1dd06993)), closes [#103](https://github.com/rotorsoft/gent/issues/103)
+* restore gemini interactive input handling ([618b629](https://github.com/rotorsoft/gent/commit/618b629e7a69f928efc969849f888ebcaf7cc20b)), closes [#103](https://github.com/rotorsoft/gent/issues/103)
+
 # [1.25.0](https://github.com/rotorsoft/gent/compare/v1.24.1...v1.25.0) (2026-02-04)
 
 
