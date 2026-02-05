@@ -217,34 +217,45 @@ function drainStdin(): Promise<void> {
 
 /**
  * Run an AI interactive session with proper signal and stdin handling.
- * - Ignores SIGINT/SIGTERM in the parent so only the child reacts to Ctrl+C
+ * - Replaces all SIGINT/SIGTERM handlers so no listener can exit the parent
  * - Drains buffered stdin after the child exits
  */
 async function runInteractiveSession(
   prompt: string,
   config: GentConfig
 ): Promise<void> {
+  // Save and replace ALL signal handlers — libraries like signal-exit (used by
+  // execa) re-raise SIGINT after cleanup which can kill the process if any
+  // listener calls process.exit() or if all listeners are removed mid-cycle.
+  const savedSigint = process.rawListeners("SIGINT").slice();
+  const savedSigterm = process.rawListeners("SIGTERM").slice();
+  process.removeAllListeners("SIGINT");
+  process.removeAllListeners("SIGTERM");
   const noop = () => {};
   process.on("SIGINT", noop);
   process.on("SIGTERM", noop);
   try {
     const { result } = await invokeAIInteractive(prompt, config);
     await result;
-  } catch (error) {
-    // Suppress signal-killed errors (e.g. user pressed Ctrl+C)
-    if (
-      error &&
-      typeof error === "object" &&
-      "signal" in error &&
-      typeof (error as Record<string, unknown>).signal === "string"
-    ) {
-      return;
-    }
-    throw error;
+  } catch {
+    // Suppress ALL child-process errors during interactive sessions.
+    // The child may exit via signal (SIGINT), non-zero exit code (e.g. 130),
+    // or spawn failure — all are expected when the user presses Ctrl+C or
+    // the AI CLI exits on its own.
   } finally {
-    process.off("SIGINT", noop);
-    process.off("SIGTERM", noop);
-    await drainStdin();
+    process.removeAllListeners("SIGINT");
+    process.removeAllListeners("SIGTERM");
+    for (const fn of savedSigint) {
+      process.on("SIGINT", fn as (...args: unknown[]) => void);
+    }
+    for (const fn of savedSigterm) {
+      process.on("SIGTERM", fn as (...args: unknown[]) => void);
+    }
+    try {
+      await drainStdin();
+    } catch {
+      // Ignore drain errors — terminal may be in unexpected state after child exit
+    }
   }
 }
 

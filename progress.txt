@@ -288,3 +288,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/tui.ts
 - Changes: Added `runInteractiveSession` wrapper that ignores SIGINT/SIGTERM in the parent process while the AI subprocess runs, and drains buffered stdin after exit. Fixes Ctrl+C killing gent instead of just the AI CLI, and stale escape sequences leaking into TUI.
 - Decisions: Signal-killed child errors suppressed since Ctrl+C exit is expected. Stdin drain uses 50ms timeout to flush kernel buffer.
+
+[2026-02-05] #105 fix: robustly prevent Ctrl+C from killing gent during interactive sessions
+- Files: src/commands/tui.ts
+- Changes: Replaced additive noop SIGINT handler with save-and-replace-all approach. Now saves all existing SIGINT/SIGTERM listeners, removes them, adds noop, and restores after session. Broadened catch to suppress all child process errors (not just signal-killed). Wrapped drainStdin in try-catch.
+- Decisions: Libraries like signal-exit (used by execa) re-raise SIGINT after cleanup, which could kill the process if other listeners interfere. Saving/replacing all listeners eliminates the race. Catching all child errors is safe since any exit from an interactive session is expected.
