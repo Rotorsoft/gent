@@ -283,3 +283,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts, progress.txt
 - Changes: Switched Gemini interactive invocation from native `spawn` with `-i` flag back to `execa` with positional args, matching the Claude/Codex pattern. Removed unused `wrapChildProcess` helper.
 - Decisions: Gemini CLI defaults to interactive mode with positional query args — no `-i` flag needed. `execa` with `stdio: "inherit"` provides proper full-screen TUI handling (same as Claude/Codex), fixing both the terminal freeze and the narrow display issue.
+
+[2026-02-05] #105 fix: handle Ctrl+C and stdin buffering in TUI interactive sessions
+- Files: src/commands/tui.ts
+- Changes: Added `runInteractiveSession` wrapper that ignores SIGINT/SIGTERM in the parent process while the AI subprocess runs, and drains buffered stdin after exit. Fixes Ctrl+C killing gent instead of just the AI CLI, and stale escape sequences leaking into TUI.
+- Decisions: Signal-killed child errors suppressed since Ctrl+C exit is expected. Stdin drain uses 50ms timeout to flush kernel buffer.
