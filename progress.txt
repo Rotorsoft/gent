@@ -298,3 +298,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/commands/status.ts, progress.txt
 - Changes: Replaced all loose `logger.info/success/warning/error` calls in status command with `logger.table()` bordered tables for Configuration, AI Provider, Prerequisites, Git Status, Linked Issue, and Pull Request sections. Imported `checkCodexCLI` and added Codex CLI availability check. Updated `getProviderStatus` to accept all `AIProvider` types. Parallelized prerequisite checks with `Promise.all`. Suggested Actions section kept as `logger.list()`.
 - Decisions: Used chalk coloring in table values to preserve semantic status (green=ok, red=error, yellow=warning) that was previously conveyed by logger icons. Feedback items rendered as empty-key table entries for alignment within the PR table. Suggested Actions also converted to table with command keys and description values. Also converted `logger.box()` calls in pr.ts, create.ts, init.ts, and run.ts to `logger.table()` for consistent bordered table output across all commands.
+
+[2026-02-06] #110 fix: configure semantic-release to trigger patch releases for refactor and perf commits
+- Files: .releaserc.json
+- Changes: Added custom `releaseRules` to `@semantic-release/commit-analyzer` mapping `refactor` and `perf` commit types to `patch` releases.
+- Decisions: Configuration-only change. Existing `feat` (minor) and `fix` (patch) defaults are preserved since custom rules extend (not replace) defaults.
