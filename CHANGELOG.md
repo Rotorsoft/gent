@@ -1,3 +1,10 @@
+## [1.25.3](https://github.com/rotorsoft/gent/compare/v1.25.2...v1.25.3) (2026-02-06)
+
+
+### Bug Fixes
+
+* configure semantic-release to trigger patch releases for refactor and perf commits ([e4d70fb](https://github.com/rotorsoft/gent/commit/e4d70fbe42fd9ee5cef2aa1c6497e643da760ed8)), closes [#110](https://github.com/rotorsoft/gent/issues/110)
+
 ## [1.25.2](https://github.com/rotorsoft/gent/compare/v1.25.1...v1.25.2) (2026-02-06)
 
 
