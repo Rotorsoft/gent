@@ -28,7 +28,7 @@ import {
   buildImplementationPrompt,
 } from "../lib/prompts.js";
 import {
-  invokeAIInteractive,
+  runInteractiveSession,
   getProviderDisplayName,
   getProviderEmail,
 } from "../lib/ai-provider.js";
@@ -216,41 +216,16 @@ function drainStdin(): Promise<void> {
 }
 
 /**
- * Run an AI interactive session with proper signal and stdin handling.
- * - Replaces all SIGINT/SIGTERM handlers so no listener can exit the parent
- * - Drains buffered stdin after the child exits
+ * Run an AI interactive session and drain buffered stdin afterward.
+ * Uses the shared runInteractiveSession for signal-safe subprocess handling.
  */
-async function runInteractiveSession(
+async function runAISession(
   prompt: string,
   config: GentConfig
 ): Promise<void> {
-  // Save and replace ALL signal handlers — libraries like signal-exit (used by
-  // execa) re-raise SIGINT after cleanup which can kill the process if any
-  // listener calls process.exit() or if all listeners are removed mid-cycle.
-  const savedSigint = process.rawListeners("SIGINT").slice();
-  const savedSigterm = process.rawListeners("SIGTERM").slice();
-  process.removeAllListeners("SIGINT");
-  process.removeAllListeners("SIGTERM");
-  const noop = () => {};
-  process.on("SIGINT", noop);
-  process.on("SIGTERM", noop);
   try {
-    const { result } = await invokeAIInteractive(prompt, config);
-    await result;
-  } catch {
-    // Suppress ALL child-process errors during interactive sessions.
-    // The child may exit via signal (SIGINT), non-zero exit code (e.g. 130),
-    // or spawn failure — all are expected when the user presses Ctrl+C or
-    // the AI CLI exits on its own.
+    await runInteractiveSession(prompt, config);
   } finally {
-    process.removeAllListeners("SIGINT");
-    process.removeAllListeners("SIGTERM");
-    for (const fn of savedSigint) {
-      process.on("SIGINT", fn as (...args: unknown[]) => void);
-    }
-    for (const fn of savedSigterm) {
-      process.on("SIGTERM", fn as (...args: unknown[]) => void);
-    }
     try {
       await drainStdin();
     } catch {
@@ -331,7 +306,7 @@ async function handleCommit(
       logger.newline();
 
       try {
-        await runInteractiveSession(prompt, state.config);
+        await runAISession(prompt, state.config);
         return true;
       } catch (error) {
         logger.error(`${providerName} commit failed: ${error}`);
@@ -395,7 +370,7 @@ async function handleRun(state: TuiState): Promise<void> {
   console.log();
 
   try {
-    await runInteractiveSession(prompt, state.config);
+    await runAISession(prompt, state.config);
   } catch (error) {
     logger.error(`${providerName} session failed: ${error}`);
   }

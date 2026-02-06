@@ -5,7 +5,7 @@ import { loadConfig, loadAgentInstructions } from "../lib/config.js";
 import { getIssue, updateIssueLabels, addIssueComment } from "../lib/github.js";
 import { buildImplementationPrompt } from "../lib/prompts.js";
 import {
-  invokeAIInteractive,
+  runInteractiveSession,
   getProviderDisplayName,
 } from "../lib/ai-provider.js";
 import {
@@ -223,38 +223,25 @@ export async function runCommand(
   // Capture commit SHA before AI runs
   const beforeSha = await getCurrentCommitSha();
 
-  // Track if operation was cancelled
-  let wasCancelled = false;
-  const handleSignal = () => {
-    wasCancelled = true;
-  };
-  process.on("SIGINT", handleSignal);
-  process.on("SIGTERM", handleSignal);
-
-  // Invoke AI interactively
+  // Invoke AI interactively with robust signal handling
   spinner.stop();
   let aiExitCode: number | undefined;
+  let wasCancelled = false;
   let usedProvider = provider;
   try {
-    const { result, provider: actualProvider } = await invokeAIInteractive(
+    const session = await runInteractiveSession(
       prompt,
       config,
       options.provider
     );
-    usedProvider = actualProvider;
-    aiExitCode = result.exitCode ?? undefined;
+    aiExitCode = session.exitCode;
+    wasCancelled = session.signalCancelled;
+    usedProvider = session.provider;
   } catch (error) {
-    if (error && typeof error === "object" && "exitCode" in error) {
-      aiExitCode = error.exitCode as number;
-    }
     logger.error(
       `${getProviderDisplayName(usedProvider)} session failed: ${error}`
     );
     // Don't exit - allow user to see what happened
-  } finally {
-    // Clean up signal handlers
-    process.off("SIGINT", handleSignal);
-    process.off("SIGTERM", handleSignal);
   }
 
   // Post-completion

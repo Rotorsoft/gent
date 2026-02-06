@@ -110,9 +110,9 @@ describe("executeAction", () => {
 
   it("returns continue for 'run' action after completion (no confirm needed)", async () => {
     // Mock AI invocation — no confirm dialog needed anymore
-    vi.mocked(aiProvider.invokeAIInteractive).mockResolvedValue({
-      // @ts-expect-error - minimal AI response for test
-      result: Promise.resolve({} as any),
+    vi.mocked(aiProvider.runInteractiveSession).mockResolvedValue({
+      exitCode: 0,
+      signalCancelled: false,
       provider: "claude",
     });
 
@@ -120,7 +120,7 @@ describe("executeAction", () => {
 
     expect(result.running).toBe(true);
     expect(result.refresh).toBe(true);
-    expect(aiProvider.invokeAIInteractive).toHaveBeenCalled();
+    expect(aiProvider.runInteractiveSession).toHaveBeenCalled();
     expect(display.clearScreen).toHaveBeenCalled();
   });
 

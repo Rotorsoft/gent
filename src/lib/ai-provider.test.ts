@@ -15,6 +15,7 @@ import {
   getProviderDisplayName,
   invokeAI,
   invokeAIInteractive,
+  runInteractiveSession,
   isTimeoutError,
   AI_DEFAULT_TIMEOUT_MS,
 } from "./ai-provider.js";
@@ -218,6 +219,67 @@ describe("ai-provider", () => {
         "gemini",
         [],
         expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
+      );
+    });
+  });
+
+  describe("runInteractiveSession", () => {
+    it("awaits the subprocess and returns exit code", async () => {
+      const mockResult = Promise.resolve({ exitCode: 0 });
+      mockExeca.mockReturnValueOnce(mockResult as never);
+
+      const config = createTestConfig("claude");
+      const session = await runInteractiveSession("test prompt", config);
+
+      expect(session.exitCode).toBe(0);
+      expect(session.signalCancelled).toBe(false);
+      expect(session.provider).toBe("claude");
+    });
+
+    it("captures exit code from failed subprocess", async () => {
+      const error = new Error("Process exited with code 1");
+      (error as any).exitCode = 1;
+      const mockResult = Promise.reject(error);
+      mockExeca.mockReturnValueOnce(mockResult as never);
+
+      const config = createTestConfig("gemini");
+      const session = await runInteractiveSession("test prompt", config);
+
+      expect(session.exitCode).toBe(1);
+      expect(session.signalCancelled).toBe(false);
+      expect(session.provider).toBe("gemini");
+    });
+
+    it("restores signal handlers after session", async () => {
+      const mockResult = Promise.resolve({ exitCode: 0 });
+      mockExeca.mockReturnValueOnce(mockResult as never);
+
+      const sigintBefore = process.listenerCount("SIGINT");
+      const sigtermBefore = process.listenerCount("SIGTERM");
+
+      const config = createTestConfig("claude");
+      await runInteractiveSession("test prompt", config);
+
+      expect(process.listenerCount("SIGINT")).toBe(sigintBefore);
+      expect(process.listenerCount("SIGTERM")).toBe(sigtermBefore);
+    });
+
+    it("uses provider override when specified", async () => {
+      const mockResult = Promise.resolve({ exitCode: 0 });
+      mockExeca.mockReturnValueOnce(mockResult as never);
+
+      const config = createTestConfig("claude");
+      const session = await runInteractiveSession(
+        "test prompt",
+        config,
+        "codex"
+      );
+
+      expect(session.provider).toBe("codex");
+      expect(mockExeca).toHaveBeenCalledWith(
+        "codex",
+        ["test prompt"],
+        expect.objectContaining({ stdio: "inherit" })
       );
     });
   });
