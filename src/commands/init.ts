@@ -194,14 +194,12 @@ export async function initCommand(options: { force?: boolean }): Promise<void> {
 
   if (!repoInfo) {
     logger.newline();
-    logger.box(
-      "Setup Complete",
-      `Next steps:
-1. Edit ${colors.file("AGENT.md")} with your project-specific instructions
-2. Edit ${colors.file(".gent.yml")} to customize settings
-3. Create a GitHub remote: ${colors.command("gent github-remote")}
-4. Run ${colors.command("gent setup-labels")} to create GitHub labels`
-    );
+    logger.table("Setup Complete", [
+      { key: "Edit", value: `${colors.file("AGENT.md")} with your project-specific instructions` },
+      { key: "Edit", value: `${colors.file(".gent.yml")} to customize settings` },
+      { key: "Create remote", value: `Run ${colors.command("gent github-remote")}` },
+      { key: "Setup labels", value: `Run ${colors.command("gent setup-labels")}` },
+    ]);
 
     const { createRemote } = await inquirer.prompt([
       {
@@ -233,14 +231,12 @@ export async function initCommand(options: { force?: boolean }): Promise<void> {
     }
   } else {
     logger.newline();
-    logger.box(
-      "Setup Complete",
-      `Next steps:
-1. Edit ${colors.file("AGENT.md")} with your project-specific instructions
-2. Edit ${colors.file(".gent.yml")} to customize settings
-3. Run ${colors.command("gent setup-labels")} to create GitHub labels
-4. Run ${colors.command("gent create <description>")} to create your first ticket`
-    );
+    logger.table("Setup Complete", [
+      { key: "Edit", value: `${colors.file("AGENT.md")} with your project-specific instructions` },
+      { key: "Edit", value: `${colors.file(".gent.yml")} to customize settings` },
+      { key: "Setup labels", value: `Run ${colors.command("gent setup-labels")}` },
+      { key: "Create ticket", value: `Run ${colors.command("gent create <description>")}` },
+    ]);
 
     // Remote exists — offer label setup directly
     const { setupLabels } = await inquirer.prompt([

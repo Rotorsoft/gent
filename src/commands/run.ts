@@ -329,11 +329,10 @@ export async function runCommand(
   }
 
   logger.newline();
-  logger.box(
-    "Next Steps",
-    `1. Review changes: ${colors.command("git diff HEAD~1")}
-2. Run tests: ${colors.command("npm test")}
-3. Push branch: ${colors.command("git push -u origin " + branchName)}
-4. Create PR: ${colors.command("gent pr")}`
-  );
+  logger.table("Next Steps", [
+    { key: "Review changes", value: colors.command("git diff HEAD~1") },
+    { key: "Run tests", value: colors.command("npm test") },
+    { key: "Push branch", value: colors.command("git push -u origin " + branchName) },
+    { key: "Create PR", value: colors.command("gent pr") },
+  ]);
 }
