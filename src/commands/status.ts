@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { logger, colors } from "../utils/logger.js";
 import { loadConfig } from "../lib/config.js";
 import { getIssue, getPrStatus, getPrReviewData } from "../lib/github.js";
@@ -18,6 +19,7 @@ import {
   checkGhAuth,
   checkClaudeCli,
   checkGeminiCli,
+  checkCodexCLI,
   checkGitRepo,
 } from "../utils/validators.js";
 import { getProviderDisplayName } from "../lib/ai-provider.js";
@@ -26,28 +28,29 @@ import {
   summarizeReviewFeedback,
   type ReviewFeedbackItem,
 } from "../lib/review-feedback.js";
+import type { AIProvider } from "../types/index.js";
 
 function formatPrState(
   state: "open" | "closed" | "merged",
   isDraft: boolean
 ): string {
   if (state === "merged") {
-    return "Merged";
+    return chalk.magenta("Merged");
   }
   if (state === "closed") {
-    return "Closed";
+    return chalk.red("Closed");
   }
-  return isDraft ? "Open (Draft)" : "Open";
+  return isDraft ? chalk.yellow("Open (Draft)") : chalk.green("Open");
 }
 
 function formatReviewDecision(decision: string): string {
   switch (decision) {
     case "APPROVED":
-      return "Approved";
+      return chalk.green("Approved");
     case "CHANGES_REQUESTED":
-      return "Changes Requested";
+      return chalk.red("Changes Requested");
     case "REVIEW_REQUIRED":
-      return "Review Required";
+      return chalk.yellow("Review Required");
     default:
       return decision.replace(/_/g, " ").toLowerCase();
   }
@@ -93,103 +96,97 @@ export async function statusCommand(): Promise<void> {
   const workflowLabels = getWorkflowLabels(config);
 
   // Configuration status
-  logger.bold("Configuration:");
-  if (configExists()) {
-    logger.success("  .gent.yml found");
-  } else {
-    logger.warning("  .gent.yml not found - using defaults");
-  }
-
+  const configStatus = configExists()
+    ? chalk.green("Found")
+    : chalk.yellow("Not found - using defaults");
+  let progressStatus: string;
   if (progressExists(config)) {
     const progress = readProgress(config);
     const lines = progress.split("\n").length;
-    logger.success(`  ${config.progress.file} found (${lines} lines)`);
+    progressStatus = chalk.green(`Found (${lines} lines)`);
   } else {
-    logger.warning(`  ${config.progress.file} not found`);
+    progressStatus = chalk.yellow("Not found");
   }
-
-  logger.newline();
+  logger.table("Configuration", [
+    { key: ".gent.yml", value: configStatus },
+    { key: config.progress.file, value: progressStatus },
+  ]);
 
   // AI Provider status
-  logger.bold("AI Provider:");
   const providerName = getProviderDisplayName(config.ai.provider);
-  logger.info(`  Active: ${colors.provider(providerName)}`);
-  if (config.ai.fallback_provider) {
-    const fallbackName = getProviderDisplayName(config.ai.fallback_provider);
-    logger.info(
-      `  Fallback: ${fallbackName} (auto: ${config.ai.auto_fallback ? "enabled" : "disabled"})`
-    );
-  }
-  logger.newline();
+  const fallbackValue = config.ai.fallback_provider
+    ? `${getProviderDisplayName(config.ai.fallback_provider)} (auto: ${config.ai.auto_fallback ? "enabled" : "disabled"})`
+    : "";
+  logger.table("AI Provider", [
+    { key: "Active", value: colors.provider(providerName) },
+    { key: "Fallback", value: fallbackValue },
+  ]);
 
   // Prerequisites
-  logger.bold("Prerequisites:");
-  const ghAuth = await checkGhAuth();
-  if (ghAuth) {
-    logger.success("  GitHub CLI authenticated");
-  } else {
-    logger.error("  GitHub CLI not authenticated");
-  }
+  const [ghAuth, claudeOk, geminiOk, codexOk] = await Promise.all([
+    checkGhAuth(),
+    checkClaudeCli(),
+    checkGeminiCli(),
+    checkCodexCLI(),
+  ]);
 
-  // Check all AI providers
-  const claudeOk = await checkClaudeCli();
-  const geminiOk = await checkGeminiCli();
-
-  const getProviderStatus = (provider: "claude" | "gemini"): string => {
+  const getProviderStatus = (provider: AIProvider): string => {
     const isActive = config.ai.provider === provider;
     const isFallback = config.ai.fallback_provider === provider;
-    const suffix = isActive ? " (active)" : isFallback ? " (fallback)" : "";
-    return suffix;
+    return isActive ? " (active)" : isFallback ? " (fallback)" : "";
   };
 
-  if (claudeOk) {
-    logger.success(`  Claude CLI available${getProviderStatus("claude")}`);
-  } else {
-    logger.error(`  Claude CLI not found${getProviderStatus("claude")}`);
-  }
+  const cliStatus = (ok: boolean, provider: AIProvider) => {
+    const suffix = getProviderStatus(provider);
+    return ok
+      ? chalk.green(`Available${suffix}`)
+      : chalk.red(`Not found${suffix}`);
+  };
 
-  if (geminiOk) {
-    logger.success(`  Gemini CLI available${getProviderStatus("gemini")}`);
-  } else {
-    logger.error(`  Gemini CLI not found${getProviderStatus("gemini")}`);
-  }
-
-  logger.newline();
+  logger.table("Prerequisites", [
+    {
+      key: "GitHub CLI",
+      value: ghAuth ? chalk.green("Authenticated") : chalk.red("Not authenticated"),
+    },
+    { key: "Claude CLI", value: cliStatus(claudeOk, "claude") },
+    { key: "Gemini CLI", value: cliStatus(geminiOk, "gemini") },
+    { key: "Codex CLI", value: cliStatus(codexOk, "codex") },
+  ]);
 
   // Git status
-  logger.bold("Git Status:");
   const currentBranch = await getCurrentBranch();
   const onMain = await isOnMainBranch();
   const uncommitted = await hasUncommittedChanges();
   const baseBranch = await getDefaultBranch();
 
-  logger.info(`  Branch: ${colors.branch(currentBranch)}`);
+  const gitEntries: { key: string; value: string }[] = [
+    { key: "Branch", value: colors.branch(currentBranch) },
+  ];
 
   if (onMain) {
-    logger.info("  On main branch - ready to start new work");
+    gitEntries.push({ key: "Status", value: "On main branch - ready to start new work" });
   } else {
     const branchInfo = parseBranchName(currentBranch);
     if (branchInfo) {
-      logger.info(`  Issue: ${colors.issue(`#${branchInfo.issueNumber}`)}`);
-      logger.info(`  Type: ${branchInfo.type}`);
+      gitEntries.push({ key: "Issue", value: colors.issue(`#${branchInfo.issueNumber}`) });
+      gitEntries.push({ key: "Type", value: branchInfo.type });
     }
 
     const commits = await getCommitsSinceBase(baseBranch);
-    logger.info(`  Commits ahead of ${baseBranch}: ${commits.length}`);
+    gitEntries.push({ key: `Commits ahead of ${baseBranch}`, value: String(commits.length) });
 
     const unpushed = await getUnpushedCommits();
-    if (unpushed) {
-      logger.warning("  Has unpushed commits");
-    } else {
-      logger.success("  Up to date with remote");
-    }
+    gitEntries.push({
+      key: "Push status",
+      value: unpushed ? chalk.yellow("Has unpushed commits") : chalk.green("Up to date with remote"),
+    });
   }
 
   if (uncommitted) {
-    logger.warning("  Has uncommitted changes");
+    gitEntries.push({ key: "Working tree", value: chalk.yellow("Has uncommitted changes") });
   }
 
-  logger.newline();
+  logger.table("Git Status", gitEntries);
 
   // Linked issue status and PR status (only when not on main)
   let prStatus: Awaited<ReturnType<typeof getPrStatus>> = null;
@@ -198,39 +195,42 @@ export async function statusCommand(): Promise<void> {
   if (!onMain) {
     const issueNumber = extractIssueNumber(currentBranch);
     if (issueNumber) {
-      logger.bold("Linked Issue:");
       try {
         const issue = await getIssue(issueNumber);
-        logger.info(`  #${issue.number}: ${issue.title}`);
-        logger.info(`  State: ${issue.state}`);
-        logger.info(`  Labels: ${issue.labels.join(", ")}`);
 
-        // Check workflow status
+        let workflowValue = "";
         if (issue.labels.includes(workflowLabels.ready)) {
-          logger.info(`  Workflow: ${colors.label("ai-ready")}`);
+          workflowValue = colors.label("ai-ready");
         } else if (issue.labels.includes(workflowLabels.inProgress)) {
-          logger.info(`  Workflow: ${colors.label("ai-in-progress")}`);
+          workflowValue = colors.label("ai-in-progress");
         } else if (issue.labels.includes(workflowLabels.completed)) {
-          logger.info(`  Workflow: ${colors.label("ai-completed")}`);
+          workflowValue = colors.label("ai-completed");
         } else if (issue.labels.includes(workflowLabels.blocked)) {
-          logger.info(`  Workflow: ${colors.label("ai-blocked")}`);
+          workflowValue = colors.label("ai-blocked");
         }
+
+        logger.table("Linked Issue", [
+          { key: "Issue", value: `${colors.issue(`#${issue.number}`)} ${issue.title}` },
+          { key: "State", value: issue.state },
+          { key: "Labels", value: issue.labels.map((l) => colors.label(l)).join(", ") },
+          { key: "Workflow", value: workflowValue },
+        ]);
       } catch {
-        logger.warning(`  Could not fetch issue #${issueNumber}`);
+        logger.table("Linked Issue", [
+          { key: "Issue", value: chalk.yellow(`Could not fetch #${issueNumber}`) },
+        ]);
       }
-      logger.newline();
     }
 
     // PR status
-    logger.bold("Pull Request:");
     prStatus = await getPrStatus();
     if (prStatus) {
-      const stateDisplay = formatPrState(prStatus.state, prStatus.isDraft);
-      logger.info(`  PR #${prStatus.number}: ${stateDisplay}`);
-      logger.info(`  ${colors.url(prStatus.url)}`);
+      const prEntries: { key: string; value: string }[] = [
+        { key: "PR", value: `#${prStatus.number} ${formatPrState(prStatus.state, prStatus.isDraft)}` },
+        { key: "URL", value: colors.url(prStatus.url) },
+      ];
 
       if (prStatus.state === "open") {
-        // Fetch review data to show actionable feedback
         try {
           const lastCommitTimestamp = await getLastCommitTimestamp();
           const reviewData = await getPrReviewData(prStatus.number);
@@ -240,47 +240,46 @@ export async function statusCommand(): Promise<void> {
           hasActionableFeedback = items.length > 0;
 
           if (prStatus.reviewDecision) {
-            logger.info(
-              `  Review: ${formatReviewDecision(prStatus.reviewDecision)}`
-            );
+            prEntries.push({ key: "Review", value: formatReviewDecision(prStatus.reviewDecision) });
           }
 
           if (items.length > 0) {
-            logger.warning(
-              `  ${items.length} actionable comment${items.length > 1 ? "s" : ""} to fix with ${colors.command("gent fix")}:`
-            );
+            prEntries.push({
+              key: "Feedback",
+              value: chalk.yellow(`${items.length} actionable comment${items.length > 1 ? "s" : ""} — fix with ${colors.command("gent fix")}`),
+            });
             for (const item of items) {
               const location = formatFeedbackLocation(item);
               const body = truncateFeedbackBody(item.body, 60);
-              logger.dim(`    ${location}: ${body}`);
+              prEntries.push({ key: "", value: chalk.dim(`${location}: ${body}`) });
             }
           } else if (prStatus.reviewDecision === "APPROVED") {
-            logger.success("  Ready to merge!");
+            prEntries.push({ key: "Status", value: chalk.green("Ready to merge!") });
           } else {
-            logger.info("  No actionable review comments");
+            prEntries.push({ key: "Feedback", value: "No actionable review comments" });
           }
         } catch {
           // Silently ignore review data fetch errors
         }
       } else if (prStatus.state === "merged") {
-        logger.success("  This PR has been merged!");
-        logger.dim(
-          `  Run ${colors.command("git checkout main && git pull")} to sync`
-        );
+        prEntries.push({ key: "Status", value: chalk.green("This PR has been merged!") });
+        prEntries.push({ key: "Next", value: chalk.dim(`Run ${colors.command("git checkout main && git pull")} to sync`) });
       } else if (prStatus.state === "closed") {
-        logger.warning("  This PR was closed without merging");
-        logger.dim(
-          `  Consider reopening or creating a new PR if changes are still needed`
-        );
+        prEntries.push({ key: "Status", value: chalk.yellow("Closed without merging") });
+        prEntries.push({ key: "Next", value: chalk.dim("Consider reopening or creating a new PR") });
       }
+
+      logger.table("Pull Request", prEntries);
     } else {
-      logger.info("  No PR created yet");
-      logger.dim(`  Run ${colors.command("gent pr")} to create one`);
+      logger.table("Pull Request", [
+        { key: "Status", value: "No PR created yet" },
+        { key: "Next", value: chalk.dim(`Run ${colors.command("gent pr")} to create one`) },
+      ]);
     }
-    logger.newline();
   }
 
   // Suggestions
+  logger.newline();
   logger.bold("Suggested Actions:");
   if (onMain) {
     logger.list([
