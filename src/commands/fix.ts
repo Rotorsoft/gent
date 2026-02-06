@@ -11,7 +11,7 @@ import {
 } from "../lib/github.js";
 import { buildImplementationPrompt } from "../lib/prompts.js";
 import {
-  invokeAIInteractive,
+  runInteractiveSession,
   getProviderDisplayName,
 } from "../lib/ai-provider.js";
 import {
@@ -149,30 +149,19 @@ export async function fixCommand(options: FixOptions): Promise<void> {
 
   const beforeSha = await getCurrentCommitSha();
 
-  let wasCancelled = false;
-  const handleSignal = () => {
-    wasCancelled = true;
-  };
-  process.on("SIGINT", handleSignal);
-  process.on("SIGTERM", handleSignal);
-
   spinner.stop();
   let aiExitCode: number | undefined;
+  let wasCancelled = false;
   try {
-    const { result } = await invokeAIInteractive(
+    const session = await runInteractiveSession(
       prompt,
       config,
       options.provider
     );
-    aiExitCode = result.exitCode ?? undefined;
+    aiExitCode = session.exitCode;
+    wasCancelled = session.signalCancelled;
   } catch (error) {
-    if (error && typeof error === "object" && "exitCode" in error) {
-      aiExitCode = error.exitCode as number;
-    }
     logger.error(`${providerName} session failed: ${error}`);
-  } finally {
-    process.off("SIGINT", handleSignal);
-    process.off("SIGTERM", handleSignal);
   }
 
   logger.newline();

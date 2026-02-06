@@ -273,3 +273,23 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts, progress.txt
 - Changes: Switched Gemini interactive sessions to use chat mode and pass the initial prompt as the first chat message while preserving environment sanitization. Updated tests to match the new command arguments.
 - Decisions: Preferred documented chat mode over the deprecated interactive flag for better TTY behavior.
+
+[2026-02-05] #105 fix: fix Gemini CLI interactive mode terminal freeze
+- Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts
+- Changes: Fixed Gemini interactive invocation by replacing non-existent `chat` subcommand with `-i` flag for prompt-interactive mode. Switched from `execa` to native `spawn` for better TTY handling. Empty args used when no prompt provided.
+- Decisions: Gemini CLI v0.27+ uses `-i/--prompt-interactive` flag. Native `spawn` handles TTY passthrough better than execa when spawning interactive CLIs (ref: github.com/google-gemini/gemini-cli/issues/6715).
+
+[2026-02-05] #105 fix: fix Gemini CLI interactive mode terminal freeze and narrow display
+- Files: src/lib/ai-provider.ts, src/lib/ai-provider.test.ts, progress.txt
+- Changes: Switched Gemini interactive invocation from native `spawn` with `-i` flag back to `execa` with positional args, matching the Claude/Codex pattern. Removed unused `wrapChildProcess` helper.
+- Decisions: Gemini CLI defaults to interactive mode with positional query args — no `-i` flag needed. `execa` with `stdio: "inherit"` provides proper full-screen TUI handling (same as Claude/Codex), fixing both the terminal freeze and the narrow display issue.
+
+[2026-02-05] #105 fix: handle Ctrl+C and stdin buffering in TUI interactive sessions
+- Files: src/commands/tui.ts
+- Changes: Added `runInteractiveSession` wrapper that ignores SIGINT/SIGTERM in the parent process while the AI subprocess runs, and drains buffered stdin after exit. Fixes Ctrl+C killing gent instead of just the AI CLI, and stale escape sequences leaking into TUI.
+- Decisions: Signal-killed child errors suppressed since Ctrl+C exit is expected. Stdin drain uses 50ms timeout to flush kernel buffer.
+
+[2026-02-05] #105 fix: robustly prevent Ctrl+C from killing gent during interactive sessions
+- Files: src/commands/tui.ts
+- Changes: Replaced additive noop SIGINT handler with save-and-replace-all approach. Now saves all existing SIGINT/SIGTERM listeners, removes them, adds noop, and restores after session. Broadened catch to suppress all child process errors (not just signal-killed). Wrapped drainStdin in try-catch.
+- Decisions: Libraries like signal-exit (used by execa) re-raise SIGINT after cleanup, which could kill the process if other listeners interfere. Saving/replacing all listeners eliminates the race. Catching all child errors is safe since any exit from an interactive session is expected.

@@ -5,11 +5,17 @@ vi.mock("execa", () => ({
   execa: vi.fn(),
 }));
 
+// Mock child_process spawn
+vi.mock("child_process", () => ({
+  spawn: vi.fn(),
+}));
+
 import { execa } from "execa";
 import {
   getProviderDisplayName,
   invokeAI,
   invokeAIInteractive,
+  runInteractiveSession,
   isTimeoutError,
   AI_DEFAULT_TIMEOUT_MS,
 } from "./ai-provider.js";
@@ -62,6 +68,12 @@ const createTestConfig = (
     provider,
     auto_fallback: !!fallback,
     fallback_provider: fallback,
+  },
+  video: {
+    enabled: true,
+    max_duration: 30,
+    width: 1280,
+    height: 720,
   },
   validation: ["npm run typecheck", "npm run lint"],
 });
@@ -128,9 +140,8 @@ describe("ai-provider", () => {
       );
     });
 
-    it("invokes Gemini with chat mode for interactive sessions", async () => {
-      const mockResult = { exitCode: 0 };
-      mockExeca.mockReturnValueOnce(mockResult as never);
+    it("invokes Gemini with positional prompt via execa for full-screen TUI", async () => {
+      mockExeca.mockReturnValueOnce({ exitCode: 0 } as never);
 
       const config = createTestConfig("gemini");
       const prompt = "test prompt";
@@ -142,15 +153,13 @@ describe("ai-provider", () => {
       const { provider } = await invokeAIInteractive(prompt, config);
 
       expect(provider).toBe("gemini");
-      const call = mockExeca.mock.calls[0]?.[2] as {
-        stdio?: string;
-        env?: Record<string, string | undefined>;
-      };
       expect(mockExeca).toHaveBeenCalledWith(
         "gemini",
-        ["chat", "test prompt"],
+        ["test prompt"],
         expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const call = (mockExeca.mock.calls as any)[1]?.[2] ?? (mockExeca.mock.calls as any)[0]?.[2];
       expect(call.env).not.toHaveProperty("CI");
       expect(call.env).not.toHaveProperty("CI_TOKEN");
       expect(call.env).not.toHaveProperty("CONTINUOUS_INTEGRATION");
@@ -182,9 +191,8 @@ describe("ai-provider", () => {
       });
     });
 
-    it("uses provider override when specified", async () => {
-      const mockResult = { exitCode: 0 };
-      mockExeca.mockReturnValueOnce(mockResult as never);
+    it("uses provider override when specified (Gemini via execa)", async () => {
+      mockExeca.mockReturnValueOnce({ exitCode: 0 } as never);
 
       const config = createTestConfig("claude");
       const prompt = "test prompt";
@@ -194,8 +202,84 @@ describe("ai-provider", () => {
       expect(provider).toBe("gemini");
       expect(mockExeca).toHaveBeenCalledWith(
         "gemini",
-        ["chat", "test prompt"],
+        ["test prompt"],
         expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
+      );
+    });
+
+    it("invokes Gemini with empty args when no prompt provided", async () => {
+      mockExeca.mockReturnValueOnce({ exitCode: 0 } as never);
+
+      const config = createTestConfig("gemini");
+
+      const { provider } = await invokeAIInteractive("", config);
+
+      expect(provider).toBe("gemini");
+      expect(mockExeca).toHaveBeenCalledWith(
+        "gemini",
+        [],
+        expect.objectContaining({ stdio: "inherit", env: expect.any(Object) })
+      );
+    });
+  });
+
+  describe("runInteractiveSession", () => {
+    it("awaits the subprocess and returns exit code", async () => {
+      const mockResult = Promise.resolve({ exitCode: 0 });
+      mockExeca.mockReturnValueOnce(mockResult as never);
+
+      const config = createTestConfig("claude");
+      const session = await runInteractiveSession("test prompt", config);
+
+      expect(session.exitCode).toBe(0);
+      expect(session.signalCancelled).toBe(false);
+      expect(session.provider).toBe("claude");
+    });
+
+    it("captures exit code from failed subprocess", async () => {
+      const error = new Error("Process exited with code 1");
+      (error as any).exitCode = 1;
+      const mockResult = Promise.reject(error);
+      mockExeca.mockReturnValueOnce(mockResult as never);
+
+      const config = createTestConfig("gemini");
+      const session = await runInteractiveSession("test prompt", config);
+
+      expect(session.exitCode).toBe(1);
+      expect(session.signalCancelled).toBe(false);
+      expect(session.provider).toBe("gemini");
+    });
+
+    it("restores signal handlers after session", async () => {
+      const mockResult = Promise.resolve({ exitCode: 0 });
+      mockExeca.mockReturnValueOnce(mockResult as never);
+
+      const sigintBefore = process.listenerCount("SIGINT");
+      const sigtermBefore = process.listenerCount("SIGTERM");
+
+      const config = createTestConfig("claude");
+      await runInteractiveSession("test prompt", config);
+
+      expect(process.listenerCount("SIGINT")).toBe(sigintBefore);
+      expect(process.listenerCount("SIGTERM")).toBe(sigtermBefore);
+    });
+
+    it("uses provider override when specified", async () => {
+      const mockResult = Promise.resolve({ exitCode: 0 });
+      mockExeca.mockReturnValueOnce(mockResult as never);
+
+      const config = createTestConfig("claude");
+      const session = await runInteractiveSession(
+        "test prompt",
+        config,
+        "codex"
+      );
+
+      expect(session.provider).toBe("codex");
+      expect(mockExeca).toHaveBeenCalledWith(
+        "codex",
+        ["test prompt"],
+        expect.objectContaining({ stdio: "inherit" })
       );
     });
   });

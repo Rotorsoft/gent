@@ -28,7 +28,7 @@ import {
   buildImplementationPrompt,
 } from "../lib/prompts.js";
 import {
-  invokeAIInteractive,
+  runInteractiveSession,
   getProviderDisplayName,
   getProviderEmail,
 } from "../lib/ai-provider.js";
@@ -52,7 +52,7 @@ import {
 } from "../lib/git.js";
 import { getWorkflowLabels, sortByPriority } from "../lib/labels.js";
 import { generateBranchName } from "../lib/branch.js";
-import type { AIProvider } from "../types/index.js";
+import type { AIProvider, GentConfig } from "../types/index.js";
 
 async function waitForKey(validKeys: string[]): Promise<string> {
   return new Promise((resolve) => {
@@ -190,6 +190,50 @@ export async function executeAction(
   }
 }
 
+/**
+ * Drain buffered stdin data to prevent stale input after interactive sessions.
+ * Keystrokes typed during a subprocess accumulate in the kernel buffer;
+ * consuming them here keeps the TUI from seeing stale escape sequences.
+ */
+function drainStdin(): Promise<void> {
+  return new Promise((resolve) => {
+    const { stdin } = process;
+    if (!stdin.isTTY) {
+      resolve();
+      return;
+    }
+    stdin.setRawMode(true);
+    stdin.resume();
+    const discard = () => {};
+    stdin.on("data", discard);
+    setTimeout(() => {
+      stdin.removeListener("data", discard);
+      stdin.pause();
+      stdin.setRawMode(false);
+      resolve();
+    }, 50);
+  });
+}
+
+/**
+ * Run an AI interactive session and drain buffered stdin afterward.
+ * Uses the shared runInteractiveSession for signal-safe subprocess handling.
+ */
+async function runAISession(
+  prompt: string,
+  config: GentConfig
+): Promise<void> {
+  try {
+    await runInteractiveSession(prompt, config);
+  } finally {
+    try {
+      await drainStdin();
+    } catch {
+      // Ignore drain errors — terminal may be in unexpected state after child exit
+    }
+  }
+}
+
 /** Returns true if a commit was made. */
 async function handleCommit(
   state: TuiState,
@@ -262,8 +306,7 @@ async function handleCommit(
       logger.newline();
 
       try {
-        const { result } = await invokeAIInteractive(prompt, state.config);
-        await result;
+        await runAISession(prompt, state.config);
         return true;
       } catch (error) {
         logger.error(`${providerName} commit failed: ${error}`);
@@ -327,8 +370,7 @@ async function handleRun(state: TuiState): Promise<void> {
   console.log();
 
   try {
-    const { result } = await invokeAIInteractive(prompt, state.config);
-    await result;
+    await runAISession(prompt, state.config);
   } catch (error) {
     logger.error(`${providerName} session failed: ${error}`);
   }

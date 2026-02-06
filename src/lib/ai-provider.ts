@@ -5,6 +5,12 @@ import { logger, colors } from "../utils/logger.js";
 
 import { checkAIProvider } from "../utils/validators.js";
 
+export interface InteractiveSessionResult {
+  exitCode?: number;
+  signalCancelled: boolean;
+  provider: AIProvider;
+}
+
 /** Default timeout for AI provider calls (30 seconds) */
 export const AI_DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -122,9 +128,9 @@ export async function invokeAIInteractive(
       };
     }
     case "gemini": {
-      // Gemini CLI interactive sessions are started via the chat mode.
-      // Provide the initial prompt as the first chat message when present.
-      const args = prompt.trim() ? ["chat", prompt] : ["chat"];
+      // Gemini CLI defaults to interactive mode with positional query args.
+      // Use execa with stdio: "inherit" (like Claude/Codex) for proper full-screen TUI.
+      const args = prompt.trim() ? [prompt] : [];
       return {
         result: execa("gemini", args, {
           stdio: "inherit",
@@ -142,6 +148,66 @@ export async function invokeAIInteractive(
       };
     }
   }
+}
+
+/**
+ * Run an AI interactive session with robust signal handling.
+ * Saves/replaces all SIGINT/SIGTERM handlers so the parent process
+ * is not killed when the child receives Ctrl+C, and properly awaits
+ * the subprocess result.
+ */
+export async function runInteractiveSession(
+  prompt: string,
+  config: GentConfig,
+  providerOverride?: AIProvider
+): Promise<InteractiveSessionResult> {
+  const provider = providerOverride ?? config.ai.provider;
+
+  // Save and replace ALL signal handlers — libraries like signal-exit (used by
+  // execa) re-raise SIGINT after cleanup which can kill the process if any
+  // listener calls process.exit() or if all listeners are removed mid-cycle.
+  const savedSigint = process.rawListeners("SIGINT").slice();
+  const savedSigterm = process.rawListeners("SIGTERM").slice();
+  process.removeAllListeners("SIGINT");
+  process.removeAllListeners("SIGTERM");
+
+  let signalCancelled = false;
+  const handler = () => {
+    signalCancelled = true;
+  };
+  process.on("SIGINT", handler);
+  process.on("SIGTERM", handler);
+
+  let exitCode: number | undefined;
+
+  try {
+    const { result } = await invokeAIInteractive(
+      prompt,
+      config,
+      providerOverride
+    );
+    try {
+      const r = await result;
+      exitCode = r.exitCode ?? undefined;
+    } catch (error) {
+      // Child may exit via signal (SIGINT), non-zero exit code (e.g. 130),
+      // or spawn failure — all are expected during interactive sessions.
+      if (error && typeof error === "object" && "exitCode" in error) {
+        exitCode = error.exitCode as number;
+      }
+    }
+  } finally {
+    process.removeAllListeners("SIGINT");
+    process.removeAllListeners("SIGTERM");
+    for (const fn of savedSigint) {
+      process.on("SIGINT", fn as (...args: unknown[]) => void);
+    }
+    for (const fn of savedSigterm) {
+      process.on("SIGTERM", fn as (...args: unknown[]) => void);
+    }
+  }
+
+  return { exitCode, signalCancelled, provider };
 }
 
 /**
@@ -326,16 +392,22 @@ async function invokeGeminiInternal(
   args.push(options.prompt);
 
   if (options.printOutput) {
+    // Use "ignore" for stdin so Gemini runs in one-shot mode (no TTY → exits after response).
+    // Claude uses --print flag for this; Gemini relies on non-TTY stdin detection.
     const subprocess = execa("gemini", args, {
-      stdio: "inherit",
+      stdio: ["ignore", "inherit", "inherit"],
     });
     await subprocess;
     return "";
   } else if (options.streamOutput) {
     return new Promise((resolve, reject) => {
+      // Use "pipe" for stdin so Gemini runs in one-shot mode and exits after response.
+      // With "inherit" (TTY), Gemini enters interactive mode and never exits.
       const child = spawn("gemini", args, {
-        stdio: ["inherit", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
       });
+      // Close stdin immediately to signal EOF
+      child.stdin.end();
 
       let output = "";
       let firstData = true;
