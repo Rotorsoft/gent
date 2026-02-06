@@ -279,37 +279,37 @@ export async function statusCommand(): Promise<void> {
   }
 
   // Suggestions
-  logger.newline();
-  logger.bold("Suggested Actions:");
+  let suggestions: { key: string; value: string }[] = [];
   if (onMain) {
-    logger.list([
-      `${colors.command("gent list")} - View ai-ready issues`,
-      `${colors.command("gent run --auto")} - Start working on highest priority issue`,
-      `${colors.command("gent create <description>")} - Create a new ticket`,
-    ]);
+    suggestions = [
+      { key: "gent list", value: "View ai-ready issues" },
+      { key: "gent run --auto", value: "Start working on highest priority issue" },
+      { key: "gent create", value: "Create a new ticket" },
+    ];
   } else if (!prStatus) {
-    logger.list([
-      `${colors.command("gent pr")} - Create a pull request`,
-      `${colors.command("git push")} - Push your changes`,
-    ]);
+    suggestions = [
+      { key: "gent pr", value: "Create a pull request" },
+      { key: "git push", value: "Push your changes" },
+    ];
   } else if (prStatus.state === "merged") {
-    logger.list([
-      `${colors.command("git checkout main && git pull")} - Sync with merged changes`,
-    ]);
+    suggestions = [
+      { key: "git checkout main && git pull", value: "Sync with merged changes" },
+    ];
   } else if (prStatus.state === "closed") {
-    logger.list([
-      `Reopen the PR if changes are still needed`,
-      `${colors.command("git checkout main")} - Return to main branch`,
-    ]);
+    suggestions = [
+      { key: "Reopen PR", value: "If changes are still needed" },
+      { key: "git checkout main", value: "Return to main branch" },
+    ];
   } else if (hasActionableFeedback) {
-    logger.list([
-      `${colors.command("gent fix")} - Address review comments with AI`,
-      `${colors.command("git push")} - Push any local changes`,
-    ]);
+    suggestions = [
+      { key: "gent fix", value: "Address review comments with AI" },
+      { key: "git push", value: "Push any local changes" },
+    ];
   } else {
-    logger.list([
-      `Review and merge your PR`,
-      `${colors.command("git checkout main")} - Return to main branch`,
-    ]);
+    suggestions = [
+      { key: "Merge PR", value: "Review and merge your pull request" },
+      { key: "git checkout main", value: "Return to main branch" },
+    ];
   }
+  logger.table("Suggested Actions", suggestions);
 }
