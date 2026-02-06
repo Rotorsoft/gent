@@ -1,3 +1,14 @@
+## [1.25.2](https://github.com/rotorsoft/gent/compare/v1.25.1...v1.25.2) (2026-02-06)
+
+
+### Bug Fixes
+
+* handle Ctrl+C and stdin buffering in TUI interactive sessions ([30ea91b](https://github.com/rotorsoft/gent/commit/30ea91ba77cdd7bd6c2bb47ab33527e9ffb27807)), closes [#105](https://github.com/rotorsoft/gent/issues/105)
+* robust signal handling and fix Gemini CLI terminal freezing ([5ba21c8](https://github.com/rotorsoft/gent/commit/5ba21c8d9f3ec7e4901a1c08186ec446531955a3))
+* robustly prevent Ctrl+C from killing gent during interactive sessions ([32418d1](https://github.com/rotorsoft/gent/commit/32418d11cdf286baebb1c194c3277de1c2776c32)), closes [#105](https://github.com/rotorsoft/gent/issues/105)
+* use execa with positional args for Gemini interactive mode ([867402b](https://github.com/rotorsoft/gent/commit/867402bdf3647e54b9b1b97c71579482af346321)), closes [#105](https://github.com/rotorsoft/gent/issues/105)
+* use spawn for Gemini CLI interactive mode ([f07ffb3](https://github.com/rotorsoft/gent/commit/f07ffb39afc058a0e587413905c206d6deaeb480)), closes [google-gemini/gemini-cli#6715](https://github.com/google-gemini/gemini-cli/issues/6715) [#105](https://github.com/rotorsoft/gent/issues/105)
+
 ## [1.25.1](https://github.com/rotorsoft/gent/compare/v1.25.0...v1.25.1) (2026-02-05)
 
 
