@@ -294,14 +294,10 @@ IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
     if (uiChangesForHint) {
       const playwrightOk = await isPlaywrightAvailable();
       if (playwrightOk) {
-        logger.bold("Next Steps");
-        logger.info(
-          "Run `claude` with Playwright MCP to record a demo video of the changes."
-        );
-        logger.info(
-          "Upload the result to GitHub Assets to keep the repo light."
-        );
-        logger.newline();
+        logger.table("Next Steps", [
+          { key: "Record video", value: "Run `claude` with Playwright MCP to record a demo video of the changes" },
+          { key: "Upload", value: "Upload the result to GitHub Assets to keep the repo light" },
+        ]);
       }
     }
   }

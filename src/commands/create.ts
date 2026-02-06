@@ -278,16 +278,15 @@ async function createAndDisplayIssue(
   logger.success(`Created issue ${colors.issue(`#${issueNumber}`)}`);
   logger.newline();
 
-  logger.box(
-    "Issue Created",
-    `Issue: ${colors.issue(`#${issueNumber}`)}
-Type: ${colors.label(`type:${meta.type}`)}
-Priority: ${colors.label(`priority:${meta.priority}`)}
-Risk: ${colors.label(`risk:${meta.risk}`)}
-Area: ${colors.label(`area:${meta.area}`)}
-
-Next steps:
-1. Review the issue on GitHub
-2. Run ${colors.command(`gent run ${issueNumber}`)} to implement`
-  );
+  logger.table("Issue Created", [
+    { key: "Issue", value: colors.issue(`#${issueNumber}`) },
+    { key: "Type", value: colors.label(`type:${meta.type}`) },
+    { key: "Priority", value: colors.label(`priority:${meta.priority}`) },
+    { key: "Risk", value: colors.label(`risk:${meta.risk}`) },
+    { key: "Area", value: colors.label(`area:${meta.area}`) },
+  ]);
+  logger.table("Next Steps", [
+    { key: "Review", value: "Review the issue on GitHub" },
+    { key: "Implement", value: `Run ${colors.command(`gent run ${issueNumber}`)}` },
+  ]);
 }
