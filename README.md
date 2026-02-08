@@ -1,5 +1,7 @@
 # @rotorsoft/gent
 
+[![CI](https://github.com/Rotorsoft/gent/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Rotorsoft/gent/actions/workflows/ci.yml) [![Release](https://github.com/Rotorsoft/gent/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/Rotorsoft/gent/actions/workflows/release.yml) [![npm version](https://img.shields.io/npm/v/@rotorsoft/gent)](https://www.npmjs.com/package/@rotorsoft/gent) [![npm downloads](https://img.shields.io/npm/dm/@rotorsoft/gent)](https://www.npmjs.com/package/@rotorsoft/gent) [![License](https://img.shields.io/npm/l/@rotorsoft/gent)](https://github.com/Rotorsoft/gent/blob/main/LICENSE) [![Node.js](https://img.shields.io/node/v/@rotorsoft/gent)](https://nodejs.org)
+
 AI-powered GitHub workflow tool - leverage AI (Claude, Gemini, or Codex) to create tickets, implement features, and manage PRs from an interactive dashboard.
 
 
