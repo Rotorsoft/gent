@@ -193,6 +193,45 @@ describe("moveCursorWordRight", () => {
   });
 });
 
+describe("paste insertion rendering", () => {
+  it("renders correctly after pasting text at beginning", () => {
+    // Simulate: value="" cursor=0, paste "hello" -> value="hello" cursor=5
+    const lines = buildMultilineInputContent("Label:", "hello", true, 40, 5);
+    expect(stripAnsi(lines[2])).toContain("hello");
+  });
+
+  it("renders correctly after pasting text in middle", () => {
+    // Simulate: value="ab" cursor=1, paste "XY" -> value="aXYb" cursor=3
+    const lines = buildMultilineInputContent("Label:", "aXYb", true, 40, 3);
+    expect(stripAnsi(lines[2])).toContain("aXYb");
+  });
+
+  it("renders correctly after pasting multi-line text", () => {
+    // Simulate: value="ab" cursor=1, paste "X\nY" -> value="aX\nYb" cursor=4
+    const lines = buildMultilineInputContent("Label:", "aX\nYb", true, 40, 4);
+    expect(stripAnsi(lines[2])).toContain("aX");
+    expect(stripAnsi(lines[3])).toContain("Yb");
+    // label + blank + 2 input lines = 4
+    expect(lines.length).toBe(4);
+  });
+
+  it("renders correctly after pasting at end of text", () => {
+    // Simulate: value="hello" cursor=5, paste " world" -> value="hello world" cursor=11
+    const lines = buildMultilineInputContent("Label:", "hello world", true, 40, 11);
+    expect(stripAnsi(lines[2])).toContain("hello world");
+  });
+
+  it("advances cursor correctly for multi-line paste", () => {
+    // Simulate: value="" cursor=0, paste "a\nb\nc" -> cursor at 5 (end)
+    const value = "a\nb\nc";
+    const cursorPos = value.length; // 5
+    const visualLines = getVisualLines(value, 38);
+    const { row, col } = findCursorVisualPos(visualLines, cursorPos);
+    expect(row).toBe(2); // third visual line
+    expect(col).toBe(1); // after "c"
+  });
+});
+
 describe("buildMultilineInputContent with cursorPos", () => {
   it("does not insert extra characters at cursor position", () => {
     const lines = buildMultilineInputContent("Label:", "hello", true, 40, 2);

@@ -275,6 +275,13 @@ export async function showMultilineInput(
         render();
         break;
 
+      case "paste":
+        value = value.slice(0, cursorPos) + key.raw + value.slice(cursorPos);
+        cursorPos += key.raw.length;
+        cursorBlink = true;
+        render();
+        break;
+
       default:
         if (key.raw.length === 1 && key.raw.charCodeAt(0) >= 32) {
           value = value.slice(0, cursorPos) + key.raw + value.slice(cursorPos);
