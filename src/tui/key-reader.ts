@@ -1,5 +1,7 @@
 export interface KeyPress {
+  /** Key name. For paste events, name is "paste". */
   name: string;
+  /** Raw key data. Usually one character, but for paste events may contain multiple characters including newlines. */
   raw: string;
 }
 
@@ -11,47 +13,76 @@ export function readKey(): Promise<KeyPress> {
     stdin.resume();
     stdin.setEncoding("utf8");
 
+    // Enable bracketed paste mode so terminals wrap pasted text in delimiters
+    process.stdout.write("\x1b[?2004h");
+
+    const done = (key: KeyPress) => {
+      // Disable bracketed paste mode
+      process.stdout.write("\x1b[?2004l");
+      resolve(key);
+    };
+
     const onData = (data: string) => {
       stdin.setRawMode(wasRaw ?? false);
       stdin.pause();
       stdin.removeListener("data", onData);
 
-      if (data === "\x03") {
-        resolve({ name: "escape", raw: data }); // Ctrl+C → escape
+      // Bracketed paste: \x1b[200~ ... \x1b[201~
+      if (data.startsWith("\x1b[200~")) {
+        const endMarker = "\x1b[201~";
+        const endIdx = data.indexOf(endMarker);
+        const content = (endIdx >= 0 ? data.slice(6, endIdx) : data.slice(6))
+          .replace(/\r\n/g, "\n")
+          .replace(/\r/g, "\n");
+        done({ name: "paste", raw: content });
+      } else if (data === "\x03") {
+        done({ name: "escape", raw: data }); // Ctrl+C → escape
       } else if (data === "\x1b" || data === "\x1b\x1b") {
-        resolve({ name: "escape", raw: data });
+        done({ name: "escape", raw: data });
       } else if (data === "\x1b[A") {
-        resolve({ name: "up", raw: data });
+        done({ name: "up", raw: data });
       } else if (data === "\x1b[B") {
-        resolve({ name: "down", raw: data });
+        done({ name: "down", raw: data });
       } else if (data === "\x1b[C") {
-        resolve({ name: "right", raw: data });
+        done({ name: "right", raw: data });
       } else if (data === "\x1b[D") {
-        resolve({ name: "left", raw: data });
+        done({ name: "left", raw: data });
       } else if (data === "\x1b[1;5C" || data === "\x1b[5C") {
-        resolve({ name: "ctrl-right", raw: data });
+        done({ name: "ctrl-right", raw: data });
       } else if (data === "\x1b[1;5D" || data === "\x1b[5D") {
-        resolve({ name: "ctrl-left", raw: data });
+        done({ name: "ctrl-left", raw: data });
       } else if (data === "\x1b[3~") {
-        resolve({ name: "delete", raw: data });
+        done({ name: "delete", raw: data });
       } else if (data === "\x1b[H" || data === "\x1b[1~") {
-        resolve({ name: "home", raw: data });
+        done({ name: "home", raw: data });
       } else if (data === "\x1b[F" || data === "\x1b[4~") {
-        resolve({ name: "end", raw: data });
+        done({ name: "end", raw: data });
       } else if (data === "\x01") {
-        resolve({ name: "home", raw: data }); // Ctrl+A
+        done({ name: "home", raw: data }); // Ctrl+A
       } else if (data === "\x05") {
-        resolve({ name: "end", raw: data }); // Ctrl+E
+        done({ name: "end", raw: data }); // Ctrl+E
       } else if (data === "\r" || data === "\n") {
-        resolve({ name: "enter", raw: data });
+        done({ name: "enter", raw: data });
       } else if (data === "\x7f" || data === "\x08") {
-        resolve({ name: "backspace", raw: data });
+        done({ name: "backspace", raw: data });
       } else if (data === "\t") {
-        resolve({ name: "tab", raw: data });
+        done({ name: "tab", raw: data });
       } else if (data === "\x13") {
-        resolve({ name: "ctrl-s", raw: data }); // Ctrl+S
+        done({ name: "ctrl-s", raw: data }); // Ctrl+S
       } else if (data.length === 1 && data.charCodeAt(0) >= 32) {
-        resolve({ name: data, raw: data });
+        done({ name: data, raw: data });
+      } else if (data.length > 1 && !data.startsWith("\x1b")) {
+        // Non-bracketed paste fallback: multi-char printable data
+        const filtered = [...data.replace(/\r\n/g, "\n").replace(/\r/g, "\n")]
+          .filter((c) => c.charCodeAt(0) >= 32 || c === "\n")
+          .join("");
+        if (filtered.length > 0) {
+          done({ name: "paste", raw: filtered });
+        } else {
+          stdin.setRawMode(true);
+          stdin.resume();
+          stdin.on("data", onData);
+        }
       } else {
         // Unknown sequence — treat as no-op, read again
         stdin.setRawMode(true);

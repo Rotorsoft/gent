@@ -62,6 +62,16 @@ export async function showInput(opts: InputOptions): Promise<string | null> {
         render();
         break;
 
+      case "paste": {
+        const flat = key.raw.replace(/\n/g, "");
+        if (flat.length > 0) {
+          value += flat;
+          cursorBlink = true;
+          render();
+        }
+        break;
+      }
+
       default:
         // Single printable character
         if (key.raw.length === 1 && key.raw.charCodeAt(0) >= 32) {
