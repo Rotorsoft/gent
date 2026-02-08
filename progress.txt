@@ -308,3 +308,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: src/tui/key-reader.ts, src/tui/multiline-input.ts, src/tui/input-dialog.ts, src/tui/key-reader.test.ts, src/tui/multiline-input.test.ts
 - Changes: Enabled bracketed paste mode in readKey() with \x1b[?2004h/l escape codes. Added detection for bracketed paste delimiters and non-bracketed paste fallback for multi-char data. Added "paste" case to multiline input (preserves newlines) and single-line input (strips newlines). Added 12 key-reader tests and 5 paste rendering tests.
 - Decisions: Guard non-bracketed paste with !data.startsWith("\x1b") to avoid misidentifying unknown escape sequences. Normalize \r\n to \n in both paste paths.
+
+[2026-02-08] #113 docs: add status badges to README.md
+- Files: README.md, progress.txt
+- Changes: Added six badges (CI, Release, npm version, npm downloads, License, Node.js) below the title and above the description, each linking to its corresponding resource.
+- Decisions: Used standard shields.io and GitHub Actions badge URLs. Single badge row with space separators.
