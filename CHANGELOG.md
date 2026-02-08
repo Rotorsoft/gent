@@ -1,3 +1,10 @@
+# [1.26.0](https://github.com/rotorsoft/gent/compare/v1.25.3...v1.26.0) (2026-02-08)
+
+
+### Features
+
+* support copy and paste in multi-line and single-line input dialogs ([673005f](https://github.com/rotorsoft/gent/commit/673005f0abf40ca2a48401b8a85422546ab81bfc)), closes [#112](https://github.com/rotorsoft/gent/issues/112)
+
 ## [1.25.3](https://github.com/rotorsoft/gent/compare/v1.25.2...v1.25.3) (2026-02-06)
 
 
