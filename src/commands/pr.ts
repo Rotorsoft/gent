@@ -9,7 +9,7 @@ import {
   getCurrentUser,
   updateIssueLabels,
 } from "../lib/github.js";
-import { buildPrPrompt } from "../lib/prompts.js";
+import { buildPrPrompt, buildPrVideoPrompt } from "../lib/prompts.js";
 import {
   invokeAI,
   getProviderDisplayName,
@@ -132,14 +132,7 @@ export async function prCommand(options: PrOptions): Promise<void> {
         logger.warning("Playwright not available. Skipping video capture.");
         logger.dim("Install Playwright with: npm install -D playwright");
       } else {
-        captureVideoInstructions = `
-
-IMPORTANT: This PR contains UI changes. Use the Playwright MCP plugin to:
-1. Start the dev server if needed
-2. Navigate to the relevant pages showing the UI changes
-3. Capture a short demo video (max ${config.video.max_duration}s) showcasing the changes
-4. Upload the video to GitHub and include it in the PR description under a "## Demo Video" section
-`;
+        captureVideoInstructions = buildPrVideoPrompt(config.video.max_duration);
       }
     }
   }

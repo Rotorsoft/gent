@@ -4,6 +4,9 @@ import {
   parseTicketMeta,
   extractIssueBody,
   buildImplementationPrompt,
+  buildPrPrompt,
+  buildCommitPrompt,
+  buildPrVideoPrompt,
   extractTitle,
   generateFallbackTitle,
 } from "./prompts.js";
@@ -44,9 +47,18 @@ const createTestConfig = (provider: "claude" | "gemini"): GentConfig => ({
     sandbox_mode: "default",
     agent_file: "AGENT.md",
   },
+  codex: {
+    agent_file: "AGENT.md",
+  },
   ai: {
     provider,
     auto_fallback: false,
+  },
+  video: {
+    enabled: true,
+    max_duration: 30,
+    width: 1280,
+    height: 720,
   },
   validation: ["npm run typecheck"],
 });
@@ -137,6 +149,51 @@ describe("buildImplementationPrompt", () => {
     expect(prompt).toContain("## Current Progress");
     expect(prompt).toContain("## Review Feedback");
     expect(prompt).toContain("Fix the tests");
+  });
+});
+
+describe("buildPrPrompt", () => {
+  const mockIssue = { number: 42, title: "Fix bug", body: "Bug description" };
+
+  it("should include issue context when provided", () => {
+    const prompt = buildPrPrompt(mockIssue, ["fix: bug"], "1 file changed");
+    expect(prompt).toContain("#42: Fix bug");
+    expect(prompt).toContain("Closes #42");
+  });
+
+  it("should handle null issue", () => {
+    const prompt = buildPrPrompt(null, ["chore: update"], "2 files changed");
+    expect(prompt).not.toContain("Related Issue");
+    expect(prompt).not.toContain("Closes");
+  });
+
+  it("should include commits and diff", () => {
+    const prompt = buildPrPrompt(null, ["feat: add", "fix: typo"], "3 files");
+    expect(prompt).toContain("- feat: add");
+    expect(prompt).toContain("- fix: typo");
+    expect(prompt).toContain("3 files");
+  });
+});
+
+describe("buildCommitPrompt", () => {
+  it("should include issue context when provided", () => {
+    const config = createTestConfig("claude");
+    const prompt = buildCommitPrompt(42, "Fix bug", config);
+    expect(prompt).toContain("Related Issue: #42 - Fix bug");
+    expect(prompt).toContain("Co-Authored-By: Claude <noreply@anthropic.com>");
+  });
+
+  it("should handle no linked issue", () => {
+    const config = createTestConfig("claude");
+    const prompt = buildCommitPrompt(null, null, config);
+    expect(prompt).toContain("No linked issue");
+  });
+});
+
+describe("buildPrVideoPrompt", () => {
+  it("should include max duration", () => {
+    const prompt = buildPrVideoPrompt(30);
+    expect(prompt).toContain("max 30s");
   });
 });
 

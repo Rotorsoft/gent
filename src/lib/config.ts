@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import type { GentConfig, AIProvider } from "../types/index.js";
+import { DEFAULT_PROMPTS, interpolate } from "./default-prompts.js";
 
 // Module-level variable to hold runtime provider override (e.g. from TUI)
 let runtimeProvider: AIProvider | null = null;
@@ -86,6 +87,22 @@ export function getAgentPath(cwd: string = process.cwd()): string | null {
   return existsSync(agentPath) ? agentPath : null;
 }
 
+export function getPromptsFilePath(cwd: string = process.cwd()): string {
+  return join(cwd, ".gent-prompts.yml");
+}
+
+function loadPromptsFile(cwd: string): Record<string, string> {
+  const promptsPath = getPromptsFilePath(cwd);
+  if (!existsSync(promptsPath)) return {};
+  try {
+    const content = readFileSync(promptsPath, "utf-8");
+    const parsed = parseYaml(content);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
 export function loadConfig(cwd: string = process.cwd()): GentConfig {
   const configPath = getConfigPath(cwd);
 
@@ -101,6 +118,23 @@ export function loadConfig(cwd: string = process.cwd()): GentConfig {
   } catch {
     return DEFAULT_CONFIG;
   }
+}
+
+/**
+ * Get a prompt template by key, with user overrides from .gent-prompts.yml
+ * merged over defaults. Performs variable interpolation on the result.
+ */
+export function getPrompt(
+  key: string,
+  variables: Record<string, string>,
+  cwd: string = process.cwd()
+): string {
+  const overrides = loadPromptsFile(cwd);
+  const template = overrides[key] ?? DEFAULT_PROMPTS[key];
+  if (!template) {
+    throw new Error(`Unknown prompt key: ${key}`);
+  }
+  return interpolate(template, variables);
 }
 
 export function loadAgentInstructions(
@@ -286,4 +320,41 @@ validation:
   - "npm run lint"
   - "npm run test"
 `;
+}
+
+/**
+ * Generate a .gent-prompts.yml file with all built-in prompt templates.
+ * Each prompt is documented with its available variables.
+ */
+export function generateDefaultPromptsFile(): string {
+  const variableDocs: Record<string, string> = {
+    ticket: `# Variables: {description}, {agent_instructions_section}, {additional_hints_section}`,
+    implementation: `# Variables: {issue_number}, {issue_title}, {issue_body}, {agent_instructions_section},
+#   {progress_section}, {extra_context_section}, {validation_commands},
+#   {provider_name}, {provider_email}, {progress_file}`,
+    pr: `# Variables: {issue_section}, {commits}, {diff_summary}, {close_reference}`,
+    commit_message: `# Variables: {issue_context}, {diff}`,
+    commit: `# Variables: {issue_context}, {provider_name}, {provider_email}`,
+    video: `# Variables: {issue_number}, {issue_title}, {agent_instructions_section},
+#   {max_duration}, {width}, {height}`,
+    pr_video: `# Variables: {max_duration}`,
+  };
+
+  let output = `# Gent Prompt Templates
+# Override any prompt by uncommenting and editing it.
+# Templates use {variable_name} syntax for interpolation.
+# See https://github.com/rotorsoft/gent for documentation
+`;
+
+  for (const [key, template] of Object.entries(DEFAULT_PROMPTS)) {
+    const docs = variableDocs[key] || "";
+    output += `\n# --- ${key} ---\n`;
+    if (docs) output += `${docs}\n`;
+    output += `# ${key}: |\n`;
+    for (const line of template.split("\n")) {
+      output += `#   ${line}\n`;
+    }
+  }
+
+  return output;
 }

@@ -313,3 +313,8 @@ Each entry documents: date, feature, decisions, files changed, tests, and concer
 - Files: README.md, progress.txt
 - Changes: Added six badges (CI, Release, npm version, npm downloads, License, Node.js) below the title and above the description, each linking to its corresponding resource.
 - Decisions: Used standard shields.io and GitHub Actions badge URLs. Single badge row with space separators.
+
+[2026-02-16] #116 refactor: extract hardcoded prompts to configurable templates
+- Files: src/lib/default-prompts.ts, src/lib/prompts.ts, src/lib/config.ts, src/types/index.ts, src/commands/create.ts, src/commands/pr.ts, src/commands/init.ts, src/index.ts, src/commands/tui.test.ts, src/lib/prompts.test.ts, src/lib/config.test.ts, src/lib/default-prompts.test.ts, progress.txt
+- Changes: Extracted all hardcoded prompts from prompts.ts and command files into configurable templates in default-prompts.ts. Added {variable} interpolation, config-driven prompt loading from .gent.yml and .gent-prompts.yml, getPrompt() helper, and gent init --prompts to generate reference file.
+- Decisions: Three-layer merge: built-in defaults < .gent-prompts.yml < .gent.yml prompts section. Conditional sections pre-built as variables by build functions. Backwards compatible — no prompts config needed.

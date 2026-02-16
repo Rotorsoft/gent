@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { generateDefaultConfig, loadConfig } from "./config.js";
+import { generateDefaultConfig, generateDefaultPromptsFile, getPrompt, loadConfig } from "./config.js";
+import { DEFAULT_PROMPTS } from "./default-prompts.js";
 
 // Mock fs for loadConfig tests
 vi.mock("node:fs", async () => {
@@ -82,6 +83,59 @@ describe("config", () => {
       expect(config).toContain("# AI provider settings");
       expect(config).toContain('provider: "claude"');
       expect(config).toContain("auto_fallback: true");
+    });
+  });
+
+  describe("getPrompt", () => {
+    it("should return default prompt when no .gent-prompts.yml exists", () => {
+      const result = getPrompt("ticket", { description: "test" }, "/nonexistent/path");
+      expect(result).toContain("User Request: test");
+    });
+
+    it("should throw for unknown prompt key", () => {
+      expect(() => getPrompt("nonexistent_key", {}, "/nonexistent/path")).toThrow("Unknown prompt key");
+    });
+
+    it("should leave unresolved variables as-is", () => {
+      const result = getPrompt("commit", { issue_context: "test" }, "/nonexistent/path");
+      // provider_name and provider_email are not provided, should stay as placeholders
+      expect(result).toContain("{provider_name}");
+      expect(result).toContain("{provider_email}");
+    });
+
+    it("should interpolate multiple variables", () => {
+      const result = getPrompt("pr", {
+        issue_section: "## Related Issue\n#1: Test\n\n",
+        commits: "- feat: add feature",
+        diff_summary: "2 files changed",
+        close_reference: "Closes #1",
+      }, "/nonexistent/path");
+      expect(result).toContain("#1: Test");
+      expect(result).toContain("feat: add feature");
+      expect(result).toContain("2 files changed");
+      expect(result).toContain("Closes #1");
+    });
+  });
+
+  describe("generateDefaultPromptsFile", () => {
+    it("should include all prompt keys", () => {
+      const content = generateDefaultPromptsFile();
+      for (const key of Object.keys(DEFAULT_PROMPTS)) {
+        expect(content).toContain(`--- ${key} ---`);
+      }
+    });
+
+    it("should include variable documentation", () => {
+      const content = generateDefaultPromptsFile();
+      expect(content).toContain("{description}");
+      expect(content).toContain("{issue_number}");
+      expect(content).toContain("{max_duration}");
+    });
+
+    it("should have a descriptive header", () => {
+      const content = generateDefaultPromptsFile();
+      expect(content).toContain("Gent Prompt Templates");
+      expect(content).toContain("{variable_name}");
     });
   });
 });
