@@ -73,6 +73,7 @@ program
   .command("init")
   .description("Initialize gent workflow in current repository (optional — for customization)")
   .option("-f, --force", "Overwrite existing configuration")
+  .option("--prompts", "Generate .gent-prompts.yml with all default prompt templates")
   .action(async (options) => {
     await initCommand(options);
   });

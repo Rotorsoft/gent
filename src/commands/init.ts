@@ -7,7 +7,9 @@ import { checkGitRepo } from "../utils/validators.js";
 import {
   configExists,
   generateDefaultConfig,
+  generateDefaultPromptsFile,
   getConfigPath,
+  getPromptsFilePath,
 } from "../lib/config.js";
 import { initializeProgress } from "../lib/progress.js";
 import { loadConfig } from "../lib/config.js";
@@ -112,7 +114,7 @@ All AI commits should include the Co-Authored-By trailer as specified in the tas
 - [E.g., "Always use async/await over callbacks"]
 `;
 
-export async function initCommand(options: { force?: boolean }): Promise<void> {
+export async function initCommand(options: { force?: boolean; prompts?: boolean }): Promise<void> {
   logger.bold("Initializing gent workflow (optional — gent works with sensible defaults)...");
   logger.newline();
 
@@ -179,6 +181,17 @@ export async function initCommand(options: { force?: boolean }): Promise<void> {
   const config = loadConfig(cwd);
   initializeProgress(config, cwd);
   logger.success(`Created ${colors.file(config.progress.file)}`);
+
+  // Generate .gent-prompts.yml if --prompts flag is set
+  if (options.prompts) {
+    const promptsPath = getPromptsFilePath(cwd);
+    if (!existsSync(promptsPath) || options.force) {
+      writeFileSync(promptsPath, generateDefaultPromptsFile(), "utf-8");
+      logger.success(`Created ${colors.file(".gent-prompts.yml")} with all default prompt templates`);
+    } else {
+      logger.info(`${colors.file(".gent-prompts.yml")} already exists, skipping`);
+    }
+  }
 
   // If the repo has no commits, create an initial commit with the gent config files
   if (!(await hasCommits())) {

@@ -512,6 +512,40 @@ gent create "Fix auth"
    - Validation commands
    - Branch naming preferences
 
+3. **Customize AI prompts** — override any built-in prompt:
+   ```bash
+   # Generate .gent-prompts.yml with all defaults as a reference
+   gent init --prompts
+   ```
+   Then uncomment and edit any prompt in `.gent-prompts.yml`. Templates use `{variable}` syntax for interpolation — dynamic values are replaced at runtime while your custom wording is preserved.
+
+   Available prompt keys and their variables:
+
+   | Key | Purpose | Variables |
+   |-----|---------|-----------|
+   | `ticket` | Issue creation | `{description}`, `{agent_instructions_section}`, `{additional_hints_section}` |
+   | `implementation` | Code implementation | `{issue_number}`, `{issue_title}`, `{issue_body}`, `{validation_commands}`, `{provider_name}`, `{provider_email}`, `{progress_file}` |
+   | `pr` | PR description | `{issue_section}`, `{commits}`, `{diff_summary}`, `{close_reference}` |
+   | `commit` | Interactive commit | `{issue_context}`, `{provider_name}`, `{provider_email}` |
+   | `commit_message` | Commit message | `{issue_context}`, `{diff}` |
+   | `pr_video` | Video capture | `{max_duration}` |
+
+   Example override in `.gent-prompts.yml`:
+   ```yaml
+   implementation: |
+     Issue #{issue_number}: {issue_title}
+
+     {issue_body}
+
+     {agent_instructions_section}
+     ## Instructions
+     1. Implement the feature
+     2. Add tests
+     3. Run validation:
+     {validation_commands}
+     4. Commit with: Co-Authored-By: {provider_name} <{provider_email}>
+   ```
+
 ### Handling AI Blocks
 
 If the AI gets stuck (`ai-blocked` label):
