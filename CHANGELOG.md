@@ -1,3 +1,5 @@
+## [1.26.1](https://github.com/rotorsoft/gent/compare/v1.26.0...v1.26.1) (2026-02-16)
+
 # [1.26.0](https://github.com/rotorsoft/gent/compare/v1.25.3...v1.26.0) (2026-02-08)
 
 
